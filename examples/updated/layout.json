@@ -1,0 +1,218 @@
+{
+  "type": "page",
+  "props": {},
+  "children": [
+    {
+      "type": "speech",
+      "props": {
+        "stateName": "$Speak",
+        "voiceURI": "Moira",
+        "pitch": 1,
+        "rate": 1,
+        "volume": 1
+      },
+      "children": []
+    },
+    {
+      "type": "stack",
+      "props": { "scale": "1", "background": "", "direction": "column" },
+      "children": [
+        {
+          "type": "display",
+          "props": {
+            "scale": "1",
+            "background": "white",
+            "stateName": "$Display",
+            "fontSize": "2"
+          },
+          "children": []
+        },
+        {
+          "type": "tab control",
+          "props": {
+            "scale": "6",
+            "background": "",
+            "stateName": "$tabControl",
+            "tabEdge": "none",
+            "activeTab": ""
+          },
+          "children": [
+            {
+              "type": "tab panel",
+              "props": {
+                "scale": "1",
+                "background": "",
+                "name": "Home",
+                "label": "",
+                "direction": "column"
+              },
+              "children": [
+                {
+                  "type": "grid",
+                  "props": {
+                    "scale": "1",
+                    "background": "white",
+                    "rows": 3,
+                    "columns": 3,
+                    "filters": [
+                      {
+                        "field": "#sheetName",
+                        "operator": "equals",
+                        "value": "'Home'"
+                      },
+                      {
+                        "field": "#role",
+                        "operator": "equals",
+                        "value": "$role"
+                      }
+                    ],
+                    "name": "hp",
+                    "fillItems": false
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "type": "tab panel",
+              "props": {
+                "scale": "1",
+                "background": "",
+                "name": "Keyboard",
+                "label": "",
+                "direction": "column"
+              },
+              "children": [
+                {
+                  "type": "stack",
+                  "props": {
+                    "scale": "1",
+                    "background": "",
+                    "direction": "column"
+                  },
+                  "children": [
+                    {
+                      "type": "grid",
+                      "props": {
+                        "scale": "1",
+                        "background": "white",
+                        "rows": "1",
+                        "columns": "10",
+                        "filters": [
+                          {
+                            "field": "#sheetName",
+                            "operator": "equals",
+                            "value": "'predict'"
+                          },
+                          {
+                            "field": "#label",
+                            "operator": "starts with",
+                            "value": "$prefix"
+                          }
+                        ],
+                        "name": "predict",
+                        "fillItems": true
+                      },
+                      "children": []
+                    },
+                    {
+                      "type": "grid",
+                      "props": {
+                        "scale": "5",
+                        "background": "white",
+                        "rows": 3,
+                        "columns": 3,
+                        "filters": [
+                          {
+                            "field": "#sheetName",
+                            "operator": "equals",
+                            "value": "'kb'"
+                          },
+                          {
+                            "field": "#case",
+                            "operator": "equals",
+                            "value": "$case"
+                          }
+                        ],
+                        "name": "kb",
+                        "fillItems": false
+                      },
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tab panel",
+              "props": {
+                "scale": "1",
+                "background": "",
+                "name": "Morph",
+                "label": "",
+                "direction": "column"
+              },
+              "children": [
+                {
+                  "type": "grid",
+                  "props": {
+                    "scale": "1",
+                    "background": "white",
+                    "rows": "6",
+                    "columns": "10",
+                    "filters": [
+                      {
+                        "field": "#sheetName",
+                        "operator": "equals",
+                        "value": "'Morph'"
+                      },
+                      {
+                        "field": "#group",
+                        "operator": "equals",
+                        "value": "$group"
+                      }
+                    ],
+                    "name": "morph",
+                    "fillItems": false
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "type": "tab panel",
+              "props": {
+                "scale": "1",
+                "background": "",
+                "name": "Num",
+                "label": "Num",
+                "direction": "column"
+              },
+              "children": [
+                {
+                  "type": "grid",
+                  "props": {
+                    "scale": "1",
+                    "background": "white",
+                    "rows": 3,
+                    "columns": 3,
+                    "filters": [
+                      {
+                        "field": "#sheetName",
+                        "operator": "equals",
+                        "value": "'num'"
+                      }
+                    ],
+                    "name": "num",
+                    "fillItems": false
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

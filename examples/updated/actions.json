@@ -1,0 +1,169 @@
+[
+  {
+    "origin": "*",
+    "event": "init",
+    "conditions": [],
+    "updates": {
+      "$case": "'lower'",
+      "$role": "'hp'",
+      "$prefix": "''",
+      "$group": "'I'"
+    }
+  },
+  {
+    "origin": "*",
+    "event": "press",
+    "conditions": ["#label = 'Clear'"],
+    "updates": { "$Display": "''", "$prefix": "''", "$toSay": "''" }
+  },
+  {
+    "origin": "*",
+    "event": "press",
+    "conditions": ["#label = 'Delete'"],
+    "updates": { "$Display": "replace_last('')", "$prefix": "''" }
+  },
+  {
+    "origin": "*",
+    "event": "press",
+    "conditions": ["#changepg"],
+    "updates": { "$role": "#changepg" }
+  },
+  {
+    "origin": "*",
+    "event": "press",
+    "conditions": ["#label = 'Speak'", "$Again", "!$Display"],
+    "updates": { "$Speak": "$Again" }
+  },
+  {
+    "origin": "*",
+    "event": "press",
+    "conditions": ["#label = 'HOME'"],
+    "updates": { "$tabControl": "'Home'" }
+  },
+  {
+    "origin": "hp",
+    "event": "press",
+    "conditions": ["#label = 'Numbers'"],
+    "updates": { "$tabControl": "'Num'" }
+  },
+  {
+    "origin": "hp",
+    "event": "press",
+    "conditions": ["#label = 'Keyboard'"],
+    "updates": { "$tabControl": "'Keyboard'" }
+  },
+  {
+    "origin": "*",
+    "event": "press",
+    "conditions": ["#label = 'Speak'"],
+    "updates": {
+      "$Speak": "$toSay",
+      "$Display": "''",
+      "$Again": "$toSay",
+      "$toSay": "''"
+    }
+  },
+  {
+    "origin": "*",
+    "event": "press",
+    "conditions": ["#pronounce"],
+    "updates": {
+      "$toSay": "add_word(#pronounce)",
+      "$Display": "add_word(#display)"
+    }
+  },
+  {
+    "origin": "kb",
+    "event": "press",
+    "conditions": ["#changecase"],
+    "updates": { "$case": "#changecase" }
+  },
+  {
+    "origin": "*",
+    "event": "press",
+    "conditions": ["#label = \"SPACE\""],
+    "updates": { "$Display": "add_letter(' ')", "$prefix": "''" }
+  },
+  {
+    "origin": "kb",
+    "event": "press",
+    "conditions": ["#punctuation"],
+    "updates": { "$Display": "add_letter(#label + ' ')", "$prefix": "''" }
+  },
+  {
+    "origin": "kb",
+    "event": "press",
+    "conditions": [],
+    "updates": {
+      "$Display": "add_letter(#display)",
+      "$toSay": "add_letter(#display)",
+      "$prefix": "add_letter(#label)"
+    }
+  },
+  {
+    "origin": "hp",
+    "event": "press",
+    "conditions": ["#morph", "$lastToken = #display"],
+    "updates": { "$tabControl": "'Morph'", "$group": "$lastToken" }
+  },
+  {
+    "origin": "hp",
+    "event": "press",
+    "conditions": ["#morph"],
+    "updates": {
+      "$Display": "add_word(#display)",
+      "$toSay": "add_word(#display)",
+      "$lastToken": "#display"
+    }
+  },
+  {
+    "origin": "hp",
+    "event": "press",
+    "conditions": ["#display"],
+    "updates": {
+      "$Display": "add_word(#display)",
+      "$toSay": "add_word(#display)"
+    }
+  },
+  {
+    "origin": "predict",
+    "event": "press",
+    "conditions": ["$Display = ''"],
+    "updates": { "$Display": "add_word(#label)", "$toSay": "add_word(#label)" }
+  },
+  {
+    "origin": "predict",
+    "event": "press",
+    "conditions": [],
+    "updates": {
+      "$Display": "replace_last(#label + ' ')",
+      "$toSay": "replace_last(#label + ' ')",
+      "$prefix": "''"
+    }
+  },
+  {
+    "origin": "morph",
+    "event": "press",
+    "conditions": ["#label = 'Home'"],
+    "updates": { "$tabControl": "'Home'" }
+  },
+  {
+    "origin": "morph",
+    "event": "press",
+    "conditions": [],
+    "updates": {
+      "$Display": "replace_last(#display + ' ')",
+      "$toSay": "replace_last(#display)",
+      "$tabControl": "'Home'"
+    }
+  },
+  {
+    "origin": "num",
+    "event": "press",
+    "conditions": ["#value"],
+    "updates": {
+      "$Display": "add_letter(#value)",
+      "$toSay": "add_letter(#value)"
+    }
+  }
+]
