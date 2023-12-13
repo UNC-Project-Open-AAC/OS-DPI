@@ -10621,10 +10621,13 @@ async function getActualImageSize(img) {
   if (img) {
     // wait for the image to load
     await waitFor(() => img.complete && img.naturalWidth != 0);
+    const vsd = /** @type {HTMLDivElement} */ (img.closest("div.vsd"));
     const cw = img.width,
       ch = img.height,
       iw = img.naturalWidth,
       ih = img.naturalHeight,
+      pw = vsd.clientWidth,
+      ph = vsd.clientHeight,
       iratio = iw / ih,
       cratio = cw / ch;
     if (iratio > cratio) {
@@ -10634,8 +10637,8 @@ async function getActualImageSize(img) {
       width = ch * iratio;
       height = ch;
     }
-    left = (cw - width) / 2 + img.x;
-    top = (ch - height) / 2 + img.y;
+    left = (pw - width) / 2;
+    top = (ph - height) / 2;
   }
   return { left, top, width, height };
 }
