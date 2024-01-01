@@ -15,13 +15,12 @@ tf.setBackend("webgl").then(
   (error) => {
     console.log("tf.setBackend('webgl') error", error);
     close();
-  }
+  },
 );
 
 var facemeshTensorFlowModel;
 
 onmessage = (e) => {
-  // console.log('Message received from main script', e.data);
   if (e.data.type === "LOAD") {
     facemesh.load(e.data.options).then((model) => {
       facemeshTensorFlowModel = model;
@@ -34,7 +33,7 @@ onmessage = (e) => {
       },
       (error) => {
         console.log(error);
-      }
+      },
     );
   }
 };

@@ -77,28 +77,51 @@ div#messages {
   justify-content: center;
   align-items: center;
 }
-div.labeledInput {
+input:focus ~ span.propValue {
+  position: absolute;
+  top: -1.5em;
+  right: 0;
+  padding: 0.2em;
+  background-color: var(--surface2);
   display: inline-block;
+  font-size: 75%;
 }
-div.labeledInput:has(div.Code) {
+span.propValue {
+  display: none;
+}
+label[hiddenLabel]:has(div.Code) {
   display: block;
   flex-basis: 100%;
 }
-label[hiddenLabel] {
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  height: 1px;
-  overflow: hidden;
-  position: absolute;
+label.labeledInput {
   white-space: nowrap;
+  line-height: 1.7em;
+  position: relative;
+}
+label.labeledInput[hiddenLabel] span.labelText {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
   width: 1px;
+}
+label.labeledInput input[type="checkbox"] {
+  vertical-align: middle;
 }
 select:required:invalid {
   color: gray;
   border-color: red;
 }
-input[inputmode="numeric"] {
-  width: 3em;
+input[type="text"] {
+  min-width: 10ch;
+}
+input[type="text"][inputmode="numeric"],
+input[type="text"][inputmode="decimal"] {
+  width: 3ch;
+  min-width: 3ch;
 }
 input[inputmode="numeric"]:invalid {
   color: red;
@@ -109,6 +132,10 @@ textarea:invalid,
 textarea[invalid] {
   border-color: red;
   background-color: var(--warning);
+}
+input,
+select {
+  min-height: 1.5rem;
 }
 
 option[value=""][disabled] {
@@ -169,6 +196,15 @@ div.Code textarea.line-numbers::-webkit-scrollbar {
   display: none;
 }
 */
+
+.swatch {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  border: 1px solid black;
+  vertical-align: middle;
+  margin-left: 0.2em;
+}
   button.treebase {
     background-color: rgba(0, 0, 0, 0.05);
     border-radius: 0.5em;
@@ -213,27 +249,15 @@ div.Code textarea.line-numbers::-webkit-scrollbar {
   .treebase label {
     display: inline-block;
   }
-  color-input {
-    margin-right: 1em;
-    align-items: center;
-  }
-
-  color-input input {
-    flex: 1 1 0;
-    margin-right: 0.2em;
-  }
-
-  color-input .swatch {
-    width: 1em;
-    height: 1em;
-    display: inline-block;
-    border: 1px solid black;
-    vertical-align: middle;
-  }
-  color-input input:invalid {
-    background-color: #fcc;
-    border-color: red;
-  }
+table.GridFilter td:nth-child(4) input {
+  width: 100% !important;
+}
+table.GridFilter td:nth-child(4) {
+  width: 100% !important;
+}
+table.GridFilter td:nth-child(4) label.labeledInput {
+  width: 100% !important;
+}
 .stack {
   display: flex;
   width: 100%;
@@ -351,10 +375,10 @@ body:not(.designing) video[dbsrc]:not([src]) {
 }
 
 .display button {
-  display: flex;
   width: 100%;
   height: 100%;
   background-color: inherit;
+  text-align: left;
 }
 
 .display button:disabled {
@@ -378,6 +402,24 @@ body:not(.designing) video[dbsrc]:not([src]) {
 .radio button {
   min-width: 45%;
   max-width: 45%;
+}
+
+.settings .Radio table.RadioOptions {
+  width: 100%;
+}
+.settings .Radio table.RadioOptions tr {
+  width: 100%;
+}
+.settings .Radio table.RadioOptions td:nth-child(2) {
+  width: 30%;
+}
+
+.settings .Radio table.RadioOptions label.labeledInput {
+  width: 100% !important;
+}
+
+.settings .Radio table.RadioOptions input {
+  width: 100% !important;
 }
 .gap {
   display: flex;
@@ -499,6 +541,13 @@ body:not(.designing) video[dbsrc]:not([src]) {
 .tabcontrol.none .buttons {
   display: none;
 }
+
+.tabcontrol .tabpanel {
+  display: none;
+}
+.tabcontrol .tabpanel.ActivePanel {
+  display: flex;
+}
 div.modaldialog {
   visibility: hidden;
   position: fixed;
@@ -606,48 +655,310 @@ button.button {
   height: 100%;
   width: 100%;
 }
-  #monitor {
-    margin-top: 1em;
-    margin-left: 1em;
-  }
+#monitor {
+  margin-top: 1em;
+  margin-left: 1em;
+  overflow: auto;
+}
 
-  #monitor div {
-    display: flex;
-    height: 100%;
-    overflow-y: auto;
-    font-size: 75%;
-    margin-top: 0.2em;
-  }
+#monitor div {
+  display: flex;
+  overflow-y: auto;
+  font-size: 10px;
+  margin-top: 0.2em;
+}
 
-  #monitor table {
-    border-collapse: collapse;
-    border: 1px solid black;
-    height: max-content;
-    margin-right: 1em;
-  }
+#monitor table {
+  border-collapse: collapse;
+  border: 1px solid black;
+  height: max-content;
+  margin-right: 1em;
+}
 
-  #monitor table td,
-  #monitor table th {
-    border: 1px solid black;
-    padding: 0.5em;
-  }
-  .content form {
-    display: flex;
-    width: 100%;
-    gap: 0.5em;
-  }
+#monitor table td,
+#monitor table th {
+  border: 1px solid black;
+  padding: 0.5em;
+}
 
-  .content form input[type="url"] {
-    flex: 1;
-    max-width: 60%;
-  }
+#monitor table tr[updated] {
+  font-weight: bold;
+}
 
-  .content div#messages {
-    color: red;
-    font-size: 2em;
-    padding-left: 1em;
-    padding-top: 1em;
-  }
+#monitor table tr[undefined] {
+  color: var(--failure);
+}
+
+#monitor table tr[accessed] {
+  background-color: var(--surface2);
+}
+body.designing {
+  display: grid;
+  grid-template-rows: 2.5em 50% auto;
+  grid-template-columns: 50% 50%;
+}
+
+body.designing div#UI {
+  font-size: 0.7vw;
+  flex: 1 1 0;
+}
+
+div#designer {
+  display: none;
+}
+
+div#tabs {
+  width: 100%;
+  overflow-y: hidden;
+  overflow-x: hidden;
+  flex: 1 1 0;
+}
+
+body.designing div#designer {
+  display: flex;
+  grid-row-start: 1;
+  grid-row-end: 4;
+  grid-column-start: 2;
+  overflow: hidden;
+  height: 100vh;
+  flex-direction: column;
+}
+body.designing #UI {
+  grid-row-start: 1;
+  grid-row-end: 3;
+  grid-column-start: 1;
+  position: relative;
+}
+body.designing #monitor {
+  grid-row-start: 3;
+  grid-column-start: 1;
+}
+
+#designer ol,
+#designer ul {
+  list-style-type: none;
+  margin-block-start: 0;
+  padding-inline-start: 1em;
+  border-left: 1px solid #d0d0d0;
+}
+
+#designer .settings > details > summary {
+  cursor: pointer;
+  background-color: var(--surface2);
+}
+
+#designer .settings > details {
+  margin-bottom: 0.5em;
+}
+
+details summary > * {
+  display: inline;
+}
+
+#designer .settings > details[open] {
+  border: 4px inset var(--surface4);
+  padding-left: 0.2em;
+  padding-bottom: 0.2em;
+}
+
+#designer .settings > details summary h3 {
+  font-weight: 500;
+}
+
+#designer details label {
+  margin-left: 1em;
+  margin-bottom: 0.5em;
+}
+
+#designer .settings {
+  background-color: var(--surface2);
+  color: var(--text2);
+  border: 0px;
+  box-shadow: none;
+}
+
+#designer .settings:has([aria-selected="true"]),
+#designer .settings[aria-selected="true"] {
+  background-color: var(--surface1);
+  color: var(--text1);
+  border: 4px dashed var(--brand);
+}
+#designer .settings:has(.settings [aria-selected="true"]) {
+  background-color: var(--surface2);
+  color: var(--text2);
+  border: 0px;
+  box-shadow: none;
+}
+
+#designer :focus {
+  outline: var(--text2) 4px dashed;
+}
+
+#designer .indicator {
+  color: var(--brand);
+}
+
+#designer .panels {
+  display: block;
+  overflow-y: auto;
+}
+
+.selectedInDesigner {
+  border: 2px dashed red;
+}
+
+#UI [id]:has(.selectedInDesigner) {
+  border: 2px dotted yellow;
+}
+
+.designer {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+.designer .buttons button:focus {
+  background-color: var(--surface2);
+}
+.designer .panels {
+  display: flex;
+}
+.designer .buttons {
+  display: flex;
+  list-style-type: none;
+  padding-inline-start: 0 !important;
+  flex-direction: row;
+}
+.designer .buttons li {
+  flex: 1 1 0;
+  display: flex;
+}
+.designer .buttons button {
+  flex: 1 1 0;
+  background-color: var(--surface2);
+  color: var(--text2);
+}
+.designer .buttons button[active] {
+  font-weight: bold;
+  background-color: var(--surface1);
+  color: var(--text1);
+}
+
+.designer.top {
+  flex-direction: column;
+}
+.designer.top .panels {
+  order: 2;
+}
+.designer.top .buttons {
+  order: 1;
+}
+.designer.top .buttons button[active] {
+  border-bottom: 1px;
+  margin-top: 0px;
+}
+.designer.top .buttons button {
+  border-top-left-radius: 1em;
+  border-top-right-radius: 1em;
+  margin-top: 10px;
+}
+
+.designer.bottom {
+  flex-direction: column;
+}
+.designer.bottom .panels {
+  order: 1;
+}
+.designer.bottom .buttons {
+  order: 2;
+}
+.designer.bottom .buttons button[active] {
+  border-top: 1px;
+  margin-bottom: 0px;
+}
+.designer.bottom .buttons button {
+  border-bottom-left-radius: 1em;
+  border-bottom-right-radius: 1em;
+  margin-bottom: 10px;
+}
+
+.designer.right {
+  flex-direction: row;
+}
+.designer.right .panels {
+  order: 1;
+}
+.designer.right .buttons {
+  order: 2;
+  flex-direction: column;
+}
+.designer.right .buttons button[active] {
+  border-left: 1px;
+  margin-right: 0;
+}
+.designer.right .buttons button {
+  border-top-right-radius: 1em;
+  border-bottom-right-radius: 1em;
+  margin-right: 10px;
+}
+
+.designer.left {
+  flex-direction: row;
+}
+.designer.left .panels {
+  order: 2;
+  flex: 1;
+}
+.designer.left .buttons {
+  order: 1;
+  flex-direction: column;
+  flex: 1;
+}
+.designer.left .buttons button[active] {
+  border-right: 1px;
+  margin-left: 0;
+}
+.designer.left .buttons button {
+  border-top-left-radius: 1em;
+  border-bottom-left-radius: 1em;
+  margin-left: 10px;
+}
+
+.designer.none .buttons {
+  display: none;
+}
+
+.DesignerPanel {
+  display: none;
+}
+
+.DesignerPanel.ActivePanel {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+}
+.content form {
+  display: flex;
+  width: 100%;
+  gap: 0.5em;
+}
+
+.content form input[type="url"] {
+  flex: 1;
+  max-width: 60%;
+}
+
+.content div#messages {
+  color: red;
+  font-size: 2em;
+  padding-left: 1em;
+  padding-top: 1em;
+}
+
+.content label input[type="checkbox"] {
+  vertical-align: bottom;
+  margin-right: 0.5em;
+}
   #PleaseWait {
     position: fixed;
     width: 100vw;
@@ -716,7 +1027,7 @@ div.logging-indicator[logging] {
   width: 100%;
 }
 
-.settings div.labeledInput:has(textarea) {
+.settings label.labeledInput:has(textarea) {
   width: 100%;
 }
 div.empty {
@@ -741,12 +1052,10 @@ body.designing #UI [highlight="component"] {
 body.designing #UI [highlight="parent"] {
   border: 2px dotted red;
 }
-div.actions {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-}
 
+#designer .layout summary {
+  border-bottom: 1px solid #d0d0d0;
+}
 div.actions div.scroll {
   overflow-y: auto;
 }
@@ -779,16 +1088,20 @@ div.actions div.scroll {
   margin-top: 0.2em;
 }
 
-.actions div.condition div.labeledInput {
+.actions div.condition label.labeledInput {
   width: 100%;
 }
 
-.actions td.update div.labeledInput {
+.actions td.update label.labeledInput {
   width: 100%;
 }
 
 .actions td.update {
   overflow-wrap: anywhere;
+}
+
+.actions td.update input {
+  min-width: 100%;
 }
 
 .actions thead tr {
@@ -810,19 +1123,10 @@ div.actions div.scroll {
   background-color: var(--secondary-fg);
 }
 
-.actions .updates {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-gap: 0.25em 1em;
-}
-
-.actions input {
+.actions input[type="text"] {
+  min-width: 100%;
   width: 100%;
   box-sizing: border-box;
-}
-
-.actions label {
-  width: 100%;
 }
   #HotKeyHints {
   }
@@ -838,6 +1142,10 @@ details.Method > *:not(summary) {
   margin-bottom: 0;
   font-weight: normal;
   font-size: 80%;
+}
+
+div.MethodChooser > ul {
+  width: 100%;
 }
 div.access-pattern {
   padding-left: 12px;
@@ -871,13 +1179,7 @@ details.PatternManager summary h3 label {
   font-weight: normal;
   font-size: 80%;
 }
-div.Cue {
-  display: flex;
-  flex-wrap: wrap;
-}
-
 .Cue details {
-  flex-basis: 100%;
   width: 100%;
 }
 
@@ -1046,127 +1348,6 @@ dialog#OpenDialog button {
 .update-available #update-available-button {
   display: inline;
   background-color: var(--primary-bg);
-}
-body.designing {
-  display: grid;
-  grid-template-rows: 2.5em 50% auto;
-  grid-template-columns: 50% 50%;
-}
-
-body.designing div#UI {
-  font-size: 0.7vw;
-  flex: 1 1 0;
-}
-
-div#designer {
-  display: none;
-}
-
-div#tabs {
-  width: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  flex: 1 1 0;
-}
-
-body.designing div#designer {
-  display: flex;
-  grid-row-start: 1;
-  grid-row-end: 4;
-  grid-column-start: 2;
-  overflow: hidden;
-  height: 100vh;
-  flex-direction: column;
-}
-body.designing #UI {
-  grid-row-start: 1;
-  grid-row-end: 3;
-  grid-column-start: 1;
-  position: relative;
-}
-body.designing #monitor {
-  grid-row-start: 3;
-  grid-column-start: 1;
-}
-
-#designer ol,
-#designer ul {
-  list-style-type: none;
-  margin-block-start: 0;
-  padding-inline-start: 1em;
-  border-left: 1px solid #d0d0d0;
-}
-
-#designer .panels ol li:not(:last-of-type),
-#designer .panels ul li:not(:last-of-type) {
-  border-bottom: 1px solid #d0d0d0;
-  margin-bottom: 5px;
-}
-
-#designer details summary {
-  cursor: pointer;
-}
-
-details summary > * {
-  display: inline;
-}
-
-#designer details[open] {
-  border: 1px solid black;
-  margin-left: 1em;
-}
-
-#designer details[open] summary {
-  margin-left: -1em;
-}
-
-#designer details summary h3 {
-  font-weight: 500;
-}
-
-#designer details label {
-  margin-left: 1em;
-  margin-bottom: 0.5em;
-}
-
-#designer .settings {
-  background-color: var(--surface2);
-  color: var(--text2);
-  border: 0px;
-  box-shadow: none;
-}
-
-#designer .settings:has([aria-selected="true"]),
-#designer .settings[aria-selected="true"] {
-  background-color: var(--surface1);
-  color: var(--text1);
-  border: 4px dashed var(--brand);
-}
-#designer .settings:has(.settings [aria-selected="true"]) {
-  background-color: var(--surface2);
-  color: var(--text2);
-  border: 0px;
-  box-shadow: none;
-}
-
-#designer :focus {
-  outline: var(--text2) 4px dashed;
-}
-
-#designer .indicator {
-  color: var(--brand);
-}
-
-#designer .panels {
-  display: block;
-}
-
-.selectedInDesigner {
-  border: 2px dashed red;
-}
-
-#UI [id]:has(.selectedInDesigner) {
-  border: 2px dotted yellow;
 }
 /* 
 * Color management.

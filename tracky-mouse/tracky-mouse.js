@@ -168,7 +168,6 @@ TrackyMouse.init = function (div) {
     facemeshWorker.addEventListener(
       "message",
       (e) => {
-        // console.log('Message received from worker', e.data);
         if (e.data.type === "LOADED") {
           facemeshLoaded = true;
           facemeshEstimateFaces = () => {
@@ -411,7 +410,6 @@ TrackyMouse.init = function (div) {
             5 + this.curXY[inputOffset],
             this.curXY[inputOffset + 1]
           );
-          // console.log(this.curXY[inputOffset], this.curXY[inputOffset + 1]);
           ctx.strokeStyle = ctx.fillStyle;
           ctx.beginPath();
           ctx.moveTo(this.prevXY[inputOffset], this.prevXY[inputOffset + 1]);
@@ -709,7 +707,6 @@ TrackyMouse.init = function (div) {
               // workerSyncedOops.addPoint(annotations.leftEyeLower0[8][0], annotations.leftEyeLower0[8][1]);
               // workerSyncedOops.addPoint(annotations.rightEyeLower0[8][0], annotations.rightEyeLower0[8][1]);
 
-              // console.log(workerSyncedOops.pointCount, cameraFramesSinceFacemeshUpdate.length, workerSyncedOops.curXY);
               if (enableTimeTravel) {
                 debugFramesCtx.clearRect(
                   0,

@@ -3148,23 +3148,250 @@ function requireStacktraceGps () {
 
 var stacktraceExports = stacktrace.exports;
 
-class MapSet extends Map {
-  set(key, value) {
-    super.set(key, value);
-    return value;
-  }
-}
+const { isArray: isArray$3 } = Array;
+const { getPrototypeOf: getPrototypeOf$1, getOwnPropertyDescriptor } = Object;
 
-class WeakMapSet extends WeakMap {
-  set(key, value) {
-    super.set(key, value);
-    return value;
-  }
-}
+const empty = [];
+
+const newRange = () => document.createRange();
+
+/**
+ * Set the `key` `value` pair to the *Map* or *WeakMap* and returns the `value`
+ * @template T
+ * @param {Map | WeakMap} map
+ * @param {any} key
+ * @param {T} value
+ * @returns {T}
+ */
+const set = (map, key, value) => {
+  map.set(key, value);
+  return value;
+};
+
+const gPD = (ref, prop) => {
+  let desc;
+  do { desc = getOwnPropertyDescriptor(ref, prop); }
+  while(!desc && (ref = getPrototypeOf$1(ref)));
+  return desc;
+};
+
+/** @typedef {import("domconstants/constants").ATTRIBUTE_NODE} ATTRIBUTE_NODE */
+/** @typedef {import("domconstants/constants").TEXT_NODE} TEXT_NODE */
+/** @typedef {import("domconstants/constants").COMMENT_NODE} COMMENT_NODE */
+/** @typedef {ATTRIBUTE_NODE | TEXT_NODE | COMMENT_NODE} Type */
+
+/** @typedef {import("./persistent-fragment.js").PersistentFragment} PersistentFragment */
+/** @typedef {import("./rabbit.js").Hole} Hole */
+
+/** @typedef {unknown} Value */
+/** @typedef {Node | Element | PersistentFragment} Target */
+/** @typedef {null | undefined | string | number | boolean | Node | Element | PersistentFragment} DOMValue */
+
+/**
+ * @typedef {Object} Entry
+ * @property {Type} type
+ * @property {number[]} path
+ * @property {function} update
+ * @property {string} name
+ */
+
+/**
+ * @param {PersistentFragment} c content retrieved from the template
+ * @param {Entry[]} e entries per each hole in the template
+ * @param {number} l the length of content childNodes
+ * @returns
+ */
+const cel = (c, e, l) => ({ c, e, l });
+
+/**
+ * @typedef {Object} HoleDetails
+ * @property {null | Node | PersistentFragment} n the current live node, if any and not the `t` one
+ */
+
+/** @type {() => HoleDetails} */
+const comment = () => ({ n: null });
+
+/**
+ * @typedef {Object} Detail
+ * @property {any} v the current value of the interpolation / hole
+ * @property {function} u the callback to update the value
+ * @property {Node} t the target comment node or element
+ * @property {string} n the name of the attribute, if any
+ */
+
+/**
+ * @param {any} v the current value of the interpolation / hole
+ * @param {function} u the callback to update the value
+ * @param {Node} t the target comment node or element
+ * @param {string} n the name of the attribute, if any
+ * @returns {Detail}
+ */
+const detail = (v, u, t, n) => ({ v, u, t, n });
+
+/**
+ * @param {Type} t the operation type
+ * @param {number[]} p the path to retrieve the node
+ * @param {function} u the update function
+ * @param {string} n the attribute name, if any
+ * @returns {Entry}
+ */
+const entry = (t, p, u, n = '') => ({ t, p, u, n });
+
+/**
+ * @typedef {Object} Cache
+ * @property {Cache[]} s the stack of caches per each interpolation / hole
+ * @property {null | TemplateStringsArray} t the cached template
+ * @property {null | Node | PersistentFragment} n the node returned when parsing the template
+ * @property {Detail[]} d the list of updates to perform
+ */
+
+/**
+ * @param {Cache[]} s the cache stack
+ * @returns {Cache}
+ */
+const cache$1 = s => ({ s, t: null, n: null, d: empty});
+
+/**
+ * @typedef {Object} Parsed
+ * @property {Node | PersistentFragment} n the returned node after parsing the template
+ * @property {Detail[]} d the list of details to update the node
+ */
+
+/**
+ * @param {Node | PersistentFragment} n the returned node after parsing the template
+ * @param {Detail[]} d the list of details to update the node
+ * @returns {Parsed}
+ */
+const parsed = (n, d) => ({ n, d });
+
+const ATTRIBUTE_NODE = 2;
+const TEXT_NODE = 3;
+const COMMENT_NODE = 8;
+const DOCUMENT_FRAGMENT_NODE = 11;
 
 /*! (c) Andrea Giammarchi - ISC */
-const empty = /^(?:area|base|br|col|embed|hr|img|input|keygen|link|menuitem|meta|param|source|track|wbr)$/i;
-const elements = /<([a-z]+[a-z0-9:._-]*)([^>]*?)(\/?)>/g;
+const {setPrototypeOf} = Object;
+
+/**
+ * @param {Function} Class any base class to extend without passing through it via super() call.
+ * @returns {Function} an extensible class for the passed one.
+ * @example
+ *  // creating this very same module utility
+ *  import custom from 'custom-function/factory';
+ *  const CustomFunction = custom(Function);
+ *  class MyFunction extends CustomFunction {}
+ *  const mf = new MyFunction(() => {});
+ */
+const custom = Class => {
+  function Custom(target) {
+    return setPrototypeOf(target, new.target.prototype);
+  }
+  Custom.prototype = Class.prototype;
+  return Custom;
+};
+
+let range$1;
+/**
+ * @param {Node | Element} firstChild
+ * @param {Node | Element} lastChild
+ * @param {boolean} preserve
+ * @returns
+ */
+const drop = (firstChild, lastChild, preserve) => {
+  if (!range$1) range$1 = newRange();
+  if (preserve)
+    range$1.setStartAfter(firstChild);
+  else
+    range$1.setStartBefore(firstChild);
+  range$1.setEndAfter(lastChild);
+  range$1.deleteContents();
+  return firstChild;
+};
+
+/**
+ * @param {PersistentFragment} fragment
+ * @returns {Node | Element}
+ */
+const remove = ({firstChild, lastChild}, preserve) => drop(firstChild, lastChild, preserve);
+
+let checkType = false;
+
+/**
+ * @param {Node} node
+ * @param {1 | 0 | -0 | -1} operation
+ * @returns {Node}
+ */
+const diffFragment = (node, operation) => (
+  checkType && node.nodeType === DOCUMENT_FRAGMENT_NODE ?
+    ((1 / operation) < 0 ?
+      (operation ? remove(node, true) : node.lastChild) :
+      (operation ? node.valueOf() : node.firstChild)) :
+    node
+);
+
+/** @extends {DocumentFragment} */
+class PersistentFragment extends custom(DocumentFragment) {
+  #nodes;
+  #length;
+  constructor(fragment) {
+    const _nodes = [...fragment.childNodes];
+    super(fragment);
+    this.#nodes = _nodes;
+    this.#length = _nodes.length;
+    checkType = true;
+  }
+  get firstChild() { return this.#nodes[0]; }
+  get lastChild() { return this.#nodes.at(-1); }
+  get parentNode() { return this.#nodes[0].parentNode; }
+  remove() {
+    remove(this, false);
+  }
+  replaceWith(node) {
+    remove(this, true).replaceWith(node);
+  }
+  valueOf() {
+    if (this.childNodes.length !== this.#length)
+      this.replaceChildren(...this.#nodes);
+    return this;
+  }
+}
+
+/**
+ * @param {DocumentFragment} content
+ * @param {number[]} path
+ * @returns {Element}
+ */
+const find = (content, path) => path.reduceRight(childNodesIndex, content);
+const childNodesIndex = (node, i) => node.childNodes[i];
+
+/** @param {(template: TemplateStringsArray, values: any[]) => import("./parser.js").Resolved} parse */
+const create = parse => (
+  /** @param {(template: TemplateStringsArray, values: any[]) => import("./literals.js").Parsed} parse */
+  (template, values) => {
+    const { c: content, e: entries, l: length } = parse(template, values);
+    const root = content.cloneNode(true);
+    // reverse loop to avoid missing paths while populating
+    // TODO: is it even worth to pre-populate nodes? see rabbit.js too
+    let current, prev, i = entries.length, details = i ? entries.slice(0) : empty;
+    while (i--) {
+      const { t: type, p: path, u: update, n: name } = entries[i];
+      const node = path === prev ? current : (current = find(root, (prev = path)));
+      const callback = type === COMMENT_NODE ? update() : update;
+      details[i] = detail(callback(node, values[i], name, empty), callback, node, name);
+    }
+    return parsed(
+      length === 1 ? root.firstChild : new PersistentFragment(root),
+      details
+    );
+  }
+);
+
+const TEXT_ELEMENTS = /^(?:plaintext|script|style|textarea|title|xmp)$/i;
+const VOID_ELEMENTS = /^(?:area|base|br|col|embed|hr|img|input|keygen|link|menuitem|meta|param|source|track|wbr)$/i;
+
+/*! (c) Andrea Giammarchi - ISC */
+
+const elements = /<([a-zA-Z0-9]+[a-zA-Z0-9:._-]*)([^>]*?)(\/?)>/g;
 const attributes = /([^\s\\>"'=]+)\s*=\s*(['"]?)\x01/g;
 const holes = /[\x01\x02]/g;
 
@@ -3176,171 +3403,31 @@ const holes = /[\x01\x02]/g;
  * return a string with holes as either comment nodes or named attributes.
  * @param {string[]} template a template literal tag array
  * @param {string} prefix prefix to use per each comment/attribute
- * @param {boolean} svg enforces self-closing tags
+ * @param {boolean} xml enforces self-closing tags
  * @returns {string} X/HTML with prefixed comments or attributes
  */
-const instrument = (template, prefix, svg) => {
+const parser$1 = (template, prefix, xml) => {
   let i = 0;
   return template
-          .join('\x01')
-          .trim()
-          .replace(
-            elements,
-            (_, name, attrs, selfClosing) => {
-              let ml = name + attrs.replace(attributes, '\x02=$2$1').trimEnd();
-              if (selfClosing.length)
-                ml += (svg || empty.test(name)) ? ' /' : ('></' + name);
-              return '<' + ml + '>';
-            }
-          )
-          .replace(
-            holes,
-            hole => hole === '\x01' ?
-              ('<!--' + prefix + i++ + '-->') :
-              (prefix + i++)
-          );
-};
-
-const ELEMENT_NODE = 1;
-const nodeType = 111;
-
-const remove = ({firstChild, lastChild}) => {
-  const range = document.createRange();
-  range.setStartAfter(firstChild);
-  range.setEndAfter(lastChild);
-  range.deleteContents();
-  return firstChild;
-};
-
-const diffable = (node, operation) => node.nodeType === nodeType ?
-  ((1 / operation) < 0 ?
-    (operation ? remove(node) : node.lastChild) :
-    (operation ? node.valueOf() : node.firstChild)) :
-  node
-;
-
-const persistent = fragment => {
-  const {firstChild, lastChild} = fragment;
-  if (firstChild === lastChild)
-    return lastChild || fragment;
-  const {childNodes} = fragment;
-  const nodes = [...childNodes];
-  return {
-    ELEMENT_NODE,
-    nodeType,
-    firstChild,
-    lastChild,
-    valueOf() {
-      if (childNodes.length !== nodes.length)
-        fragment.append(...nodes);
-      return fragment;
-    }
-  };
-};
-
-const {isArray: isArray$4} = Array;
-
-const aria = node => values => {
-  for (const key in values) {
-    const name = key === 'role' ? key : `aria-${key}`;
-    const value = values[key];
-    if (value == null)
-      node.removeAttribute(name);
-    else
-      node.setAttribute(name, value);
-  }
-};
-
-const getValue = value => value == null ? value : value.valueOf();
-
-const attribute = (node, name) => {
-  let oldValue, orphan = true;
-  const attributeNode = document.createAttributeNS(null, name);
-  return newValue => {
-    const value = getValue(newValue);
-    if (oldValue !== value) {
-      if ((oldValue = value) == null) {
-        if (!orphan) {
-          node.removeAttributeNode(attributeNode);
-          orphan = true;
-        }
-      }
-      else {
-        attributeNode.value = value;
-        if (orphan) {
-          node.setAttributeNodeNS(attributeNode);
-          orphan = false;
-        }
-      }
-    }
-  };
-};
-
-const boolean = (node, key, oldValue) => newValue => {
-  const value = !!getValue(newValue);
-  if (oldValue !== value) {
-    // when IE won't be around anymore ...
-    // node.toggleAttribute(key, oldValue = !!value);
-    if ((oldValue = value))
-      node.setAttribute(key, '');
-    else
-      node.removeAttribute(key);
-  }
-};
-
-const data = ({dataset}) => values => {
-  for (const key in values) {
-    const value = values[key];
-    if (value == null)
-      delete dataset[key];
-    else
-      dataset[key] = value;
-  }
-};
-
-const event = (node, name) => {
-  let oldValue, lower, type = name.slice(2);
-  if (!(name in node) && (lower = name.toLowerCase()) in node)
-    type = lower.slice(2);
-  return newValue => {
-    const info = isArray$4(newValue) ? newValue : [newValue, false];
-    if (oldValue !== info[0]) {
-      if (oldValue)
-        node.removeEventListener(type, oldValue, info[1]);
-      if (oldValue = info[0])
-        node.addEventListener(type, oldValue, info[1]);
-    }
-  };
-};
-
-const ref = node => {
-  let oldValue;
-  return value => {
-    if (oldValue !== value) {
-      oldValue = value;
-      if (typeof value === 'function')
-        value(node);
-      else
-        value.current = node;
-    }
-  };
-};
-
-const setter = (node, key) => key === 'dataset' ?
-  data(node) :
-  value => {
-    node[key] = value;
-  };
-
-const text = node => {
-  let oldValue;
-  return newValue => {
-    const value = getValue(newValue);
-    if (oldValue != value) {
-      oldValue = value;
-      node.textContent = value == null ? '' : value;
-    }
-  };
+    .join('\x01')
+    .trim()
+    .replace(
+      elements,
+      (_, name, attrs, selfClosing) => `<${
+          name
+        }${
+          attrs.replace(attributes, '\x02=$2$1').trimEnd()
+        }${
+          selfClosing ? (
+            (xml || VOID_ELEMENTS.test(name)) ? ' /' : `></${name}`
+          ) : ''
+        }>`
+    )
+    .replace(
+      holes,
+      hole => hole === '\x01' ? `<!--${prefix + i++}-->` : (prefix + i++)
+    )
+  ;
 };
 
 /**
@@ -3501,445 +3588,446 @@ const udomdiff = (parentNode, a, b, get, before) => {
   return b;
 };
 
-const {isArray: isArray$3, prototype} = Array;
-const {indexOf} = prototype;
+const setAttribute = (element, name, value) =>
+  element.setAttribute(name, value);
 
-const {
-  createDocumentFragment,
-  createElement,
-  createElementNS,
-  createTextNode,
-  createTreeWalker,
-  importNode
-} = new Proxy({}, {
-  get: (_, method) => document[method].bind(document)
-});
+const removeAttribute = (element, name) =>
+  element.removeAttribute(name);
 
-const createHTML = html => {
-  const template = createElement('template');
-  template.innerHTML = html;
-  return template.content;
+/**
+ * @template T
+ * @param {Element} element
+ * @param {T} value
+ * @returns {T}
+ */
+const aria = (element, value) => {
+  for (const key in value) {
+    const $ = value[key];
+    const name = key === 'role' ? key : `aria-${key}`;
+    if ($ == null) removeAttribute(element, name);
+    else setAttribute(element, name, $);
+  }
+  return value;
 };
 
-let xml;
-const createSVG = svg => {
-  if (!xml) xml = createElementNS('http://www.w3.org/2000/svg', 'svg');
-  xml.innerHTML = svg;
-  const content = createDocumentFragment();
-  content.append(...xml.childNodes);
+const arrayComment = () => array;
+
+let listeners;
+
+/**
+ * @template T
+ * @param {Element} element
+ * @param {T} value
+ * @param {string} name
+ * @returns {T}
+ */
+const at = (element, value, name) => {
+  name = name.slice(1);
+  if (!listeners) listeners = new WeakMap;
+  const known = listeners.get(element) || set(listeners, element, {});
+  let current = known[name];
+  if (current && current[0]) element.removeEventListener(name, ...current);
+  current = isArray$3(value) ? value : [value, false];
+  known[name] = current;
+  if (current[0]) element.addEventListener(name, ...current);
+  return value;
+};
+
+/**
+ * @template T
+ * @this {import("./literals.js").HoleDetails}
+ * @param {Node} node
+ * @param {T} value
+ * @returns {T}
+ */
+function hole(node, value) {
+  const n = this.n || (this.n = node);
+  switch (typeof value) {
+    case 'string':
+    case 'number':
+    case 'boolean': {
+      if (n !== node) n.replaceWith((this.n = node));
+      this.n.data = value;
+      break;
+    }
+    case 'object':
+    case 'undefined': {
+      if (value == null) (this.n = node).data = '';
+      else this.n = value.valueOf();
+      n.replaceWith(this.n);
+      break;
+    }
+  }
+  return value;
+}
+const boundComment = () => hole.bind(comment());
+
+/**
+ * @template T
+ * @param {Element} element
+ * @param {T} value
+ * @returns {T}
+ */
+const className = (element, value) => maybeDirect(
+  element, value, value == null ? 'class' : 'className'
+);
+
+/**
+ * @template T
+ * @param {Element} element
+ * @param {T} value
+ * @returns {T}
+ */
+const data = (element, value) => {
+  const { dataset } = element;
+  for (const key in value) {
+    if (value[key] == null) delete dataset[key];
+    else dataset[key] = value[key];
+  }
+  return value;
+};
+
+/**
+ * @template T
+ * @param {Element | CSSStyleDeclaration} ref
+ * @param {T} value
+ * @param {string} name
+ * @returns {T}
+ */
+const direct = (ref, value, name) => (ref[name] = value);
+
+/**
+ * @template T
+ * @param {Element} element
+ * @param {T} value
+ * @param {string} name
+ * @returns {T}
+ */
+const dot = (element, value, name) => direct(element, value, name.slice(1));
+
+/**
+ * @template T
+ * @param {Element} element
+ * @param {T} value
+ * @param {string} name
+ * @returns {T}
+ */
+const maybeDirect = (element, value, name) => (
+  value == null ?
+    (removeAttribute(element, name), value) :
+    direct(element, value, name)
+);
+
+/**
+ * @template T
+ * @param {Element} element
+ * @param {T} value
+ * @returns {T}
+ */
+const ref = (element, value) => (
+  (typeof value === 'function' ?
+    value(element) : (value.current = element)),
+  value
+);
+
+/**
+ * @template T
+ * @param {Element} element
+ * @param {T} value
+ * @param {string} name
+ * @returns {T}
+ */
+const regular = (element, value, name) => (
+  (value == null ?
+    removeAttribute(element, name) :
+    setAttribute(element, name, value)),
+  value
+);
+
+/**
+ * @template T
+ * @param {Element} element
+ * @param {T} value
+ * @returns {T}
+ */
+const style = (element, value) => (
+  value == null ?
+    maybeDirect(element, value, 'style') :
+    direct(element.style, value, 'cssText')
+);
+
+/**
+ * @template T
+ * @param {Element} element
+ * @param {T} value
+ * @param {string} name
+ * @returns {T}
+ */
+const toggle = (element, value, name) => (
+  element.toggleAttribute(name.slice(1), value),
+  value
+);
+
+/**
+ * @param {Node} node
+ * @param {Node[]} value
+ * @param {string} _
+ * @param {Node[]} prev
+ * @returns {Node[]}
+ */
+const array = (node, value, _, prev) => (
+  value.length ?
+    udomdiff(node.parentNode, prev, value, diffFragment, node) :
+    (prev.length && drop(prev[0], prev.at(-1), false), empty)
+);
+
+const attr = new Map([
+  ['aria', aria],
+  ['class', className],
+  ['data', data],
+  ['ref', ref],
+  ['style', style],
+]);
+
+/**
+ * @param {HTMLElement | SVGElement} element
+ * @param {string} name
+ * @param {boolean} svg
+ * @returns
+ */
+const attribute = (element, name, svg) => {
+  switch (name[0]) {
+    case '.': return dot;
+    case '?': return toggle;
+    case '@': return at;
+    default: return (
+      svg || ('ownerSVGElement' in element) ?
+        (name === 'ref' ? ref : regular) :
+        (attr.get(name) || (
+          name in element ?
+            (name.startsWith('on') ?
+              direct :
+              (gPD(element, name)?.set ? maybeDirect : regular)
+            ) :
+            regular
+          )
+        )
+    );
+  }
+};
+
+/**
+ * @template T
+ * @param {Element} element
+ * @param {T} value
+ * @returns {T}
+ */
+const text = (element, value) => (
+  (element.textContent = value == null ? '' : value),
+  value
+);
+
+let template = document.createElement('template'), svg, range;
+
+/**
+ * @param {string} text
+ * @param {boolean} xml
+ * @returns {DocumentFragment}
+ */
+const createContent = (text, xml) => {
+  if (xml) {
+    if (!svg) {
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      range = newRange();
+      range.selectNodeContents(svg);
+    }
+    return range.createContextualFragment(text);
+  }
+  template.innerHTML = text;
+  const { content } = template;
+  template = template.cloneNode(false);
   return content;
 };
 
-const createContent = (text, svg) => svg ?
-                              createSVG(text) : createHTML(text);
+/** @typedef {import("./literals.js").Entry} Entry */
 
-// from a generic path, retrieves the exact targeted node
-const reducePath = ({childNodes}, i) => childNodes[i];
+/**
+ * @typedef {Object} Resolved
+ * @property {DocumentFragment} content
+ * @property {Entry[]} entries
+ * @property {function[]} updates
+ * @property {number} length
+ */
 
-// this helper avoid code bloat around handleAnything() callback
-const diff = (comment, oldNodes, newNodes) => udomdiff(
-  comment.parentNode,
-  // TODO: there is a possible edge case where a node has been
-  //       removed manually, or it was a keyed one, attached
-  //       to a shared reference between renders.
-  //       In this case udomdiff might fail at removing such node
-  //       as its parent won't be the expected one.
-  //       The best way to avoid this issue is to filter oldNodes
-  //       in search of those not live, or not in the current parent
-  //       anymore, but this would require both a change to uwire,
-  //       exposing a parentNode from the firstChild, as example,
-  //       but also a filter per each diff that should exclude nodes
-  //       that are not in there, penalizing performance quite a lot.
-  //       As this has been also a potential issue with domdiff,
-  //       and both lighterhtml and hyperHTML might fail with this
-  //       very specific edge case, I might as well document this possible
-  //       "diffing shenanigan" and call it a day.
-  oldNodes,
-  newNodes,
-  diffable,
-  comment
-);
-
-// if an interpolation represents a comment, the whole
-// diffing will be related to such comment.
-// This helper is in charge of understanding how the new
-// content for such interpolation/hole should be updated
-const handleAnything = comment => {
-  let oldValue, text, nodes = [];
-  const anyContent = newValue => {
-    switch (typeof newValue) {
-      // primitives are handled as text content
-      case 'string':
-      case 'number':
-      case 'boolean':
-        if (oldValue !== newValue) {
-          oldValue = newValue;
-          if (!text)
-            text = createTextNode('');
-          text.data = newValue;
-          nodes = diff(comment, nodes, [text]);
-        }
-        break;
-      // null, and undefined are used to cleanup previous content
-      case 'object':
-      case 'undefined':
-        if (newValue == null) {
-          if (oldValue != newValue) {
-            oldValue = newValue;
-            nodes = diff(comment, nodes, []);
-          }
-          break;
-        }
-        // arrays and nodes have a special treatment
-        if (isArray$3(newValue)) {
-          oldValue = newValue;
-          // arrays can be used to cleanup, if empty
-          if (newValue.length === 0)
-            nodes = diff(comment, nodes, []);
-          // or diffed, if these contains nodes or "wires"
-          else if (typeof newValue[0] === 'object')
-            nodes = diff(comment, nodes, newValue);
-          // in all other cases the content is stringified as is
-          else
-            anyContent(String(newValue));
-          break;
-        }
-        // if the new value is a DOM node, or a wire, and it's
-        // different from the one already live, then it's diffed.
-        // if the node is a fragment, it's appended once via its childNodes
-        // There is no `else` here, meaning if the content
-        // is not expected one, nothing happens, as easy as that.
-        if (oldValue !== newValue) {
-          if ('ELEMENT_NODE' in newValue) {
-            oldValue = newValue;
-            nodes = diff(
-              comment,
-              nodes,
-              newValue.nodeType === 11 ?
-                [...newValue.childNodes] :
-                [newValue]
-            );
-          }
-          else {
-            const value = newValue.valueOf();
-            if (value !== newValue)
-              anyContent(value);
-          }
-        }
-        break;
-      case 'function':
-        anyContent(newValue(comment));
-        break;
-    }
-  };
-  return anyContent;
-};
-
-// attributes can be:
-//  * ref=${...}      for hooks and other purposes
-//  * aria=${...}     for aria attributes
-//  * ?boolean=${...} for boolean attributes
-//  * .dataset=${...} for dataset related attributes
-//  * .setter=${...}  for Custom Elements setters or nodes with setters
-//                    such as buttons, details, options, select, etc
-//  * @event=${...}   to explicitly handle event listeners
-//  * onevent=${...}  to automatically handle event listeners
-//  * generic=${...}  to handle an attribute just like an attribute
-const handleAttribute = (node, name/*, svg*/) => {
-  switch (name[0]) {
-    case '?': return boolean(node, name.slice(1), false);
-    case '.': return setter(node, name.slice(1));
-    case '@': return event(node, 'on' + name.slice(1));
-    case 'o': if (name[1] === 'n') return event(node, name);
-  }
-
-  switch (name) {
-    case 'ref': return ref(node);
-    case 'aria': return aria(node);
-  }
-
-  return attribute(node, name/*, svg*/);
-};
-
-// each mapped update carries the update type and its path
-// the type is either node, attribute, or text, while
-// the path is how to retrieve the related node to update.
-// In the attribute case, the attribute name is also carried along.
-function handlers(options) {
-  const {type, path} = options;
-  const node = path.reduceRight(reducePath, this);
-  return type === 'node' ?
-    handleAnything(node) :
-    (type === 'attr' ?
-      handleAttribute(node, options.name/*, options.svg*/) :
-      text(node));
-}
-
-// from a fragment container, create an array of indexes
-// related to its child nodes, so that it's possible
-// to retrieve later on exact node via reducePath
+/**
+ * @param {Element} node
+ * @returns {number[]}
+ */
 const createPath = node => {
   const path = [];
-  let {parentNode} = node;
-  while (parentNode) {
-    path.push(indexOf.call(parentNode.childNodes, node));
+  let parentNode;
+  while ((parentNode = node.parentNode)) {
+    path.push(path.indexOf.call(parentNode.childNodes, node));
     node = parentNode;
-    ({parentNode} = node);
   }
   return path;
 };
 
-// the prefix is used to identify either comments, attributes, or nodes
-// that contain the related unique id. In the attribute cases
-// isµX="attribute-name" will be used to map current X update to that
-// attribute name, while comments will be like <!--isµX-->, to map
-// the update to that specific comment node, hence its parent.
-// style and textarea will have <!--isµX--> text content, and are handled
-// directly through text-only updates.
-const prefix = 'isµ';
-
-// Template Literals are unique per scope and static, meaning a template
-// should be parsed once, and once only, as it will always represent the same
-// content, within the exact same amount of updates each time.
-// This cache relates each template to its unique content and updates.
-const cache$1 = new WeakMapSet;
-
-// a RegExp that helps checking nodes that cannot contain comments
-const textOnly = /^(?:textarea|script|style|title|plaintext|xmp)$/;
-
-const createCache = () => ({
-  stack: [],    // each template gets a stack for each interpolation "hole"
-
-  entry: null,  // each entry contains details, such as:
-                //  * the template that is representing
-                //  * the type of node it represents (html or svg)
-                //  * the content fragment with all nodes
-                //  * the list of updates per each node (template holes)
-                //  * the "wired" node or fragment that will get updates
-                // if the template or type are different from the previous one
-                // the entry gets re-created each time
-
-  wire: null    // each rendered node represent some wired content and
-                // this reference to the latest one. If different, the node
-                // will be cleaned up and the new "wire" will be appended
-});
-
-// the entry stored in the rendered node cache, and per each "hole"
-const createEntry = (type, template) => {
-  const {content, updates} = mapUpdates(type, template);
-  return {type, template, content, updates, wire: null};
-};
-
-// a template is instrumented to be able to retrieve where updates are needed.
-// Each unique template becomes a fragment, cloned once per each other
-// operation based on the same template, i.e. data => html`<p>${data}</p>`
-const mapTemplate = (type, template) => {
-  const svg = type === 'svg';
-  const text = instrument(template, prefix, svg);
-  const content = createContent(text, svg);
-  // once instrumented and reproduced as fragment, it's crawled
-  // to find out where each update is in the fragment tree
-  const tw = createTreeWalker(content, 1 | 128);
-  const nodes = [];
-  const length = template.length - 1;
-  let i = 0;
-  // updates are searched via unique names, linearly increased across the tree
-  // <div isµ0="attr" isµ1="other"><!--isµ2--><style><!--isµ3--</style></div>
-  let search = `${prefix}${i}`;
-  while (i < length) {
-    const node = tw.nextNode();
-    // if not all updates are bound but there's nothing else to crawl
-    // it means that there is something wrong with the template.
-    if (!node)
-      throw `bad template: ${text}`;
-    // if the current node is a comment, and it contains isµX
-    // it means the update should take care of any content
-    if (node.nodeType === 8) {
-      // The only comments to be considered are those
-      // which content is exactly the same as the searched one.
-      if (node.data === search) {
-        nodes.push({type: 'node', path: createPath(node)});
-        search = `${prefix}${++i}`;
+/**
+ * @param {TemplateStringsArray} template
+ * @param {boolean} xml
+ * @returns {Resolved}
+ */
+const resolve = (template, values, xml) => {
+  const content = createContent(parser$1(template, prefix, xml), xml);
+  const { length } = template;
+  let asArray = false, entries = empty;
+  if (length > 1) {
+    const tw = document.createTreeWalker(content, 1 | 128);
+    const replace = [];
+    let i = 0, search = `${prefix}${i++}`;
+    entries = [];
+    while (i < length) {
+      const node = tw.nextNode();
+      if (node.nodeType === COMMENT_NODE) {
+        if (node.data === search) {
+          let update = isArray$3(values[i - 1]) ? arrayComment : boundComment;
+          if (update === boundComment) replace.push(node);
+          else asArray = true;
+          entries.push(entry(COMMENT_NODE, createPath(node), update));
+          search = `${prefix}${i++}`;
+        }
+      }
+      else {
+        let path;
+        while (node.hasAttribute(search)) {
+          if (!path) path = createPath(node);
+          const name = node.getAttribute(search);
+          entries.push(entry(ATTRIBUTE_NODE, path, attribute(node, name, xml), name));
+          removeAttribute(node, search);
+          search = `${prefix}${i++}`;
+        }
+        if (
+          TEXT_ELEMENTS.test(node.localName) &&
+          node.textContent.trim() === `<!--${search}-->`
+        ) {
+          entries.push(entry(TEXT_NODE, path || createPath(node), text));
+          search = `${prefix}${i++}`;
+        }
       }
     }
-    else {
-      // if the node is not a comment, loop through all its attributes
-      // named isµX and relate attribute updates to this node and the
-      // attribute name, retrieved through node.getAttribute("isµX")
-      // the isµX attribute will be removed as irrelevant for the layout
-      // let svg = -1;
-      while (node.hasAttribute(search)) {
-        nodes.push({
-          type: 'attr',
-          path: createPath(node),
-          name: node.getAttribute(search)
-        });
-        node.removeAttribute(search);
-        search = `${prefix}${++i}`;
-      }
-      // if the node was a style, textarea, or others, check its content
-      // and if it is <!--isµX--> then update tex-only this node
-      if (
-        textOnly.test(node.localName) &&
-        node.textContent.trim() === `<!--${search}-->`
-      ){
-        node.textContent = '';
-        nodes.push({type: 'text', path: createPath(node)});
-        search = `${prefix}${++i}`;
+    for (i = 0; i < replace.length; i++)
+      replace[i].replaceWith(document.createTextNode(''));
+  }
+  const l = content.childNodes.length;
+  return set(cache, template, cel(content, entries, l === 1 && asArray ? 0 : l));
+};
+
+/** @type {WeakMap<TemplateStringsArray, Resolved>} */
+const cache = new WeakMap;
+const prefix = 'isµ';
+
+/**
+ * @param {boolean} xml
+ * @returns {(template: TemplateStringsArray, values: any[]) => Resolved}
+ */
+const parser = xml => (template, values) => cache.get(template) || resolve(template, values, xml);
+
+const parseHTML = create(parser(false));
+const parseSVG = create(parser(true));
+
+/**
+ * @param {import("./literals.js").Cache} cache
+ * @param {Hole} hole
+ * @returns {Node}
+ */
+const unroll = (cache, { s: svg, t: template, v: values }) => {
+  if (values.length && cache.s === empty) cache.s = [];
+  const length = unrollValues(cache, values);
+  if (cache.t !== template) {
+    const { n: node, d: details } = (svg ? parseSVG : parseHTML)(template, values);
+    cache.t = template;
+    cache.n = node;
+    cache.d = details;
+  }
+  else {
+    const { d: details } = cache;
+    for (let i = 0; i < length; i++) {
+      const value = values[i];
+      const detail = details[i];
+      const { v: previous } = detail;
+      if (value !== previous) {
+        const { u: update, t: target, n: name } = detail;
+        detail.v = update(target, value, name, previous);
       }
     }
   }
-  // once all nodes to update, or their attributes, are known, the content
-  // will be cloned in the future to represent the template, and all updates
-  // related to such content retrieved right away without needing to re-crawl
-  // the exact same template, and its content, more than once.
-  return {content, nodes};
+  return cache.n;
 };
 
-// if a template is unknown, perform the previous mapping, otherwise grab
-// its details such as the fragment with all nodes, and updates info.
-const mapUpdates = (type, template) => {
-  const {content, nodes} = (
-    cache$1.get(template) ||
-    cache$1.set(template, mapTemplate(type, template))
-  );
-  // clone deeply the fragment
-  const fragment = importNode(content, true);
-  // and relate an update handler per each node that needs one
-  const updates = nodes.map(handlers, fragment);
-  // return the fragment and all updates to use within its nodes
-  return {content: fragment, updates};
-};
-
-// as html and svg can be nested calls, but no parent node is known
-// until rendered somewhere, the unroll operation is needed to
-// discover what to do with each interpolation, which will result
-// into an update operation.
-const unroll = (info, {type, template, values}) => {
-  // interpolations can contain holes and arrays, so these need
-  // to be recursively discovered
-  const length = unrollValues(info, values);
-  let {entry} = info;
-  // if the cache entry is either null or different from the template
-  // and the type this unroll should resolve, create a new entry
-  // assigning a new content fragment and the list of updates.
-  if (!entry || (entry.template !== template || entry.type !== type))
-    info.entry = (entry = createEntry(type, template));
-  const {content, updates, wire} = entry;
-  // even if the fragment and its nodes is not live yet,
-  // it is already possible to update via interpolations values.
-  for (let i = 0; i < length; i++)
-    updates[i](values[i]);
-  // if the entry was new, or representing a different template or type,
-  // create a new persistent entity to use during diffing.
-  // This is simply a DOM node, when the template has a single container,
-  // as in `<p></p>`, or a "wire" in `<p></p><p></p>` and similar cases.
-  return wire || (entry.wire = persistent(content));
-};
-
-// the stack retains, per each interpolation value, the cache
-// related to each interpolation value, or null, if the render
-// was conditional and the value is not special (Array or Hole)
-const unrollValues = ({stack}, values) => {
-  const {length} = values;
+/**
+ * @param {Cache} cache
+ * @param {any[]} values
+ * @returns {number}
+ */
+const unrollValues = ({ s: stack }, values) => {
+  const { length } = values;
   for (let i = 0; i < length; i++) {
     const hole = values[i];
-    // each Hole gets unrolled and re-assigned as value
-    // so that domdiff will deal with a node/wire, not with a hole
     if (hole instanceof Hole)
-      values[i] = unroll(
-        stack[i] || (stack[i] = createCache()),
-        hole
-      );
-    // arrays are recursively resolved so that each entry will contain
-    // also a DOM node or a wire, hence it can be diffed if/when needed
+      values[i] = unroll(stack[i] || (stack[i] = cache$1(empty)), hole);
     else if (isArray$3(hole))
-      unrollValues(stack[i] || (stack[i] = createCache()), hole);
-    // if the value is nothing special, the stack doesn't need to retain data
-    // this is useful also to cleanup previously retained data, if the value
-    // was a Hole, or an Array, but not anymore, i.e.:
-    // const update = content => html`<div>${content}</div>`;
-    // update(listOfItems); update(null); update(html`hole`)
+      unrollValues(stack[i] || (stack[i] = cache$1([])), hole);
     else
       stack[i] = null;
   }
-  if (length < stack.length)
-    stack.splice(length);
+  if (length < stack.length) stack.splice(length);
   return length;
 };
 
 /**
- * Holds all details wrappers needed to render the content further on.
+ * Holds all details needed to render the content on a render.
  * @constructor
- * @param {string} type The hole type, either `html` or `svg`.
- * @param {string[]} template The template literals used to the define the content.
- * @param {Array} values Zero, one, or more interpolated values to render.
+ * @param {boolean} svg The content type.
+ * @param {TemplateStringsArray} template The template literals used to the define the content.
+ * @param {any[]} values Zero, one, or more interpolated values to render.
  */
 class Hole {
-  constructor(type, template, values) {
-    this.type = type;
-    this.template = template;
-    this.values = values;
+  constructor(svg, template, values) {
+    this.s = svg;
+    this.t = template;
+    this.v = values;
   }
 }
 
-// both `html` and `svg` template literal tags are polluted
-// with a `for(ref[, id])` and a `node` tag too
-const tag = type => {
-  // both `html` and `svg` tags have their own cache
-  const keyed = new WeakMapSet;
-  // keyed operations always re-use the same cache and unroll
-  // the template and its interpolations right away
-  const fixed = cache => (template, ...values) => unroll(
-    cache,
-    {type, template, values}
-  );
-  return Object.assign(
-    // non keyed operations are recognized as instance of Hole
-    // during the "unroll", recursively resolved and updated
-    (template, ...values) => new Hole(type, template, values),
-    {
-      // keyed operations need a reference object, usually the parent node
-      // which is showing keyed results, and optionally a unique id per each
-      // related node, handy with JSON results and mutable list of objects
-      // that usually carry a unique identifier
-      for(ref, id) {
-        const memo = keyed.get(ref) || keyed.set(ref, new MapSet);
-        return memo.get(id) || memo.set(id, fixed(createCache()));
-      },
-      // it is possible to create one-off content out of the box via node tag
-      // this might return the single created node, or a fragment with all
-      // nodes present at the root level and, of course, their child nodes
-      node: (template, ...values) => unroll(createCache(), new Hole(type, template, values)).valueOf()
-    }
-  );
-};
+/** @typedef {import("../rabbit.js").Hole} Hole */
 
-// each rendered node gets its own cache
-const cache = new WeakMapSet;
+/** @type {WeakMap<Element | DocumentFragment, import("../literals.js").Cache>} */
+const known = new WeakMap;
 
-// rendering means understanding what `html` or `svg` tags returned
-// and it relates a specific node to its own unique cache.
-// Each time the content to render changes, the node is cleaned up
-// and the new new content is appended, and if such content is a Hole
-// then it's "unrolled" to resolve all its inner nodes.
+/**
+ * Render with smart updates within a generic container.
+ * @template T
+ * @param {T} where the DOM node where to render content
+ * @param {(() => Hole) | Hole} what the hole to render
+ * @returns
+ */
 const render = (where, what) => {
-  const hole = typeof what === 'function' ? what() : what;
-  const info = cache.get(where) || cache.set(where, createCache());
-  const wire = hole instanceof Hole ? unroll(info, hole) : hole;
-  if (wire !== info.wire) {
-    info.wire = wire;
-    // valueOf() simply returns the node itself, but in case it was a "wire"
-    // it will eventually re-append all nodes to its fragment so that such
-    // fragment can be re-appended many times in a meaningful way
-    // (wires are basically persistent fragments facades with special behavior)
-    where.replaceChildren(wire.valueOf());
-  }
+  const info = known.get(where) || set(known, where, cache$1(empty));
+  if (info.n !== unroll(info, typeof what === 'function' ? what() : what))
+    where.replaceChildren(info.n);
   return where;
 };
 
-const html = tag('html');
-tag('svg');
+/*! (c) Andrea Giammarchi - MIT */
+
+
+/** @typedef {import("./literals.js").Value} Value */
+
+const tag = svg => (template, ...values) => new Hole(svg, template, values);
+
+/** @type {(template: TemplateStringsArray, ...values:Value[]) => Hole} A tag to render HTML content. */
+const html = tag(false);
 
 const errors = '';
 
@@ -3991,7 +4079,7 @@ if ("i" !== "I".toLowerCase()) {
 }
 
 var jqLite, // delay binding since jQuery could be loaded after us.
-	toString = Object.prototype.toString,
+	toString$1 = Object.prototype.toString,
 	getPrototypeOf = Object.getPrototypeOf,
 	ngMinErr = minErr("ng");
 	/** @name angular */
@@ -4282,12 +4370,12 @@ function isTypedArray(value) {
 	return (
 		value &&
 		isNumber(value.length) &&
-		TYPED_ARRAY_REGEXP.test(toString.call(value))
+		TYPED_ARRAY_REGEXP.test(toString$1.call(value))
 	);
 }
 
 function isArrayBuffer(obj) {
-	return toString.call(obj) === "[object ArrayBuffer]";
+	return toString$1.call(obj) === "[object ArrayBuffer]";
 }
 
 /**
@@ -4459,7 +4547,7 @@ function copy(source, destination) {
 	}
 
 	function copyType(source) {
-		switch (toString.call(source)) {
+		switch (toString$1.call(source)) {
 			case "[object Int8Array]":
 			case "[object Int16Array]":
 			case "[object Int32Array]":
@@ -6855,6 +6943,11 @@ const Functions = {
     let args = arg.split(",");
     return args[Math.floor(Math.random() * args.length)];
   },
+  max: Math.max,
+  min: Math.min,
+  if: (/** @type {boolean} */ c, /** @type {any} */ t, /** @type {any} */ f) =>
+    c ? t : f,
+  abs: (/** @type {number} */ v) => Math.abs(v),
 };
 
 /**
@@ -6865,10 +6958,12 @@ const Functions = {
  */
 function translate(expression) {
   /* translate the expression from the excel like form to javascript */
+  // remove any initial = sign
+  let exp = expression.replace(/^=/, "");
   // translate single = to ==
-  let exp = expression.replaceAll(/(?<![=<>!])=/g, "==");
+  exp = exp.replaceAll(/(?<![=<>!])=/g, "==");
   // translate words
-  exp = exp.replaceAll(/[$#]\w+/g, "access('$&')");
+  exp = exp.replaceAll(/(?<!['"])[#](\w+)/g, "_$1");
   return exp;
 }
 
@@ -6894,873 +6989,103 @@ function access(state, data) {
   };
 }
 
-/** @param {string} expression
+/** Track access to states and fields, true if the value was undefined
+ * @type {Map<string, boolean>}
+ */
+const accessed = new Map();
+
+/* intercept access to variables so I can track access to undefined state and field values
+ * and map them to empty strings.
+ */
+const variableHandler = {
+  /** @param {Object} target
+   * @param {string} prop
+   */
+  get(target, prop) {
+    let result = undefined;
+    if (prop.startsWith("$")) {
+      result = target.states[prop];
+      accessed.set(prop, prop in target.states);
+    } else if (prop.startsWith("_")) {
+      let ps = prop.slice(1);
+      result = target.data[ps];
+      accessed.set(prop, Globals.data.allFields.has("#" + ps));
+    } else if (prop in Functions) {
+      result = Functions[prop];
+    } else {
+      console.error("undefined", prop);
+    }
+    if (result === undefined || result === null) {
+      result = "";
+    }
+    return result;
+  },
+
+  /** The expressions library is testing for own properties for safety.
+   * I need to defeat that for the renaming I want to do.
+   * @param {Object} target;
+   * @param {string} prop;
+   */
+  getOwnPropertyDescriptor(target, prop) {
+    if (prop.startsWith("$")) {
+      return Object.getOwnPropertyDescriptor(target.states, prop);
+    } else if (prop.startsWith("_")) {
+      return Object.getOwnPropertyDescriptor(target.data, prop.slice(1));
+    } else {
+      return Object.getOwnPropertyDescriptor(Functions, prop);
+    }
+  },
+};
+
+/**
+ * Compile an expression returning the function or an error
+ * @param {string} expression
+ * @returns {[ ((context?:Object)=>any ) | undefined, Error | undefined ]}
  *
- * This could throw an error which we should catch and report.
  * */
 function compileExpression(expression) {
   const te = translate(expression);
-  const exp = main.compile(te);
-  /** @param {Object} context */
-  return (context) =>
-    exp({ ...Functions, access: access(Globals.state, context), ...context });
-}
-
-/**
- * Evaluate a string as an expression in a given context
- *
- * @param {string} expression - Expression to evaluate
- * @param {Object} context - Context for the evaluation
- * @returns {any} Value returned by the expression
- */
-function evalInContext(expression, context) {
   try {
-    const te = translate(expression);
     const exp = main.compile(te);
-    return exp({ ...context, access: access(context.state, context.data) });
+    /** @param {EvalContext} context */
+    return [
+      (context = {}) => {
+        let states =
+          "states" in context
+            ? { ...Globals.state.values, ...context.states }
+            : Globals.state.values;
+        let data = context.data ?? [];
+        const r = exp(
+          new Proxy(
+            {
+              Functions,
+              states,
+              data,
+            },
+            variableHandler,
+          ),
+        );
+        return r;
+      },
+      undefined,
+    ];
   } catch (e) {
-    console.error(e);
-    return null;
+    return [undefined, e];
   }
 }
-
-/* Thinking about better properties */
-
-
-/**
- * @typedef {Object} PropOptions
- * @property {boolean} [hiddenLabel]
- * @property {string} [placeholder]
- * @property {string} [title]
- * @property {string} [label]
- * @property {boolean} [multiple]
- * @property {string} [defaultValue]
- * @property {string} [group]
- * @property {string} [language]
- * @property {Object<string,string>} [replacements]
- * @property {any} [valueWhenEmpty]
- * @property {string} [pattern]
- * @property {function(string):string} [validate]
- */
-
-class Prop {
-  label = "";
-  /** @type {any} */
-  value;
-
-  // Each prop gets a unique id based on the id of its container
-  id = "";
-
-  /** @type {import('./treebase').TreeBase} */
-  container;
-
-  /** attach the prop to its containing TreeBase component
-   * @param {string} name
-   * @param {any} value
-   * @param {TreeBase} container
-   * */
-  initialize(name, value, container) {
-    // create id from the container id
-    this.id = `${container.id}-${name}`;
-    // link to the container
-    this.container = container;
-    // set the value if provided
-    if (value != null) {
-      this.set(value);
-    }
-    // create a label if it has none
-    this.label =
-      this.label ||
-      name // convert from camelCase to Camel Case
-        .replace(/(?!^)([A-Z])/g, " $1")
-        .replace(/^./, (s) => s.toUpperCase());
-  }
-
-  get valueAsNumber() {
-    return parseFloat(this.value);
-  }
-
-  /** @type {PropOptions} */
-  options = {};
-
-  /** @param {PropOptions} options */
-  constructor(options = {}) {
-    this.options = options;
-    if (options["label"]) {
-      this.label = options["label"];
-    }
-  }
-  /** @param {Object} _ - The context */
-  eval(_ = {}) {
-    return this.value;
-  }
-  input() {
-    return html`<!--empty-->`;
-  }
-  /** @param {Hole} body */
-  labeled(body) {
-    return html`<div class="labeledInput">
-      <label ?hiddenLabel=${this.options.hiddenLabel} for=${this.id}
-        >${this.label}</label
-      >
-      ${body}
-    </div>`;
-  }
-
-  /** @param {any} value */
-  set(value) {
-    this.value = value;
-  }
-
-  update() {
-    this.container.update();
-  }
-}
-
-/** @param {string[] | Map<string,string> | function():Map<string,string>} arrayOrMap
- * @returns Map<string, string>
- */
-function toMap(arrayOrMap) {
-  if (arrayOrMap instanceof Function) {
-    return arrayOrMap();
-  }
-  if (Array.isArray(arrayOrMap)) {
-    return new Map(arrayOrMap.map((item) => [item, item]));
-  }
-  return arrayOrMap;
-}
-
-class Select extends Prop {
-  /**
-   * @param {string[] | Map<string, string> | function():Map<string,string>} choices
-   * @param {PropOptions} options
-   */
-  constructor(choices = [], options = {}) {
-    super(options);
-    this.choices = choices;
-    this.value = options.defaultValue || "";
-  }
-
-  /** @param {Map<string,string> | null} choices */
-  input(choices = null) {
-    if (!choices) {
-      choices = toMap(this.choices);
-    }
-    this.value = this.value || this.options.defaultValue || "";
-    return this.labeled(
-      html`<select
-        id=${this.id}
-        required
-        title=${this.options.title}
-        onchange=${({ target }) => {
-          this.value = target.value;
-          this.update();
-        }}
-      >
-        <option value="" disabled ?selected=${!choices.has(this.value)}>
-          ${this.options.placeholder || "Choose one..."}
-        </option>
-        ${[...choices.entries()].map(
-          ([key, value]) =>
-            html`<option value=${key} ?selected=${this.value == key}>
-              ${value}
-            </option>`,
-        )}
-      </select>`,
-    );
-  }
-
-  /** @param {any} value */
-  set(value) {
-    this.value = value;
-  }
-}
-
-class Field extends Select {
-  /**
-   * @param {PropOptions} options
-   */
-  constructor(options = {}) {
-    super(
-      () => toMap([...Globals.data.allFields, "#ComponentName"].sort()),
-      options,
-    );
-  }
-}
-
-let Cue$1 = class Cue extends Select {
-  /**
-   * @param {PropOptions} options
-   */
-  constructor(options = {}) {
-    super(() => Globals.cues.cueMap, options);
-  }
-};
-
-class Pattern extends Select {
-  /**
-   * @param {PropOptions} options
-   */
-  constructor(options = {}) {
-    super(() => Globals.patterns.patternMap, options);
-  }
-}
-
-class TypeSelect extends Select {
-  update() {
-    /* Magic happens here! The replace method on a TreeBaseSwitchable replaces the
-     * node with a new one to allow type switching in place
-     * */
-    if (this.container instanceof TreeBaseSwitchable)
-      this.container.replace(this.value);
-  }
-}
-
-let String$1 = class String extends Prop {
-  value = "";
-
-  constructor(value = "", options = {}) {
-    super(options);
-    this.value = value;
-  }
-
-  input() {
-    return this.labeled(
-      html`<input
-        type="text"
-        .value=${this.value}
-        id=${this.id}
-        pattern=${this.options.pattern}
-        onchange=${({ target }) => {
-          if (target.checkValidity()) {
-            this.value = target.value;
-            this.update();
-          }
-        }}
-        title=${this.options.title}
-        placeholder=${this.options.placeholder}
-      />`,
-    );
-  }
-};
-
-/* Allow entering a key name by first pressing Enter than pressing a single key
- */
-class KeyName extends Prop {
-  value = "";
-
-  constructor(value = "", options = {}) {
-    super(options);
-    this.value = value;
-  }
-
-  input() {
-    /** @param {string} key */
-    function mapKey(key) {
-      if (key == " ") return "Space";
-      return key;
-    }
-    return this.labeled(
-      html`<input
-        type="text"
-        .value=${mapKey(this.value)}
-        id=${this.id}
-        readonly
-        onkeydown=${(/** @type {KeyboardEvent} */ event) => {
-          const target = event.target;
-          if (!(target instanceof HTMLInputElement)) return;
-          if (target.hasAttribute("readonly") && event.key == "Enter") {
-            target.removeAttribute("readonly");
-            target.select();
-          } else if (!target.hasAttribute("readonly")) {
-            event.stopPropagation();
-            event.preventDefault();
-            this.value = event.key;
-            target.value = mapKey(event.key);
-            target.setAttribute("readonly", "");
-          }
-        }}
-        title="Press Enter to change then press a single key to set"
-        placeholder=${this.options.placeholder}
-      />`,
-    );
-  }
-}
-
-class TextArea extends Prop {
-  value = "";
-
-  constructor(value = "", options = {}) {
-    super(options);
-    this.value = value;
-    this.validate = this.options.validate || ((_) => "");
-  }
-
-  input() {
-    return this.labeled(
-      html`<textarea
-        .value=${this.value}
-        id=${this.id}
-        ?invalid=${!!this.validate(this.value)}
-        oninput=${({ target }) => {
-          const errorMsg = this.validate(target.value);
-          target.setCustomValidity(errorMsg);
-        }}
-        onchange=${({ target }) => {
-          if (target.checkValidity()) {
-            this.value = target.value;
-            this.update();
-          }
-        }}
-        title=${this.options.title}
-        placeholder=${this.options.placeholder}
-      />`,
-    );
-  }
-}
-
-class Integer extends Prop {
-  /** @type {number} */
-  value = 0;
-  constructor(value = 0, options = {}) {
-    super(options);
-    this.value = value;
-  }
-
-  input() {
-    return this.labeled(
-      html`<input
-        type="text"
-        inputmode="numeric"
-        pattern="[0-9]+"
-        .value=${this.value}
-        id=${this.id}
-        onchange=${({ target }) => {
-          if (target.checkValidity()) {
-            this.value = parseInt(target.value);
-            this.update();
-          }
-        }}
-        title=${this.options.title}
-        placeholder=${this.options.placeholder}
-      />`,
-    );
-  }
-}
-
-class Float extends Prop {
-  /** @type {number} */
-  value = 0;
-  constructor(value = 0, options = {}) {
-    super(options);
-    this.value = value;
-  }
-
-  input() {
-    return this.labeled(
-      html`<input
-        type="text"
-        inputmode="numeric"
-        pattern="[0-9]*([,.][0-9]*)?"
-        .value=${this.value}
-        id=${this.id}
-        onchange=${({ target }) => {
-          if (target.checkValidity()) {
-            this.value = parseFloat(target.value);
-            this.update();
-          }
-        }}
-        title=${this.options.title}
-        placeholder=${this.options.placeholder}
-        step="any"
-      />`,
-    );
-  }
-}
-
-let Boolean$1 = class Boolean extends Prop {
-  /** @type {boolean} */
-  value = false;
-
-  constructor(value = false, options = {}) {
-    super(options);
-    this.value = value;
-  }
-
-  input(options = {}) {
-    options = { ...this.options, ...options };
-    return this.labeled(
-      html`<input
-        type="checkbox"
-        ?checked=${this.value}
-        id=${this.id}
-        onchange=${({ target }) => {
-          this.value = target.checked;
-          this.update();
-        }}
-        title=${options.title}
-      />`,
-    );
-  }
-
-  /** @param {any} value */
-  set(value) {
-    if (typeof value === "boolean") {
-      this.value = value;
-    } else if (typeof value === "string") {
-      this.value = value === "true";
-    }
-  }
-};
-
-class OneOfGroup extends Prop {
-  /** @type {boolean} */
-  value = false;
-
-  constructor(value = false, options = {}) {
-    super(options);
-    this.value = value;
-  }
-
-  input(options = {}) {
-    options = { ...this.options, ...options };
-    return this.labeled(
-      html`<input
-        type="checkbox"
-        .checked=${!!this.value}
-        id=${this.id}
-        name=${options.group}
-        onclick=${() => {
-          this.value = true;
-          this.clearPeers(options.group);
-          this.update();
-        }}
-        title=${this.options.title}
-      />`,
-    );
-  }
-
-  /** @param {any} value */
-  set(value) {
-    if (typeof value === "boolean") {
-      this.value = value;
-    } else if (typeof value === "string") {
-      this.value = value === "true";
-    }
-  }
-
-  /**
-   * Clear the value of peer radio buttons with the same name
-   * @param {string} name
-   */
-  clearPeers(name) {
-    const peers = this.container?.parent?.children || [];
-    for (const peer of peers) {
-      const props = peer.propsAsProps;
-      for (const propName in props) {
-        const prop = props[propName];
-        if (
-          prop instanceof OneOfGroup &&
-          prop.options.group == name &&
-          prop != this
-        ) {
-          prop.set(false);
-        }
-      }
-    }
-  }
-}
-
-class UID extends Prop {
-  constructor() {
-    super({});
-    this.value =
-      "id" + Date.now().toString(36) + Math.random().toString(36).slice(2);
-  }
-}
-
-class Expression extends Prop {
-  /** @type {function | null}
-  compiled = null;
-  /** @param {string} value
-   * @param {PropOptions} options
-   */
-  constructor(value = "", options = {}) {
-    super(options);
-    this.value = value;
-  }
-
-  input() {
-    return this.labeled(
-      html`<input
-        type="text"
-        .value=${this.value}
-        id=${this.id}
-        onchange=${({ target }) => {
-          this.value = target.value;
-          try {
-            this.compiled = compileExpression(this.value);
-            target.setCustomValidity("");
-            target.reportValidity();
-            this.update();
-          } catch (e) {
-            target.setCustomValidity(e.message);
-            target.reportValidity();
-          }
-        }}
-        title=${this.options.title}
-        placeholder=${this.options.placeholder}
-      />`,
-    );
-  }
-
-  /** @param {string} value */
-  set(value) {
-    this.value = value;
-    try {
-      this.compiled = compileExpression(this.value);
-    } catch (e) {
-      console.error(e);
-      console.log("value=", value, this);
-    }
-  }
-
-  /** @param {Object} context */
-  eval(context) {
-    if (this.compiled && this.value) {
-      const r = this.compiled(context);
-      return r;
-    } else {
-      return this.options["valueWhenEmpty"];
-    }
-  }
-}
-
-class Code extends Prop {
-  value = "";
-  editedValue = "";
-
-  /** @type {string[]} */
-  errors = [];
-
-  /** @type {number[]} */
-  lineOffsets = [];
-
-  /** @param {PropOptions} options */
-  constructor(value = "", options = {}) {
-    options = {
-      language: "css",
-      replacements: {},
-      ...options,
-    };
-    super(options);
-    this.value = value;
-  }
-
-  /** @param {HTMLTextAreaElement} target */
-  addLineNumbers = (target) => {
-    const numberOfLines = target.value.split("\n").length;
-    const lineNumbers = /** @type {HTMLTextAreaElement} */ (
-      target.previousElementSibling
-    );
-    const numbers = [];
-    for (let ln = 1; ln <= numberOfLines; ln++) {
-      numbers.push(ln);
-    }
-    lineNumbers.value = numbers.join("\n");
-    const rows = Math.max(4, Math.min(10, numberOfLines));
-    target.rows = rows;
-    lineNumbers.rows = rows;
-    lineNumbers.scrollTop = target.scrollTop;
-  };
-
-  /** @param {number} offset - where the error happened
-   * @param {string} message - the error message
-   */
-  addError(offset, message) {
-    const line = this.value.slice(0, offset).match(/$/gm)?.length || "??";
-    this.errors.push(`${line}: ${message}`);
-  }
-
-  /** Edit and validate the value */
-  editCSS(props = {}, editSelector = (selector = "") => selector) {
-    // replaces props in the full text
-    let value = this.value;
-    for (const prop in props) {
-      value = value.replaceAll("$" + prop, props[prop]);
-    }
-    // clear the errors
-    this.errors = [];
-    // build the new rules here
-    const editedRules = [];
-    // match a single rule
-    const ruleRE = /([\s\S]*?)({\s*[\s\S]*?}\s*)/dg;
-    for (const ruleMatch of value.matchAll(ruleRE)) {
-      let selector = ruleMatch[1];
-      const indices = ruleMatch.indices;
-      if (!indices) continue;
-      const selectorOffset = indices[1][0];
-      const body = ruleMatch[2];
-      const bodyOffset = indices[2][0];
-      // replace field names in the selector
-      selector = selector.replace(
-        /#(\w+)/g,
-        (_, name) =>
-          `data-${name.replace(
-            /[A-Z]/g,
-            (/** @type {string} */ m) => `-${m.toLowerCase()}`,
-          )}`,
-      );
-      // prefix the selector so it only applies to the UI
-      selector = `#UI ${editSelector(selector)}`;
-      // reconstruct the rule
-      const rule = selector + body;
-      // add it to the result
-      editedRules.push(rule);
-      // validate the rule
-      const styleSheet = new CSSStyleSheet();
-      try {
-        // add the rule to the sheet. If the selector is bad we'll get an
-        // exception. If any properties are bad they will omitted in the
-        // result. I'm adding a bogus ;gap:0; property to the end of the body
-        // because we get an exception if there is only one invalid property.
-        const index = styleSheet.insertRule(rule.replace("}", ";gap:0;}"));
-        // retrieve the rule
-        const newRule = styleSheet.cssRules[index].cssText;
-        // extract the body
-        const ruleRE = /([\s\S]*?)({\s*[\s\S]*?}\s*)/dg;
-        const match = ruleRE.exec(newRule);
-        if (match) {
-          const newBody = match[2];
-          const propRE = /[-\w]+:/g;
-          const newProperties = newBody.match(propRE);
-          for (const propMatch of body.matchAll(propRE)) {
-            if (!newProperties || newProperties.indexOf(propMatch[0]) < 0) {
-              // the property was invalid
-              this.addError(
-                bodyOffset + (propMatch.index || 0),
-                `property ${propMatch[0]} is invalid`,
-              );
-            }
-          }
-        } else {
-          this.addError(selectorOffset, "Rule is invalid");
-        }
-      } catch (e) {
-        this.addError(selectorOffset, "Rule is invalid");
-      }
-    }
-    this.editedValue = editedRules.join("");
-  }
-
-  input() {
-    return this.labeled(
-      html`<div class="Code">
-        <div class="numbered-textarea">
-          <textarea class="line-numbers" readonly></textarea>
-          <textarea
-            class="text"
-            .value=${this.value}
-            id=${this.id}
-            onchange=${({ target }) => {
-              this.value = target.value;
-              this.editCSS();
-              this.update();
-            }}
-            onkeyup=${(
-              /** @type {{ target: HTMLTextAreaElement; }} */ event,
-            ) => {
-              this.addLineNumbers(event.target);
-            }}
-            onscroll=${({ target }) => {
-              target.previousElementSibling.scrollTop = target.scrollTop;
-            }}
-            ref=${this.addLineNumbers}
-            title=${this.options.title}
-            placeholder=${this.options.placeholder}
-          ></textarea>
-        </div>
-        <div class="errors">${this.errors.join("\n")}</div>
-      </div>`,
-    );
-  }
-
-  /** @param {string} value */
-  set(value) {
-    this.value = value;
-    this.editCSS();
-  }
-}
-
-class Color extends Prop {
-  value = "#ffffff";
-
-  constructor(value = "", options = {}) {
-    super(options);
-    this.value = value;
-  }
-
-  input() {
-    return this.labeled(
-      html`<color-input
-        .value=${this.value}
-        id=${this.id}
-        onchange=${(/** @type {InputEventWithTarget} */ event) => {
-          this.value = event.target.value;
-          this.update();
-        }}
-      />`,
-    );
-  }
-}
-
-class Voice extends Prop {
-  value = "";
-
-  constructor(value = "", options = {}) {
-    super(options);
-    this.value = value;
-  }
-
-  input() {
-    return this.labeled(
-      html`<select
-        is="select-voice"
-        .value=${this.value}
-        id=${this.id}
-        onchange=${(/** @type {InputEventWithTarget} */ event) => {
-          this.value = event.target.value;
-          this.update();
-        }}
-      >
-        <option value="">Default</option>
-      </select>`,
-    );
-  }
-}
-
-class ADate extends Prop {
-  value = "";
-
-  constructor(value = "", options = {}) {
-    super(options);
-    this.value = value;
-  }
-
-  input() {
-    return this.labeled(
-      html`<input
-        type="date"
-        .value=${this.value}
-        id=${this.id}
-        onchange=${(/** @type {InputEventWithTarget} */ event) => {
-          this.value = event.target.value;
-          this.update();
-        }}
-      />`,
-    );
-  }
-}
-
-const treebase = '';
-
-/*! (c) Andrea Giammarchi */
-
-const {iterator: iterator$1} = Symbol;
-
-const noop$1 = () => {};
-
-/**
- * A Map extend that transparently uses WeakRef around its values,
- * providing a way to observe their collection at distance.
- * @extends {Map}
- */
-class WeakValue extends Map {
-  #delete = (key, ref) => {
-    super.delete(key);
-    this.#registry.unregister(ref);
-  };
-
-  #get = (key, [ref, onValueCollected]) => {
-    const value = ref.deref();
-    if (!value) {
-      this.#delete(key, ref);
-      onValueCollected(key, this);
-    }
-    return value;
-  }
-
-  #registry = new FinalizationRegistry(key => {
-    const pair = super.get(key);
-    if (pair) {
-      super.delete(key);
-      pair[1](key, this);
-    }
-  });
-
-  constructor(iterable) {
-    super();
-    if (iterable)
-      for (const [key, value] of iterable)
-        this.set(key, value);
-  }
-
-  clear() {
-    for (const [_, [ref]] of super[iterator$1]())
-      this.#registry.unregister(ref);
-    super.clear();
-  }
-
-  delete(key) {
-    const pair = super.get(key);
-    return !!pair && !this.#delete(key, pair[0]);
-  }
-
-  forEach(callback, context) {
-    for (const [key, value] of this)
-      callback.call(context, value, key, this);
-  }
-
-  get(key) {
-    const pair = super.get(key);
-    return pair && this.#get(key, pair);
-  }
-
-  has(key) {
-    return !!this.get(key);
-  }
-
-  set(key, value, onValueCollected = noop$1) {
-    super.delete(key);
-    const ref = new WeakRef(value);
-    this.#registry.register(value, key, ref);
-    return super.set(key, [ref, onValueCollected]);
-  }
-
-  *[iterator$1]() {
-    for (const [key, pair] of super[iterator$1]()) {
-      const value = this.#get(key, pair);
-      if (value)
-        yield [key, value];
-    }
-  }
-
-  *entries() {
-    yield *this[iterator$1]();
-  }
-
-  *values() {
-    for (const [_, value] of this[iterator$1]())
-      yield value;
-  }
-}
-
-const style = '';
 
 /*
  * Bang color names from http://www.procato.com/rgb+index/?csv
  */
 const ColorNames = {
+  white: "#ffffff",
+  red: "#ff0000",
+  green: "#00ff00",
+  blue: "#0000ff",
+  yellow: "#ffff00",
+  magenta: "#ff00ff",
+  cyan: "#00ffff",
+  black: "#000000",
   "pinkish white": "#fff6f6",
   "very pale pink": "#ffe2e2",
   "pale pink": "#ffc2c2",
@@ -8487,78 +7812,1025 @@ function styleString(styles) {
   );
 }
 
-class ColorInput extends HTMLElement {
-  value = "";
-  name = "";
-  tabindex = "0";
+function colorNamesDataList() {
+  return html`<datalist id="ColorNames">
+    ${Object.keys(ColorNames).map((name) => html`<option value="${name}" />`)}
+  </datalist>`;
+}
 
-  /**
-   * Called when the element is added to a page. The first time this is called
-   * I will copy the props and call the init method
-   */
-  connectedCallback() {
-    if (!Object.hasOwn(this, "initialized")) {
-      this.initialized = true;
-      this.init();
-    }
-    this.render();
-  }
+/* Thinking about better properties */
 
-  static get observedAttributes() {
-    return ["name", "value", "tabindex"];
-  }
 
-  /**
-   * watch for changing attributes
+/**
+ * @typedef {Object} PropOptions
+ * @property {boolean} [hiddenLabel]
+ * @property {string} [placeholder]
+ * @property {string} [title]
+ * @property {string} [label]
+ * @property {string} [defaultValue]
+ * @property {string} [group]
+ * @property {string} [language]
+ * @property {any} [valueWhenEmpty]
+ * @property {string} [pattern]
+ * @property {function(string):string} [validate]
+ * @property {string} [inputmode]
+ * @property {string} [datalist]
+ * @property {number} [min]
+ * @property {number} [max]
+ */
+
+/**
+ * @template {number|boolean|string} T
+ */
+class Prop {
+  label = "";
+  /** @type {T} */
+  _value;
+
+  /** true if this is a formula without leading = */
+  isFormulaByDefault = false;
+
+  /** If the entered value starts with = treat it as an expression and store it here */
+  formula = "";
+
+  /** @type {((context?:EvalContext)=>any) | undefined} compiled expression if any */
+  compiled = undefined;
+
+  // Each prop gets a unique id based on the id of its container
+  id = "";
+
+  /** @type {TreeBase} */
+  container;
+
+  /** attach the prop to its containing TreeBase component
    * @param {string} name
-   * @param {string} _
-   * @param {string} newValue
-   */
-  attributeChangedCallback(name, _, newValue) {
-    this[name] = newValue;
-    this.render();
+   * @param {any} value
+   * @param {TreeBase} container
+   * */
+  initialize(name, value, container) {
+    // create id from the container id
+    this.id = `${container.id}-${name}`;
+    // link to the container
+    this.container = container;
+    // set the value if provided
+    if (value != undefined) {
+      this.set(value);
+    }
+    // create a label if it has none
+    this.label =
+      this.label ||
+      name // convert from camelCase to Camel Case
+        .replace(/(?!^)([A-Z])/g, " $1")
+        .replace(/^./, (s) => s.toUpperCase());
   }
 
-  init() {
-    if (!document.querySelector("datalist#ColorNames")) {
-      const list = html.node`<datalist id="ColorNames">
-      ${Object.keys(ColorNames).map((name) => html`<option value="${name}" />`)}
-      </datalist>`;
-      document.body.appendChild(list);
+  /** @type {PropOptions} */
+  options = {};
+
+  /**
+   * @param {T} value
+   * @param {PropOptions} options */
+  constructor(value, options = {}) {
+    this._value = value;
+    this.options = options;
+    if (options.label) {
+      this.label = options.label;
     }
   }
-  validate() {
-    const input = this.querySelector("input");
-    if (!input) return "not found";
-    if (!isValidColor(input.value)) {
-      input.setCustomValidity("invalid color");
-      input.reportValidity();
-    } else {
+  validate = debounce(
+    (/** @type {string} */ value, /** @type {HTMLInputElement} */ input) => {
       input.setCustomValidity("");
-      const div = this.querySelector("div");
-      if (div) div.style.background = getColor(input.value);
-    }
-  }
-  render() {
-    render(
-      this,
+      if (this.isFormulaByDefault || value.startsWith("=")) {
+        const [compiled, error] = compileExpression(value);
+        if (error) {
+          let message = error.message.replace(/^\[.*?\]/, "");
+          message = message.split("\n")[0];
+          input.setCustomValidity(message);
+        } else if (compiled && this.options.validate)
+          input.setCustomValidity(this.options.validate("" + compiled({})));
+      } else if (this.options.validate) {
+        input.setCustomValidity(this.options.validate(value));
+      }
+      input.reportValidity();
+    },
+    100,
+  );
+
+  input() {
+    const text = this.text;
+    return this.labeled(
       html`<input
           type="text"
-          name=${this.name}
-          .value=${this.value}
-          list="ColorNames"
-          onchange=${() => this.validate()}
-          tabindex=${this.tabindex}
-        />
-        <div
-          class="swatch"
-          style=${`background-color: ${getColor(this.value)}`}
-        ></div>`,
+          inputmode=${this.options.inputmode}
+          .value=${text}
+          id=${this.id}
+          style=${`width: min(${text.length + 3}ch, 100%)`}
+          list=${this.options.datalist}
+          title=${this.options.title}
+          placeholder=${this.options.placeholder}
+          @keydown=${this.onkeydown}
+          @input=${this.oninput}
+          @change=${this.onchange}
+          @focus=${this.onfocus}
+        />${this.showValue()}`,
+    );
+  }
+  onkeydown = (/** @type {KeyboardEvent} */ event) => {
+    // restore the input on Escape
+    const { key, target } = event;
+    if (key == "Escape" && target instanceof HTMLInputElement) {
+      const text = this.text;
+      this.validate(text, target);
+      event.preventDefault();
+      target.value = text;
+    }
+  };
+  oninput = (/** @type {InputEvent} */ event) => {
+    // validate on each character
+    if (event.target instanceof HTMLInputElement) {
+      this.validate(event.target.value, event.target);
+      event.target.style.width = `${event.target.value.length + 1}ch`;
+    }
+  };
+  onchange = (/** @type {InputEvent} */ event) => {
+    if (
+      event.target instanceof HTMLInputElement &&
+      event.target.checkValidity()
+    ) {
+      this.set(event.target.value);
+      this.update();
+    }
+  };
+  onfocus = (/** @type {FocusEvent}*/ event) => {
+    if (this.formula && event.target instanceof HTMLInputElement) {
+      const span = event.target.nextElementSibling;
+      if (span instanceof HTMLSpanElement) {
+        const value = this.value;
+        const type = typeof value;
+        let text = "";
+        if (type === "string" || type === "number" || type === "boolean") {
+          text = "" + value;
+        }
+        span.innerText = text;
+      }
+    }
+  };
+
+  showValue() {
+    return this.formula ? [html`<span class="propValue"></span>`] : [];
+  }
+
+  /** @param {Hole} body */
+  labeled(body) {
+    return html`
+      <label class="labeledInput" ?hiddenLabel=${!!this.options.hiddenLabel}
+        ><span class="labelText">${this.label}</span> ${body}</label
+      >
+    `;
+  }
+
+  /** @param {HTMLInputElement} inputElement */
+  setValidity(inputElement) {
+    if (inputElement instanceof HTMLInputElement) {
+      if (this.error) {
+        console.log("scv", this.error.message);
+        inputElement.setCustomValidity(this.error.message);
+        inputElement.reportValidity();
+      } else {
+        console.log("csv");
+        inputElement.setCustomValidity("");
+        inputElement.reportValidity();
+      }
+    } else {
+      console.log("not found", inputElement);
+    }
+  }
+
+  /** @param {any} value
+   * @returns {T}
+   * */
+  cast(value) {
+    return value;
+  }
+
+  /**
+   * @param {any} value
+   */
+  set(value) {
+    this.compiled = undefined;
+    this.formula = "";
+    if (
+      typeof value == "string" &&
+      (this.isFormulaByDefault || value.startsWith("="))
+    ) {
+      // compile it here
+      let error;
+      [this.compiled, error] = compileExpression(value);
+      if (error) {
+        console.error("set error", this.label, value, error.message);
+      } else {
+        this.formula = value;
+      }
+    } else {
+      this._value = this.cast(value);
+    }
+  }
+
+  /**
+   * extract the value to save
+   * returns {string}
+   */
+  get text() {
+    if (this.formula || this.isFormulaByDefault) return this.formula;
+    return "" + this._value;
+  }
+
+  /** @returns {T} */
+  get value() {
+    if (this.compiled) {
+      if (!this.formula) {
+        console.log(this.options);
+        this._value = this.options.valueWhenEmpty ?? "";
+      } else {
+        const v = this.compiled();
+        this._value = this.cast(v);
+      }
+    }
+    return this._value;
+  }
+
+  /** @param {EvalContext} context - The context
+   * @returns {T} */
+  valueInContext(context = {}) {
+    if (this.compiled) {
+      if (!this.formula) {
+        this._value = this.options.valueWhenEmpty ?? "";
+      } else {
+        const v = this.compiled(context);
+        this._value = this.cast(v);
+      }
+    }
+    return this._value;
+  }
+
+  update() {
+    this.container.update();
+  }
+
+  /** @param {Error} [error] */
+  setError(error = undefined) {
+    this.error = error;
+  }
+}
+
+/** @param {string[] | Map<string,string> | function():Map<string,string>} arrayOrMap
+ * @returns Map<string, string>
+ */
+function toMap(arrayOrMap) {
+  if (arrayOrMap instanceof Function) {
+    return arrayOrMap();
+  }
+  if (Array.isArray(arrayOrMap)) {
+    return new Map(arrayOrMap.map((item) => [item, item]));
+  }
+  return arrayOrMap;
+}
+
+/** @extends {Prop<string>} */
+class Select extends Prop {
+  /**
+   * @param {string[] | Map<string, string> | function():Map<string,string>} choices
+   * @param {PropOptions} options
+   */
+  constructor(choices = [], options = {}) {
+    super("", options);
+    this.choices = choices;
+    this._value = options.defaultValue || "";
+  }
+
+  /** @param {Map<string,string> | null} choices */
+  input(choices = null) {
+    if (!choices) {
+      choices = toMap(this.choices);
+    }
+    this._value = this._value || this.options.defaultValue || "";
+    return this.labeled(
+      html`<select
+        id=${this.id}
+        required
+        title=${this.options.title}
+        @change=${({ target }) => {
+          this._value = target.value;
+          this.update();
+        }}
+      >
+        <option value="" disabled ?selected=${!choices.has(this._value)}>
+          ${this.options.placeholder || "Choose one..."}
+        </option>
+        ${[...choices.entries()].map(
+          ([key, value]) =>
+            html`<option value=${key} ?selected=${this._value == key}>
+              ${value}
+            </option>`,
+        )}
+      </select>`,
+    );
+  }
+
+  /** @param {any} value */
+  set(value) {
+    this._value = value;
+  }
+}
+
+class Field extends Select {
+  /**
+   * @param {PropOptions} options
+   */
+  constructor(options = {}) {
+    super(
+      () => toMap([...Globals.data.allFields, "#ComponentName"].sort()),
+      options,
     );
   }
 }
 
-customElements.define("color-input", ColorInput);
+let Cue$1 = class Cue extends Select {
+  /**
+   * @param {PropOptions} options
+   */
+  constructor(options = {}) {
+    super(() => Globals.cues.cueMap, options);
+  }
+};
+
+class Pattern extends Select {
+  /**
+   * @param {PropOptions} options
+   */
+  constructor(options = {}) {
+    super(() => Globals.patterns.patternMap, options);
+  }
+}
+
+class TypeSelect extends Select {
+  update() {
+    /* Magic happens here! The replace method on a TreeBaseSwitchable replaces the
+     * node with a new one to allow type switching in place
+     * */
+    if (this.container instanceof TreeBaseSwitchable)
+      this.container.replace(this._value);
+  }
+}
+
+/** @extends {Prop<string>} */
+let String$1 = class String extends Prop {};
+
+/* Allow entering a key name by first pressing Enter than pressing a single key
+ */
+/** @extends {Prop<string>} */
+class KeyName extends Prop {
+  /**
+   * @param {string} value
+   * @param {PropOptions} options
+   */
+  constructor(value = "", options = {}) {
+    super(value, options);
+  }
+
+  input() {
+    /** @param {string} key */
+    function mapKey(key) {
+      if (key == " ") return "Space";
+      return key;
+    }
+    return this.labeled(
+      html`<input
+        type="text"
+        .value=${mapKey(this._value)}
+        id=${this.id}
+        readonly
+        @keydown=${(/** @type {KeyboardEvent} */ event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLInputElement)) return;
+          if (target.hasAttribute("readonly") && event.key == "Enter") {
+            target.removeAttribute("readonly");
+            target.select();
+          } else if (!target.hasAttribute("readonly")) {
+            event.stopPropagation();
+            event.preventDefault();
+            this._value = event.key;
+            target.value = mapKey(event.key);
+            target.setAttribute("readonly", "");
+          }
+        }}
+        title="Press Enter to change then press a single key to set"
+        placeholder=${this.options.placeholder}
+      />`,
+    );
+  }
+}
+
+/** @extends {Prop<string>} */
+class TextArea extends Prop {
+  /**
+   * @param {string} value
+   * @param {PropOptions} options
+   */
+  constructor(value = "", options = {}) {
+    super(value, options);
+    this.validate = this.options.validate || ((_) => "");
+  }
+
+  input() {
+    return this.labeled(
+      html`<textarea
+        .value=${this._value}
+        id=${this.id}
+        ?invalid=${!!this.validate(this._value)}
+        @input=${({ target }) => {
+          const errorMsg = this.validate(target.value);
+          target.setCustomValidity(errorMsg);
+        }}
+        @change=${({ target }) => {
+          if (target.checkValidity()) {
+            this._value = target.value;
+            this.update();
+          }
+        }}
+        title=${this.options.title}
+        placeholder=${this.options.placeholder}
+      />`,
+    );
+  }
+}
+
+/** @extends {Prop<number>} */
+class Integer extends Prop {
+  /** @param {number} value
+   * @param {PropOptions} options
+   */
+  constructor(value = 0, options = {}) {
+    /** @param {string} value
+     * @returns {string}
+     */
+    function validate(value) {
+      if (!/^[0-9]+$/.test(value)) return "Please enter a whole number";
+      if (typeof options.min === "number" && parseInt(value) < options.min) {
+        return `Please enter a whole number at least ${this.options.min}`;
+      }
+      if (typeof options.max === "number" && parseInt(value) > options.max) {
+        return `Please enter a whole number at most ${this.options.max}`;
+      }
+      return "";
+    }
+    options = {
+      validate,
+      inputmode: "numeric",
+      ...options,
+    };
+    super(value, options);
+  }
+
+  /**
+   * Convert the input into an integer
+   * @param {any} value
+   * @returns {number}
+   */
+  cast(value) {
+    return Math.trunc(+value);
+  }
+}
+
+/** @extends {Prop<number>} */
+class Float extends Prop {
+  /** @param {number} value
+   * @param {PropOptions} options
+   */
+  constructor(value = 0, options = {}) {
+    /** @param {string} value
+     * @returns {string}
+     */
+    const validate = (value) => {
+      if (!/^[0-9]*([,.][0-9]*)?$/.test(value)) return "Please enter a number";
+      if (typeof options.min === "number" && parseFloat(value) < options.min) {
+        return `Please enter a number at least ${options.min}`;
+      }
+      if (typeof options.max === "number" && parseFloat(value) > options.max) {
+        return `Please enter a number at most ${this.options.max}`;
+      }
+      return "";
+    };
+    options = {
+      validate,
+      inputmode: "decimal",
+      ...options,
+    };
+    super(value, options);
+  }
+
+  /** @param {any} value */
+  cast(value) {
+    return +value;
+  }
+}
+
+/** @extends {Prop<boolean>} */
+let Boolean$1 = class Boolean extends Prop {
+  /** @param {boolean} value
+   * @param {PropOptions} options
+   */
+  constructor(value = false, options = {}) {
+    super(value, options);
+  }
+
+  /**
+   * @param {PropOptions} options
+   */
+  input(options = {}) {
+    options = { ...this.options, ...options };
+    return this.labeled(
+      html`<input
+        type="checkbox"
+        ?checked=${this._value}
+        id=${this.id}
+        @change=${({ target }) => {
+          this._value = target.checked;
+          this.update();
+        }}
+        title=${options.title}
+      />`,
+    );
+  }
+
+  /** @param {any} value */
+  set(value) {
+    if (typeof value === "boolean") {
+      this._value = value;
+    } else if (typeof value === "string") {
+      this._value = value === "true";
+    }
+  }
+};
+
+/** @extends {Prop<boolean>} */
+class OneOfGroup extends Prop {
+  /** @param {boolean} value
+   * @param {PropOptions} options
+   */
+  constructor(value = false, options = {}) {
+    options = { group: "AGroup", ...options };
+    super(value, options);
+  }
+
+  /**
+   * @param {PropOptions} options
+   */
+  input(options = {}) {
+    options = { ...this.options, ...options };
+    return this.labeled(
+      html`<input
+        type="checkbox"
+        .checked=${!!this._value}
+        id=${this.id}
+        name=${options.group}
+        @click=${() => {
+          this._value = true;
+          this.clearPeers();
+          this.update();
+        }}
+        title=${this.options.title}
+      />`,
+    );
+  }
+
+  /** @param {any} value */
+  set(value) {
+    if (typeof value === "boolean") {
+      this._value = value;
+    } else if (typeof value === "string") {
+      this._value = value === "true";
+    }
+    if (this._value) {
+      this.clearPeers();
+    }
+  }
+
+  /**
+   * Clear the value of peer radio buttons with the same name
+   */
+  clearPeers() {
+    const name = this.options.group;
+    const peers = this.container?.parent?.children || [];
+    for (const peer of peers) {
+      const props = peer.props;
+      for (const propName in props) {
+        const prop = props[propName];
+        if (
+          prop instanceof OneOfGroup &&
+          prop.options.group == name &&
+          prop != this
+        ) {
+          prop.set(false);
+        }
+      }
+    }
+  }
+}
+
+/** @extends {Prop<string>} */
+class UID extends Prop {
+  constructor() {
+    super("", {});
+    this._value =
+      "id" + Date.now().toString(36) + Math.random().toString(36).slice(2);
+  }
+}
+
+/** @extends {Prop<string|number|boolean>} */
+class Expression extends Prop {
+  isFormulaByDefault = true;
+
+  /** @param {string} value
+   * @param {PropOptions} options
+   */
+  constructor(value = "", options = {}) {
+    super(value, options);
+    this.formula = value;
+  }
+}
+
+/** @extends {Prop<boolean>} */
+class Conditional extends Prop {
+  isFormulaByDefault = true;
+
+  /** @param {string} value
+   * @param {PropOptions} options
+   */
+  constructor(value = "", options = {}) {
+    super(false, options);
+    this.formula = value;
+  }
+
+  get value() {
+    return !!super.value;
+  }
+
+  valueInContext(context = {}) {
+    return !!super.valueInContext(context);
+  }
+}
+
+/** @extends {Prop<string>} */
+class Code extends Prop {
+  editedValue = "";
+
+  /** @type {string[]} */
+  errors = [];
+
+  /** @type {number[]} */
+  lineOffsets = [];
+
+  /** @param {PropOptions} options */
+  constructor(value = "", options = {}) {
+    options = {
+      language: "css",
+      ...options,
+    };
+    super(value, options);
+  }
+
+  /** @param {HTMLTextAreaElement} target */
+  addLineNumbers = (target) => {
+    const numberOfLines = target.value.split("\n").length;
+    const lineNumbers = /** @type {HTMLTextAreaElement} */ (
+      target.previousElementSibling
+    );
+    const numbers = [];
+    for (let ln = 1; ln <= numberOfLines; ln++) {
+      numbers.push(ln);
+    }
+    lineNumbers.value = numbers.join("\n");
+    const rows = Math.max(4, Math.min(10, numberOfLines));
+    target.rows = rows;
+    lineNumbers.rows = rows;
+    lineNumbers.scrollTop = target.scrollTop;
+  };
+
+  /** @param {number} offset - where the error happened
+   * @param {string} message - the error message
+   */
+  addError(offset, message) {
+    const line = this._value.slice(0, offset).match(/$/gm)?.length || "??";
+    this.errors.push(`${line}: ${message}`);
+  }
+
+  /** Edit and validate the value
+   * */
+  editCSS(props = {}, editSelector = (selector = "") => selector) {
+    // replaces props in the full text
+    let value = this._value;
+    for (const prop in props) {
+      value = value.replaceAll("$" + prop, props[prop]);
+    }
+    // clear the errors
+    this.errors = [];
+    // build the new rules here
+    const editedRules = [];
+    // match a single rule
+    const ruleRE = /([\s\S]*?)({\s*[\s\S]*?}\s*)/dg;
+    for (const ruleMatch of value.matchAll(ruleRE)) {
+      let selector = ruleMatch[1];
+      const indices = ruleMatch.indices;
+      if (!indices) continue;
+      const selectorOffset = indices[1][0];
+      const body = ruleMatch[2];
+      const bodyOffset = indices[2][0];
+      // replace field names in the selector
+      selector = selector.replace(
+        /#(\w+)/g,
+        /** @param {string} _
+         * @param {string} name */
+        (_, name) =>
+          `data-${name.replace(
+            /[A-Z]/g,
+            (/** @type {string} */ m) => `-${m.toLowerCase()}`,
+          )}`,
+      );
+      // prefix the selector so it only applies to the UI
+      selector = `#UI ${editSelector(selector)}`;
+      // reconstruct the rule
+      const rule = selector + body;
+      // add it to the result
+      editedRules.push(rule);
+      // validate the rule
+      const styleSheet = new CSSStyleSheet();
+      try {
+        // add the rule to the sheet. If the selector is bad we'll get an
+        // exception. If any properties are bad they will omitted in the
+        // result. I'm adding a bogus ;gap:0; property to the end of the body
+        // because we get an exception if there is only one invalid property.
+        let irule = (Globals.state && Globals.state.interpolate(rule)) || rule;
+        const index = styleSheet.insertRule(irule.replace("}", ";gap:0;}"));
+        // retrieve the rule
+        const newRule = styleSheet.cssRules[index].cssText;
+        // extract the body
+        const ruleRE = /([\s\S]*?)({\s*[\s\S]*?}\s*)/dg;
+        const match = ruleRE.exec(newRule);
+        if (match) {
+          const newBody = match[2];
+          const propRE = /[-\w]+:/g;
+          const newProperties = newBody.match(propRE);
+          for (const propMatch of body.matchAll(propRE)) {
+            if (!newProperties || newProperties.indexOf(propMatch[0]) < 0) {
+              // the property was invalid
+              this.addError(
+                bodyOffset + (propMatch.index || 0),
+                `property ${propMatch[0]} is invalid`,
+              );
+            }
+          }
+        } else {
+          this.addError(selectorOffset, "Rule is invalid");
+        }
+      } catch (e) {
+        this.addError(selectorOffset, "Rule is invalid");
+      }
+    }
+    this.editedValue = editedRules.join("");
+  }
+
+  input() {
+    return this.labeled(
+      html`<div class="Code">
+        <div class="numbered-textarea">
+          <textarea class="line-numbers" readonly></textarea>
+          <textarea
+            class="text"
+            .value=${this._value}
+            id=${this.id}
+            @change=${({ target }) => {
+              this._value = target.value;
+              this.editCSS();
+              this.update();
+            }}
+            @keyup=${(
+              /** @type {{ target: HTMLTextAreaElement; }} */ event,
+            ) => {
+              this.addLineNumbers(event.target);
+            }}
+            @scroll=${({ target }) => {
+              target.previousElementSibling.scrollTop = target.scrollTop;
+            }}
+            ref=${this.addLineNumbers}
+            title=${this.options.title}
+            placeholder=${this.options.placeholder}
+          ></textarea>
+        </div>
+        <div class="errors">${this.errors.join("\n")}</div>
+      </div>`,
+    );
+  }
+
+  /** @param {string} value */
+  set(value) {
+    this._value = value;
+    this.editCSS();
+  }
+}
+
+/** @extends {Prop<string>} */
+class Color extends Prop {
+  /**
+   * @param {string} value
+   * @param {PropOptions} options
+   */
+  constructor(value = "white", options = {}) {
+    options = {
+      /** @param {string} value */
+      validate: (value) => {
+        if (isValidColor(value)) {
+          const swatch = document.querySelector(`#${this.id}~div`);
+          if (swatch instanceof HTMLDivElement) {
+            swatch.style.backgroundColor = getColor(value);
+          }
+          return "";
+        }
+        return "invalid color";
+      },
+      datalist: "ColorNames",
+      ...options,
+    };
+    super(value, options);
+  }
+
+  showValue() {
+    return [
+      html`<div
+        class="swatch"
+        style=${styleString({ backgroundColor: getColor(this.value) })}
+      ></div>`,
+    ];
+  }
+}
+
+/** @extends {Prop<string>} */
+class Voice extends Prop {
+  /** @param {string} value
+   * @param {PropOptions} options
+   */
+  constructor(value = "", options = {}) {
+    super(value, options);
+  }
+
+  input() {
+    return this.labeled(
+      html`<select
+        is="select-voice"
+        .value=${this._value}
+        id=${this.id}
+        @change=${(/** @type {InputEventWithTarget} */ event) => {
+          this._value = event.target.value;
+          this.update();
+        }}
+      >
+        <option value="">Default</option>
+      </select>`,
+    );
+  }
+}
+/** @extends {Prop<string>} */
+class ADate extends Prop {
+  /** @param {string} value
+   * @param {PropOptions} options
+   */
+  constructor(value = "", options = {}) {
+    super(value, options);
+  }
+
+  input() {
+    return this.labeled(
+      html`<input
+        type="date"
+        .value=${this._value}
+        id=${this.id}
+        @change=${(/** @type {InputEventWithTarget} */ event) => {
+          this._value = event.target.value;
+          this.update();
+        }}
+      />`,
+    );
+  }
+}
+
+/**
+ * @template {unknown[]} T
+ * @param {(...args: T)=>void} callback
+ * @param {number} wait
+ * @returns {(...args: T)=>void}
+ * */
+const debounce = (callback, wait) => {
+  let timeoutId = null;
+  return (...args) => {
+    window.clearTimeout(timeoutId);
+    timeoutId = window.setTimeout(() => {
+      callback(...args);
+    }, wait);
+  };
+};
+
+const treebase = '';
+
+/*! (c) Andrea Giammarchi */
+
+const {iterator: iterator$1} = Symbol;
+
+const noop$1 = () => {};
+
+/**
+ * A Map extend that transparently uses WeakRef around its values,
+ * providing a way to observe their collection at distance.
+ * @extends {Map}
+ */
+class WeakValue extends Map {
+  #delete = (key, ref) => {
+    super.delete(key);
+    this.#registry.unregister(ref);
+  };
+
+  #get = (key, [ref, onValueCollected]) => {
+    const value = ref.deref();
+    if (!value) {
+      this.#delete(key, ref);
+      onValueCollected(key, this);
+    }
+    return value;
+  }
+
+  #registry = new FinalizationRegistry(key => {
+    const pair = super.get(key);
+    if (pair) {
+      super.delete(key);
+      pair[1](key, this);
+    }
+  });
+
+  constructor(iterable) {
+    super();
+    if (iterable)
+      for (const [key, value] of iterable)
+        this.set(key, value);
+  }
+
+  clear() {
+    for (const [_, [ref]] of super[iterator$1]())
+      this.#registry.unregister(ref);
+    super.clear();
+  }
+
+  delete(key) {
+    const pair = super.get(key);
+    return !!pair && !this.#delete(key, pair[0]);
+  }
+
+  forEach(callback, context) {
+    for (const [key, value] of this)
+      callback.call(context, value, key, this);
+  }
+
+  get(key) {
+    const pair = super.get(key);
+    return pair && this.#get(key, pair);
+  }
+
+  has(key) {
+    return !!this.get(key);
+  }
+
+  set(key, value, onValueCollected = noop$1) {
+    super.delete(key);
+    const ref = new WeakRef(value);
+    this.#registry.register(value, key, ref);
+    return super.set(key, [ref, onValueCollected]);
+  }
+
+  *[iterator$1]() {
+    for (const [key, pair] of super[iterator$1]()) {
+      const value = this.#get(key, pair);
+      if (value)
+        yield [key, value];
+    }
+  }
+
+  *entries() {
+    yield *this[iterator$1]();
+  }
+
+  *values() {
+    for (const [_, value] of this[iterator$1]())
+      yield value;
+  }
+}
 
 /**
  * Create an object that is persisted to sessionStorage
@@ -8735,7 +9007,7 @@ class TreeBase {
    * Extract the class fields that are Props and return their values as an Object
    * @returns {Object<string, any>}
    */
-  get props() {
+  get propsAsObject() {
     return Object.fromEntries(
       Object.entries(this)
         .filter(([_, prop]) => prop instanceof Prop)
@@ -8747,11 +9019,12 @@ class TreeBase {
    * Extract the values of the fields that are Props
    * @returns {Object<string, Props.Prop>}
    */
-  get propsAsProps() {
+  get props() {
     return Object.fromEntries(
       Object.entries(this).filter(([_, prop]) => prop instanceof Prop),
     );
   }
+
   /**
    * Prepare a TreeBase tree for external storage by converting to simple objects and arrays
    * @param {Object} [options]
@@ -8766,7 +9039,7 @@ class TreeBase {
             prop instanceof Prop &&
             !options.omittedProps.includes(prop.constructor.name),
         )
-        .map(([name, prop]) => [name, prop.value]),
+        .map(([name, prop]) => [name, prop.text]),
     );
     const children = this.children.map((child) => child.toObject(options));
     const result = {
@@ -8782,7 +9055,18 @@ class TreeBase {
    * called in fromObject after the children have been added. If you
    * call create directly you should call init afterward.
    */
-  init() {}
+  init() {
+    /** Make sure OnOfGroup is enforced */
+    for (const child of this.children) {
+      const props = child.props;
+      for (const instance of Object.values(props)) {
+        if (instance instanceof OneOfGroup && instance._value) {
+          instance.clearPeers();
+          break;
+        }
+      }
+    }
+  }
 
   /**
    *   Create a TreeBase object
@@ -8801,7 +9085,7 @@ class TreeBase {
     const result = new constructor();
 
     // initialize the props
-    for (const [name, prop] of Object.entries(result.propsAsProps)) {
+    for (const [name, prop] of Object.entries(result.props)) {
       prop.initialize(name, props[name], result);
     }
 
@@ -8889,7 +9173,7 @@ class TreeBase {
         class=${this.className}
         id=${detailsId}
         ?open=${this.persisted.settingsDetailsOpen}
-        ontoggle=${({ target }) =>
+        @toggle=${({ target }) =>
           (this.persisted.settingsDetailsOpen = target.open)}
       >
         <summary id=${settingsId}>${this.settingsSummary()}</summary>
@@ -8910,29 +9194,32 @@ class TreeBase {
 
   /**
    * Render the details of a components settings
-   * @returns {Hole|Hole[]}
+   * @returns {Hole[]}
    */
   settingsDetails() {
-    const props = this.propsAsProps;
+    const props = this.props;
     const inputs = Object.values(props).map((prop) => prop.input());
     return inputs;
   }
 
+  /**
+   * @returns {Hole}
+   */
   settingsChildren() {
     return this.orderedChildren();
   }
 
   /**
    * Render the user interface and return the resulting Hole
-   * @returns {Hole|Hole[]}
+   * @returns {Hole}
    */
   template() {
-    return this.empty;
+    return html`<div />`;
   }
 
   /**
    * Render the user interface catching errors and return the resulting Hole
-   * @returns {Hole|Hole[]}
+   * @returns {Hole}
    */
   safeTemplate() {
     try {
@@ -8954,7 +9241,7 @@ class TreeBase {
    * Wrap the body of a component
    *
    * @param {ComponentAttrs} attrs
-   * @param {Hole|Hole[]} body
+   * @param {Hole} body
    * @returns {Hole}
    */
   component(attrs, body) {
@@ -9041,9 +9328,7 @@ class TreeBase {
    * Create HTML LI nodes from the children
    */
   listChildren(children = this.children) {
-    return children.map(
-      (child) => html.for(child)`<li>${child.settings()}</li>`,
-    );
+    return children.map((child) => html`<li>${child.settings()}</li>`);
   }
 
   /**
@@ -9098,39 +9383,11 @@ class TreeBase {
     return result;
   }
 
-  /* Methods from original Base many not used */
-
-  /** Return matching strings from props
-   * @param {RegExp} pattern
-   * @param {string[]} [props]
-   * @returns {Set<string>}
+  /** @param {string[]} classes
+   * @returns {string}
    */
-  all(pattern, props) {
-    const matches = new Set();
-    for (const [name, theProp] of Object.entries(this.props)) {
-      if (!props || props.indexOf(name) >= 0) {
-        if (theProp instanceof String$1) {
-          for (const [match] of theProp.value.matchAll(pattern)) {
-            matches.add(match);
-          }
-        }
-      }
-    }
-    for (const child of this.children) {
-      for (const match of child.all(pattern, props)) {
-        matches.add(match);
-      }
-    }
-    return matches;
-  }
-
-  /** @returns {Set<string>} */
-  allStates() {
-    return this.all(/\$\w+/g);
-  }
-
-  get empty() {
-    return html`<!--empty-->`;
+  CSSClasses(...classes) {
+    return classes.join(" ");
   }
 }
 
@@ -9139,8 +9396,9 @@ class TreeBase {
  */
 class TreeBaseSwitchable extends TreeBase {
   init() {
+    super.init();
     // find the TypeSelect property and set its value
-    for (const prop of Object.values(this.propsAsProps)) {
+    for (const prop of Object.values(this.props)) {
       if (prop instanceof TypeSelect) {
         if (!prop.value) {
           prop.set(this.className);
@@ -9155,7 +9413,11 @@ class TreeBaseSwitchable extends TreeBase {
     if (!this.parent) return;
     if (this.className == className) return;
     // extract the values of the old props
-    const props = this.props;
+    const props = Object.fromEntries(
+      Object.entries(this)
+        .filter(([_, prop]) => prop instanceof Prop)
+        .map(([name, prop]) => [name, prop.value]),
+    );
     const replacement = TreeBase.create(className, null, props);
     replacement.init();
     const index = this.parent.children.indexOf(this);
@@ -9177,7 +9439,7 @@ class Messages extends TreeBase {
       this.messages = [];
       return result;
     } else {
-      return this.empty;
+      return html`<div />`;
     }
   }
 
@@ -9192,47 +9454,60 @@ class Messages extends TreeBase {
  * @param {string[]} trace - stack trace
  */
 function reportInternalError(msg, trace) {
-  const result = html.node`<div id="ErrorReport">
-    <h1>Internal Error</h1>
-    <p>
-      Your browser has detected an internal error in OS-DPI. It was very likely
-      caused by our program bug. We hope you will help us by sending a report of
-      the information below. Simply click this button
-      <button
-        onclick=${() => {
-          const html =
-            document.getElementById("ErrorReportBody")?.innerHTML || "";
-          const blob = new Blob([html], { type: "text/html" });
-          const data = [new ClipboardItem({ "text/html": blob })];
-          navigator.clipboard.write(data);
-        }}
-      >
-        Copy report to clipboard
-      </button>
-      and then paste into an email to
-      <a href="mailto:gb@cs.unc.edu?subject=OS-DPI Error Report" target="email"
-        >gb@cs.unc.edu</a
-      >.
-      <button
-        onclick=${() => {
-          document.getElementById("ErrorReport")?.remove();
-        }}
-      >
-        Dismiss this dialog
-      </button>
-    </p>
-    <div id="ErrorReportBody">
-      <h2>Error Report</h2>
-      <p>${msg}</p>
-      <h2>Stack Trace</h2>
-      <ul>
-        ${trace.map((s) => html`<li>${s}</li>`)}
-      </ul>
-    </div>
-  </div>`;
+  const result = document.createElement("div");
+  result.id = "ErrorReport";
+  render(
+    result,
+    html`<div id="ErrorReport">
+      <h1>Internal Error</h1>
+      <p>
+        Your browser has detected an internal error in OS-DPI. It was very
+        likely caused by our program bug. We hope you will help us by sending a
+        report of the information below. Simply click this button
+        <button
+          @click=${() => {
+            const html =
+              document.getElementById("ErrorReportBody")?.innerHTML || "";
+            const blob = new Blob([html], { type: "text/html" });
+            const data = [new ClipboardItem({ "text/html": blob })];
+            navigator.clipboard.write(data);
+          }}
+        >
+          Copy report to clipboard
+        </button>
+        and then paste into an email to
+        <a
+          href="mailto:gb@cs.unc.edu?subject=OS-DPI Error Report"
+          target="email"
+          >gb@cs.unc.edu</a
+        >.
+        <button
+          @click=${() => {
+            document.getElementById("ErrorReport")?.remove();
+          }}
+        >
+          Dismiss this dialog
+        </button>
+      </p>
+      <div id="ErrorReportBody">
+        <h2>Error Report</h2>
+        <p>${msg}</p>
+        <h2>Stack Trace</h2>
+        <ul>
+          ${trace.map((s) => html`<li>${s}</li>`)}
+        </ul>
+      </div>
+    </div>`,
+  );
   document.body.prepend(result);
 }
 
+/** @param {string} msg
+ * @param {string} _file
+ * @param {number} _line
+ * @param {number} _col
+ * @param {Error} error
+ */
 window.onerror = async function (msg, _file, _line, _col, error) {
   console.error("onerror", msg, error);
   if (error instanceof Error) {
@@ -9267,9 +9542,80 @@ window.onunhandledrejection = function (error) {
   error.preventDefault();
   reportInternalError(
     error.reason.message,
-    error.reason.stack?.split("\n") || ["no stack"]
+    error.reason.stack?.split("\n") || ["no stack"],
   );
 };
+
+const gridfilter = '';
+
+class GridFilter extends TreeBase {
+  field = new Field({ hiddenLabel: true });
+  operator = new Select(Object.keys(comparators), { hiddenLabel: true });
+  value = new Expression("", { hiddenLabel: true });
+
+  /** move my parent instead of me.
+   * @param {boolean} up
+   */
+  moveUpDown(up) {
+    this.parent?.moveUpDown(up);
+  }
+
+  /** Format the settings
+   * @param {GridFilter[]} filters
+   * @return {Hole}
+   */
+  static FilterSettings(filters) {
+    /** @type {Hole} */
+    let table;
+    if (filters.length > 0) {
+      table = html`
+        <table class="GridFilter">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Field</th>
+              <th>Operator</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filters.map(
+              (filter, index) => html`
+                <tr id=${filter.id + "-settings"}>
+                  <td>${index + 1}</td>
+                  <td>${filter.field.input()}</td>
+                  <td>${filter.operator.input()}</td>
+                  <td>${filter.value.input()}</td>
+                </tr>
+              `,
+            )}
+          </tbody>
+        </table>
+      `;
+    } else {
+      table = html`<div />`;
+    }
+    return html`<fieldset>
+      <legend>Filters</legend>
+      ${table}
+    </fieldset>`;
+  }
+
+  /** Convert from Props to values for data module
+   * @param {GridFilter[]} filters
+   */
+  static toContentFilters(filters) {
+    return filters.map((child) => ({
+      field: child.field.value,
+      operator: child.operator.value,
+      value: child.value.value,
+    }));
+  }
+}
+TreeBase.register(GridFilter, "GridFilter");
+
+const collator = new Intl.Collator("en", { sensitivity: "base" });
+const collatorNumber = new Intl.Collator("en", { numeric: true });
 
 /** Implement comparison operators
  * @typedef {function(string, string): boolean} Comparator
@@ -9277,15 +9623,14 @@ window.onunhandledrejection = function (error) {
  * @type {Object<string, Comparator>}
  */
 const comparators = {
-  equals: (f, v) =>
-    f.localeCompare(v, undefined, { sensitivity: "base" }) === 0 ||
-    f === "*" ||
-    v === "*",
-  "less than": (f, v) => f.localeCompare(v, undefined, { numeric: true }) < 0,
-  "starts with": (f, v) =>
-    f.toUpperCase().startsWith(v.toUpperCase()) || f === "*" || v === "*",
+  equals: (f, v) => collator.compare(f, v) === 0 || f === "*" || v === "*",
+  "starts with": (f, v) => f.toUpperCase().startsWith(v.toUpperCase()),
   empty: (f) => !f,
   "not empty": (f) => !!f,
+  "less than": (f, v) => collatorNumber.compare(f, v) < 0,
+  "greater than": (f, v) => collatorNumber.compare(f, v) > 0,
+  "less or equal": (f, v) => collatorNumber.compare(f, v) <= 0,
+  "greater or equal": (f, v) => collatorNumber.compare(f, v) >= 0,
 };
 
 /** Test a row with a filter
@@ -9307,104 +9652,63 @@ class Data {
   constructor(rows) {
     this.contentRows = (Array.isArray(rows) && rows) || [];
     this.allrows = this.contentRows;
-    /** @type {string[]} */
-    this.allFields = [];
+    /** @type {Set<string>} */
+    this.allFields = new Set();
     this.updateAllFields();
     this.loadTime = new Date();
   }
 
   updateAllFields() {
-    this.allFields = this.contentRows.reduce(
-      (previous, current) =>
-        Array.from(
-          new Set([
-            ...previous,
-            ...Object.keys(current).map((field) => "#" + field),
-          ]),
-        ),
-      [],
-    );
-    this.clearFields = Object.fromEntries(
-      this.allFields.map((field) => [field.slice(1), null]),
-    );
+    this.allFields = this.contentRows.reduce((previous, current) => {
+      for (const field of Object.keys(current)) {
+        previous.add("#" + field);
+      }
+      return previous;
+    }, new Set());
+    this.clearFields = {};
+    for (const field of this.allFields) {
+      this.clearFields[field.slice(1)] = null;
+    }
   }
 
   /**
    * Extract rows with the given filters
    *
-   * @param {ContentFilter[]} filters - each filter must return true
-   * @param {State} state
-   * @param {RowCache} [cache]
+   * @param {GridFilter[]} filters - each filter must return true
    * @param {boolean} [clearFields] - return null for undefined fields
    * @return {Rows} Rows that pass the filters
    */
-  getMatchingRows(filters, state, cache, clearFields = true) {
+  getMatchingRows(filters, clearFields = true) {
     // all the filters must match the row
-    const boundFilters = filters.map((filter) =>
-      Object.assign({}, filter, {
-        value: evalInContext(filter.value, { state }),
-      }),
-    );
-    if (cache) {
-      const newKey = JSON.stringify(boundFilters);
-      if (
-        cache.key == newKey &&
-        cache.loadTime == this.loadTime &&
-        cache.rows
-      ) {
-        cache.updated = false;
-        return cache.rows;
-      }
-      cache.key = newKey;
-    }
+    const boundFilters = filters.map((filter) => ({
+      field: filter.field.value,
+      operator: filter.operator.value,
+      value: filter.value.value,
+    }));
     let result = this.allrows.filter((row) =>
       boundFilters.every((filter) => match(filter, row)),
     );
     if (clearFields)
       result = result.map((row) => ({ ...this.clearFields, ...row }));
-    if (cache) {
-      cache.rows = result;
-      cache.updated = true;
-      cache.loadTime = this.loadTime;
-    }
-    // console.log("gtr result", result);
     return result;
   }
 
   /**
    * Test if any rows exist after filtering
    *
-   * @param {ContentFilter[]} filters
-   * @param {State} state
-   * @param {RowCache} [cache]
+   * @param {GridFilter[]} filters
+   * @param {EvalContext} context
    * @return {Boolean} true if tag combination occurs
    */
-  hasMatchingRows(filters, state, cache) {
-    const boundFilters = filters.map((filter) =>
-      Object.assign({}, filter, {
-        value: evalInContext(filter.value, { state }),
-      }),
-    );
-    if (cache) {
-      const newKey = JSON.stringify(boundFilters);
-      if (
-        cache.key == newKey &&
-        cache.loadTime == this.loadTime &&
-        cache.result
-      ) {
-        cache.updated = false;
-        return cache.result;
-      }
-      cache.key = newKey;
-    }
+  hasMatchingRows(filters, context) {
+    const boundFilters = filters.map((filter) => ({
+      field: filter.field.value,
+      operator: filter.operator.value,
+      value: filter.value.valueInContext(context),
+    }));
     const result = this.allrows.some((row) =>
       boundFilters.every((filter) => match(filter, row)),
     );
-    if (cache) {
-      cache.result = result;
-      cache.updated = true;
-      cache.loadTime = this.loadTime;
-    }
     return result;
   }
 
@@ -9436,7 +9740,6 @@ let State$1 = class State {
       const persist = window.sessionStorage.getItem(this.persistKey);
       if (persist) {
         this.values = JSON.parse(persist);
-        // console.log("restored $tabControl", this.values["$tabControl"]);
       }
     }
   }
@@ -9466,18 +9769,9 @@ let State$1 = class State {
     for (const key in patch) {
       this.updated.add(key);
     }
-    const oldValues = this.values;
-    this.values = o$1(oldValues, patch);
-    // see which values changed.
-    const allKeys = new Set([
-      ...Object.keys(oldValues),
-      ...Object.keys(this.values),
-    ]);
-    const changed = new Set(
-      [...allKeys].filter((key) => oldValues[key] !== this.values[key])
-    );
+    this.values = o$1(this.values, patch);
     for (const callback of this.listeners) {
-      callback(changed);
+      callback();
     }
 
     if (this.persistKey) {
@@ -9502,10 +9796,10 @@ let State$1 = class State {
    */
   clear() {
     const userState = Object.keys(this.values).filter((name) =>
-      name.startsWith("$")
+      name.startsWith("$"),
     );
     const patch = Object.fromEntries(
-      userState.map((name) => [name, undefined])
+      userState.map((name) => [name, undefined]),
     );
     this.update(patch);
   }
@@ -9517,16 +9811,18 @@ let State$1 = class State {
     this.listeners.add(callback);
   }
 
-  /** return true if the given state has been upated since last you asked
+  /** return true if the given state has been upated on this cycle
    * @param {string} stateName
    * @returns boolean
    */
   hasBeenUpdated(stateName) {
-    const result = this.updated.has(stateName);
-    if (result) {
-      this.updated.delete(stateName);
-    }
-    return result;
+    return this.updated.has(stateName);
+  }
+
+  /** clear updated for the next cycle
+   */
+  clearUpdated() {
+    this.updated.clear();
   }
 
   /** define - add a named state to the global system state
@@ -9543,11 +9839,11 @@ let State$1 = class State {
    * @returns {string} input with $name replaced by values from the state
    */
   interpolate(input) {
-    let result = input.replace(/(\$[a-zA-Z0-9_.]+)/, (_, name) =>
-      this.get(name)
+    let result = input.replace(/(\$[a-zA-Z0-9_.]+)/g, (_, name) =>
+      this.get(name),
     );
-    result = result.replace(/\$\{([a-zA-Z0-9_.]+)}/, (_, name) =>
-      this.get("$" + name)
+    result = result.replace(/\$\{([a-zA-Z0-9_.]+)}/g, (_, name) =>
+      this.get("$" + name),
     );
     return result;
   }
@@ -9571,15 +9867,15 @@ class Stack extends TreeBase {
     "Button",
   ];
 
-  /** @returns {Hole|Hole[]} */
+  /** @returns {Hole} */
   template() {
     /** return the scale of the child making sure it isn't zero or undefined.
-     * @param {TreeBase} child
+     * @param {TreeBase } child
      * @returns {number}
      */
     function getScale(child) {
       const SCALE_MIN = 0.0;
-      let scale = +child.props.scale;
+      let scale = +child["scale"]?.value;
       if (!scale || scale < SCALE_MIN) {
         scale = SCALE_MIN;
       }
@@ -9590,16 +9886,17 @@ class Stack extends TreeBase {
       0,
     );
     const empty = this.children.length && scaleSum ? "" : "empty";
-    const dimension = this.props.direction == "row" ? "width" : "height";
+    const direction = this.direction.value;
+    const dimension = direction == "row" ? "width" : "height";
 
     return this.component(
       {
-        classes: [this.props.direction, empty],
+        classes: [this.CSSClasses(direction, empty)],
         style: {
-          backgroundColor: this.props.background,
+          backgroundColor: this.background.value,
         },
       },
-      this.children.map(
+      html`${this.children.map(
         (child) =>
           html`<div
             style=${styleString({
@@ -9608,7 +9905,7 @@ class Stack extends TreeBase {
           >
             ${child.safeTemplate()}
           </div>`,
-      ),
+      )}`,
     );
   }
 }
@@ -9632,101 +9929,247 @@ class Page extends Stack {
 }
 Stack.register(Page, "Page");
 
-class GridFilter extends TreeBase {
-  field = new Field({ hiddenLabel: true });
-  operator = new Select(Object.keys(comparators), { hiddenLabel: true });
-  value = new String$1("", { hiddenLabel: true });
+/** Gather Slots code into one module
+ *
+ * Slots are coded in strings like $$ kind = value $$ where kind is used
+ * to access the Content for choices and value is the initial and default value.
+ *
+ */
 
-  /** move my parent instead of me.
-   * @param {boolean} up
-   */
-  moveUpDown(up) {
-    this.parent?.moveUpDown(up);
-  }
 
-  /** Format the settings
-   * @param {GridFilter[]} filters
-   * @return {Hole}
-   */
-  static FilterSettings(filters) {
-    const table = [];
-    if (filters.length > 0) {
-      table.push(html`
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Field</th>
-              <th>Operator</th>
-              <th>Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filters.map(
-              (filter, index) => html`
-                <tr id=${filter.id + "-settings"}>
-                  <td>${index + 1}</td>
-                  <td>${filter.field.input()}</td>
-                  <td>${filter.operator.input()}</td>
-                  <td>${filter.value.input()}</td>
-                </tr>
-              `,
-            )}
-          </tbody>
-        </table>
-      `);
-    }
-    return html`<fieldset>
-      <legend>Filters</legend>
-      ${table}
-    </fieldset>`;
-  }
+/** Slot descriptor
+ * @typedef {Object} Slot
+ * @property {string} name - the name of the slot list
+ * @property {string} value - the current value
+ */
 
-  /** Convert from Props to values for data module
-   * @param {GridFilter[]} filters
-   */
-  static toContentFilters(filters) {
-    return filters.map((child) => ({
-      field: child.field.value,
-      operator: child.operator.value,
-      value: child.value.value,
-    }));
-  }
-}
-TreeBase.register(GridFilter, "GridFilter");
+/** Editor state
+ * @typedef {Object} Editor
+ * @property {"editor"} type
+ * @property {string} message - the message text
+ * @property {Slot[]} slots - slots if any
+ * @property {number} slotIndex - slot being edited
+ * @property {string} slotName - current slot type
+ * @property {string} value - value stripped of any markup
+ */
 
 /**
- * Edit slots markup to replace with values
- * @param {string} msg - the string possibly containing $$ kind = value $$ markup
- * @param {string[]} slotValues - values to replace slots
+ * Edit slots markup to replace with highlighed values
+ * @param {string|Editor} msg - the string possibly containing $$ kind = value $$ markup
  * @returns {Hole[]} - formatted string
  */
-function formatSlottedString(msg, slotValues = []) {
-  let slotIndex = 0;
-  msg = msg || "";
-  return msg.split(/(\$\$.*?\$\$)/).map((part) => {
-    const m = part.match(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/);
-    if (m) {
-      return html`<b>${slotValues[slotIndex++] || m.groups?.value || ""}</b>`;
-    } else {
+function formatSlottedString(msg) {
+  if (typeof msg === "string") {
+    return msg.split(/(\$\$.*?\$\$)/).map((part) => {
+      const m = part.match(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/);
+      if (m) {
+        return html`<b>${m.groups?.value || ""}</b>`;
+      } else {
+        return html`${part}`;
+      }
+    });
+  } else if (typeof msg === "object" && msg.type === "editor") {
+    let editor = msg;
+    // otherwise it is an editor object
+    // highlight the current slot
+    let i = 0;
+    return editor.message.split(/(\$\$.*?\$\$)/).map((part) => {
+      const m = part.match(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/);
+      if (m) {
+        if (i === editor.slotIndex) {
+          // highlight the current slot
+          return html`<b>${editor.slots[i++].value}</b>`;
+        } else {
+          return html`${editor.slots[i++].value.replace(/^\*/, "")}`;
+        }
+      }
       return html`${part}`;
-    }
-  });
+    });
+  } else {
+    return [];
+  }
 }
 
-/**
- * Conditionally show an indicator with a title
- *
- * @param {boolean} toggle
- * @param {string} title
- * @returns {Hole}
+/** Edit slots markup to replace with values
+ * @param {string|Editor} value
+ * @returns {string}
  */
-function toggleIndicator(toggle, title) {
-  if (toggle) {
-    return html`<span class="indicator" title=${title}>&#9679;</span>`;
-  } else {
-    return html`<!--empty-->`;
+function toString(value) {
+  value ??= "";
+  if (typeof value === "string") {
+    // strip any slot markup
+    value = value.replaceAll(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/g, "$2");
+    return value;
+  } else if (typeof value === "object" && value.type === "editor") {
+    let editor = value;
+    // otherwise it is an editor object
+    let i = 0;
+    const parts = editor.message.split(/(\$\$.*?\$\$)/).map((part) => {
+      const m = part.match(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/);
+      if (m) {
+        return editor.slots[i++].value.replace(/^\*/, "");
+      }
+      return part;
+    });
+    return parts.join("");
   }
+  return value.toString();
+}
+
+/** We need to keep some additional state around to enable editing slotted messages.
+ *
+ * These functions are used in Updates to manipulate the state.
+ */
+
+/** Test if this message has slots
+ * @param {string|Editor} message
+ * @returns {boolean}
+ */
+function hasSlots(message) {
+  if (message instanceof Object && message.type === "editor") {
+    return message.slots.length > 0;
+  } else if (typeof message == "string") return message.indexOf("$$") >= 0;
+  return false;
+}
+
+/** initialize the editor
+ * @param {String} message
+ * @returns Editor
+ */
+function init(message) {
+  message = message || "";
+  const slots = Array.from(
+    message.matchAll(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/g),
+  ).map((m) => m.groups);
+  let result = {
+    type: "editor",
+    message,
+    slots,
+    slotIndex: 0,
+    slotName: (slots[0] && slots[0].name) || "",
+  };
+  return result;
+}
+
+/** cancel slot editing
+ * @returns Editor
+ */
+function cancel() {
+  return {
+    type: "editor",
+    message: "",
+    slots: [],
+    slotIndex: 0,
+    slotName: "",
+  };
+}
+
+/** update the value of the current slot
+ * @param {String} message
+ */
+function update(message) {
+  message ??= "";
+  /** @param {Editor} old
+   * @returns {Editor|string}
+   */
+  return (old) => {
+    // copy the slots from the old value
+    if (!old || !old.slots) {
+      return "";
+    }
+    const slots = [...old.slots];
+    let slotIndex = old.slotIndex;
+    // replace the current one
+    if (message.startsWith("*")) {
+      slots[slotIndex].value = message;
+    } else {
+      if (slots[slotIndex].value.startsWith("*")) {
+        slots[slotIndex].value = `${slots[slotIndex].value} ${message}`;
+      } else {
+        slots[slotIndex].value = message;
+      }
+      slotIndex++;
+      if (slotIndex >= slots.length) {
+        Globals.actions.queueEvent("okSlot", "press");
+      }
+    }
+    return o$1(old, {
+      slots,
+      slotIndex,
+      slotName: slots[slotIndex]?.name,
+    });
+  };
+}
+
+/** advance to the next slot
+ */
+function nextSlot() {
+  /** @param {Editor} old
+   */
+  return (old) => {
+    if (!old || !old.slots) return;
+    const slotIndex = old.slotIndex + 1;
+    if (slotIndex >= old.slots.length) {
+      Globals.actions.queueEvent("okSlot", "press");
+    }
+    return o$1(old, { slotIndex, slotName: old.slots[slotIndex]?.name });
+  };
+}
+
+/** duplicate the current slot
+ */
+function duplicate() {
+  /** @param {Editor} old
+   */
+  return (old) => {
+    if (!old || !old.slots) return;
+    const matches = Array.from(
+      old.message.matchAll(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/g),
+    );
+    const current = matches[old.slotIndex];
+    if (current !== undefined && current.index !== undefined) {
+      const message =
+        old.message.slice(0, current.index) +
+        current[0] +
+        " and " +
+        current[0] +
+        old.message.slice(current.index + current[0].length);
+      const slots = [
+        ...old.slots.slice(0, old.slotIndex + 1),
+        { ...old.slots[old.slotIndex] }, // copy it
+        ...old.slots.slice(old.slotIndex + 1),
+      ];
+      return o$1(old, {
+        message,
+        slots,
+      });
+    } else {
+      return old;
+    }
+  };
+}
+
+/** Get the slot name
+ * @param {string|Editor} message
+ * @returns string;
+ */
+function slotName(message) {
+  if (typeof message === "object" && message.type === "editor") {
+    return message.slotName;
+  }
+  return "";
+}
+{
+  Functions["slots"] = {
+    init,
+    cancel,
+    update,
+    hasSlots,
+    duplicate,
+    nextSlot,
+    slotName,
+    toString,
+  };
 }
 
 const grid = '';
@@ -9753,7 +10196,7 @@ function imageOrVideo(src, title, onload = null) {
       ?loop=${options.indexOf("loop") >= 0}
       ?autoplay=${options.indexOf("autoplay") >= 0}
       ?muted=${options.indexOf("muted") >= 0}
-      onload=${onload}
+      @load=${onload}
     />`;
   } else {
     // image
@@ -9761,7 +10204,7 @@ function imageOrVideo(src, title, onload = null) {
       is="img-db"
       dbsrc=${src}
       title=${title}
-      onload=${onload}
+      @load=${onload}
     />`;
   }
 }
@@ -9781,30 +10224,28 @@ class Grid extends TreeBase {
 
   page = 1;
   pageBoundaries = { 0: 0 }; //track starting indices of pages
-  /**
-   * @type {Object}
-   * @property {string} key
-   */
-  cache = {};
 
   /** @param {Row} item */
   gridCell(item) {
-    const { name } = this.props;
+    const name = this.name.value;
+    /** @type {Hole[]} */
     let content;
     let msg = formatSlottedString(item.label || "");
     if (item.symbol) {
-      content = html`<div>
-        <figure>
-          ${imageOrVideo(item.symbol, item.label || "")}
-          <figcaption>${msg}</figcaption>
-        </figure>
-      </div>`;
+      content = [
+        html`<div>
+          <figure>
+            ${imageOrVideo(item.symbol, item.label || "")}
+            <figcaption>${msg}</figcaption>
+          </figure>
+        </div>`,
+      ];
     } else {
       content = msg;
     }
     return html`<button
       tabindex="-1"
-      .dataset=${{
+      data=${{
         ...item,
         ComponentName: name,
         ComponentType: this.className,
@@ -9827,7 +10268,8 @@ class Grid extends TreeBase {
    */
   pageSelector(pages, info) {
     const { state } = Globals;
-    const { background, name } = this.props;
+    const background = this.background.value;
+    const name = this.name.value;
 
     return html`<div class="page-control">
       <div class="text">Page ${this.page} of ${pages}</div>
@@ -9835,12 +10277,13 @@ class Grid extends TreeBase {
         <button
           style=${styleString({ backgroundColor: background })}
           .disabled=${this.page == 1}
-          .dataset=${{
+          data=${{
             ...info,
             ComponentName: name,
             ComponentType: this.className,
           }}
-          onClick=${() => {
+          click
+          @Activate=${() => {
             this.page = ((((this.page - 2) % pages) + pages) % pages) + 1;
             state.update(); // trigger redraw
           }}
@@ -9849,12 +10292,13 @@ class Grid extends TreeBase {
           &#9754;</button
         ><button
           .disabled=${this.page == pages}
-          .dataset=${{
+          data=${{
             ...info,
             ComponentName: name,
             ComponentType: this.className,
           }}
-          onClick=${() => {
+          click
+          @Activate=${() => {
             this.page = (this.page % pages) + 1;
             state.update(); // trigger redraw
           }}
@@ -9868,19 +10312,13 @@ class Grid extends TreeBase {
 
   template() {
     /** @type {Partial<CSSStyleDeclaration>} */
-    const style = { backgroundColor: this.props.background };
-    const { data, state } = Globals;
-    let { rows, columns, fillItems } = this.props;
+    const style = { backgroundColor: this.background.value };
+    const { data } = Globals;
+    let rows = this.rows.value;
+    let columns = this.columns.value;
+    let fillItems = this.fillItems.value;
     /** @type {Rows} */
-    let items = data.getMatchingRows(
-      GridFilter.toContentFilters(this.children),
-      state,
-      this.cache,
-    );
-    // reset the page when the key changes
-    if (this.cache.updated) {
-      this.page = 1;
-    }
+    let items = data.getMatchingRows(this.children);
     let maxPage = 1;
     const result = [];
     if (!fillItems) {
@@ -9954,38 +10392,23 @@ class Grid extends TreeBase {
 
     style.gridTemplate = `repeat(${rows}, calc(100% / ${rows})) / repeat(${columns}, 1fr)`;
 
-    return this.component({ style }, result);
+    return this.component({ style }, html`${result}`);
   }
 
-  /** @returns {Hole|Hole[]} */
   settingsDetails() {
-    const props = this.propsAsProps;
+    const props = this.props;
     const inputs = Object.values(props).map((prop) => prop.input());
     const filters = GridFilter.FilterSettings(this.children);
-    return html`<div>${filters}${inputs}</div>`;
+    return [html`<div>${filters}${inputs}</div>`];
   }
 
   settingsChildren() {
-    return this.empty;
+    return html`<div />`;
   }
 }
 TreeBase.register(Grid, "Grid");
 
 const display = '';
-
-/** Slot descriptor
- * @typedef {Object} Slot
- * @property {String} name - the name of the slot list
- * @property {String} value - the current value
- */
-
-/** Editor state
- * @typedef {Object} Editor
- * @property {String} message - the message text
- * @property {Slot[]} slots - slots if any
- * @property {Number} slotIndex - slot being edited
- * @property {String} slotName - current slot type
- */
 
 class Display extends TreeBase {
   stateName = new String$1("$Display");
@@ -10000,47 +10423,22 @@ class Display extends TreeBase {
   static functionsInitialized = false;
 
   template() {
-    this.initFunctions();
     const { state } = Globals;
-    /** @type {Hole[]} */
-    let content = [];
-    /** @type {String|Editor} */
-    let value = state.get(this.props.stateName) || "";
-    if (typeof value === "string" || value instanceof String) {
-      // strip any slot markup
-      value = value.replaceAll(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/g, "$2");
-      content = [html`${value}`];
-    } else {
-      let editor = /** @type {Editor} */ (value);
-      // otherwise it is an editor object
-      // highlight the current slot
-      let i = 0;
-      content = editor.message.split(/(\$\$.*?\$\$)/).map((part) => {
-        const m = part.match(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/);
-        if (m) {
-          if (i === editor.slotIndex) {
-            // highlight the current slot
-            return html`<b>${editor.slots[i++].value}</b>`;
-          } else {
-            return html`${editor.slots[i++].value.replace(/^\*/, "")}`;
-          }
-        }
-        return html`${part}`;
-      });
-    }
+    let value = state.get(this.stateName.value) || "";
+    const content = formatSlottedString(value);
     return this.component(
       {
         style: {
-          backgroundColor: this.props.background,
-          fontSize: this.props.fontSize + "rem",
+          backgroundColor: this.background.value,
+          fontSize: this.fontSize.value + "rem",
         },
       },
       html`<button
         ref=${this}
-        onpointerup=${this.click}
+        @pointerup=${this.click}
         tabindex="-1"
         ?disabled=${!this.Name.value}
-        .dataset=${{
+        data=${{
           name: this.Name.value,
           ComponentName: this.Name.value,
           ComponentType: this.className,
@@ -10068,181 +10466,14 @@ class Display extends TreeBase {
     }
     this.current?.setAttribute("data--clicked-word", word);
   };
-
-  initFunctions() {
-    let { actions } = Globals;
-
-    // console.log({ actions });
-    /** return true of the message contains slots
-     * @param {String|Editor} message
-     */
-    function hasSlots(message) {
-      // console.log("has slots", message);
-      if (message instanceof Object) {
-        return message.slots.length > 0;
-      }
-      return message.indexOf("$$") >= 0;
-    }
-
-    /** initialize the editor
-     * @param {String} message
-     * @returns Editor
-     */
-    function init(message) {
-      // console.log("init", message);
-      const slots = Array.from(
-        message.matchAll(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/g),
-      ).map((m) => m.groups);
-      return {
-        message,
-        slots,
-        slotIndex: 0,
-        slotName: (slots[0] && slots[0].name) || "",
-      };
-    }
-
-    /** cancel slot editing
-     * @returns Editor
-     */
-
-    function cancel() {
-      return {
-        message: "",
-        slots: [],
-        slotIndex: 0,
-        slotName: "",
-      };
-    }
-
-    /** update the value of the current slot
-     * @param {String} message
-     */
-    function update(message) {
-      /** @param {Editor} old
-       */
-      return (old) => {
-        // copy the slots from the old value
-        if (!old || !old.slots) {
-          return "";
-        }
-        const slots = [...old.slots];
-        let slotIndex = old.slotIndex;
-        // replace the current one
-        if (message.startsWith("*")) {
-          slots[slotIndex].value = message;
-        } else {
-          if (slots[slotIndex].value.startsWith("*")) {
-            slots[slotIndex].value = `${slots[slotIndex].value} ${message}`;
-          } else {
-            slots[slotIndex].value = message;
-          }
-          slotIndex++;
-          if (slotIndex >= slots.length) {
-            actions.queueEvent("okSlot", "press");
-          }
-        }
-        return o$1(old, {
-          slots,
-          slotIndex,
-          slotName: slots[slotIndex]?.name,
-        });
-      };
-    }
-
-    /** advance to the next slot
-     */
-    function nextSlot() {
-      /** @param {Editor} old
-       */
-      return (old) => {
-        if (!old) return;
-        const slotIndex = old.slotIndex + 1;
-        if (slotIndex >= old.slots.length) {
-          actions.queueEvent("okSlot", "press");
-        }
-        return o$1(old, { slotIndex });
-      };
-    }
-
-    /** duplicate the current slot
-     */
-    function duplicate() {
-      /** @param {Editor} old
-       */
-      return (old) => {
-        const matches = Array.from(
-          old.message.matchAll(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/g),
-        );
-        const current = matches[old.slotIndex];
-        if (current !== undefined && current.index !== undefined) {
-          const message =
-            old.message.slice(0, current.index) +
-            current[0] +
-            " and " +
-            current[0] +
-            old.message.slice(current.index + current[0].length);
-          const slots = [
-            ...old.slots.slice(0, old.slotIndex + 1),
-            { ...old.slots[old.slotIndex] }, // copy it
-            ...old.slots.slice(old.slotIndex + 1),
-          ];
-          return o$1(old, {
-            message,
-            slots,
-          });
-        } else {
-          return old;
-        }
-      };
-    }
-
-    if (!Display.functionsInitialized) {
-      Display.functionsInitialized = true;
-
-      Functions["slots"] = {
-        init,
-        cancel,
-        update,
-        hasSlots,
-        duplicate,
-        nextSlot,
-        strip,
-      };
-    }
-  }
-}
-/* TODO: refactor the multiple versions of this formatting code */
-
-/** strip slots markup
- * @param {String|Editor} value
- * @returns {String}
- */
-function strip(value) {
-  if (!value) return "";
-  if (typeof value === "string" || value instanceof String) {
-    // strip any slot markup
-    value = value.replaceAll(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/g, "$2");
-    return value;
-  }
-  let editor = /** @type {Editor} */ (value);
-  // otherwise it is an editor object
-  let i = 0;
-  const parts = editor.message.split(/(\$\$.*?\$\$)/).map((part) => {
-    const m = part.match(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/);
-    if (m) {
-      return editor.slots[i++].value.replace(/^\*/, "");
-    }
-    return part;
-  });
-  return parts.join("");
 }
 TreeBase.register(Display, "Display");
 
 const radio = '';
 
 let Option$1 = class Option extends TreeBase {
-  name = new String$1("");
-  value = new String$1("");
+  name = new String$1("", { hiddenLabel: true });
+  value = new String$1("", { hiddenLabel: true });
   cache = {};
 };
 TreeBase.register(Option$1, "Option");
@@ -10269,17 +10500,15 @@ class Radio extends TreeBase {
    * @returns {boolean}
    */
   valid(option) {
-    const { data, state } = Globals;
-    const filters = GridFilter.toContentFilters(
-      this.filterChildren(GridFilter),
-    );
+    const { data } = Globals;
+    const filters = this.filterChildren(GridFilter);
     return (
       !filters.length ||
-      data.hasMatchingRows(
-        filters,
-        state.clone({ [this.props.stateName]: option.props.value }),
-        option.cache,
-      )
+      data.hasMatchingRows(filters, {
+        states: {
+          [this.stateName.value]: option.value.value,
+        },
+      })
     );
   }
 
@@ -10290,66 +10519,66 @@ class Radio extends TreeBase {
   handleClick({ target }) {
     if (target instanceof HTMLButtonElement) {
       const value = target.value;
-      const name = this.props.stateName;
+      const name = this.stateName.value;
       Globals.state.update({ [name]: value });
     }
   }
 
   template() {
     const { state } = Globals;
-    const stateName = this.props.stateName;
-    let current = state.get(stateName);
-    const choices = this.options.map((child, index) => {
-      const disabled = !this.valid(/** @type {Option}*/ (child));
-      if (stateName && !current && !disabled && child.props.value) {
-        current = child.props.value;
-        state.update({ [stateName]: current });
+    const stateName = this.stateName.value;
+    const selected = this.selected.value;
+    const unselected = this.unselected.value;
+    const radioLabel = this.label.value;
+    let currentValue = state.get(stateName);
+    const choices = this.options.map((choice, index) => {
+      const choiceDisabled = !this.valid(choice);
+      const choiceValue = choice.value.value;
+      const choiceName = choice.name.value;
+      if (stateName && !currentValue && !choiceDisabled && choiceValue) {
+        currentValue = choiceValue;
+        state.define(stateName, choiceValue);
       }
       const color =
-        child.props.value == current || (!current && index == 0)
-          ? this.props.selected
-          : this.props.unselected;
+        choiceValue == currentValue || (!currentValue && index == 0)
+          ? selected
+          : unselected;
       return html`<button
         style=${styleString({ backgroundColor: color })}
-        value=${child.props.value}
-        ?disabled=${disabled}
-        .dataset=${{
+        value=${choiceValue}
+        ?disabled=${choiceDisabled}
+        data=${{
           ComponentType: this.className,
-          ComponentName: this.name,
-          label: child.props.name,
+          ComponentName: radioLabel || stateName,
+          label: choiceName,
         }}
         click
-        onClick=${() => state.update({ [stateName]: child.props.value })}
+        @Activate=${() => state.update({ [stateName]: choice.value.value })}
       >
-        ${child.props.name}
+        ${choiceName}
       </button>`;
     });
 
     return this.component(
       {},
       html`<fieldset class="flex">
-        ${(this.props.label && html`<legend>${this.props.label}</legend>`) ||
-        this.empty}
+        ${(radioLabel && [html`<legend>${radioLabel}</legend>`]) || []}
         ${choices}
       </fieldset>`,
     );
   }
 
-  get name() {
-    return this.props.name || this.props.label || this.props.stateName;
-  }
-
   settingsDetails() {
-    const props = this.propsAsProps;
+    const props = this.props;
     const inputs = Object.values(props).map((prop) => prop.input());
     const filters = this.filterChildren(GridFilter);
     const editFilters = !filters.length
-      ? this.empty
-      : GridFilter.FilterSettings(filters);
+      ? []
+      : [GridFilter.FilterSettings(filters)];
     const options = this.filterChildren(Option$1);
     const editOptions = html`<fieldset>
       <legend>Options</legend>
-      <table>
+      <table class="RadioOptions">
         <thead>
           <tr>
             <th>#</th>
@@ -10370,11 +10599,11 @@ class Radio extends TreeBase {
         </tbody>
       </table>
     </fieldset>`;
-    return html`<div>${editFilters}${editOptions}${inputs}</div>`;
+    return [html`<div>${editFilters}${editOptions}${inputs}</div>`];
   }
 
   settingsChildren() {
-    return this.empty;
+    return html`<div />`;
   }
 }
 TreeBase.register(Radio, "Radio");
@@ -10389,10 +10618,10 @@ class Gap extends TreeBase {
     return this.component(
       {
         style: styleString({
-          backgroundColor: this.props.background,
+          backgroundColor: this.background.value,
         }),
       },
-      this.empty
+      html`<div />`,
     );
   }
 }
@@ -10442,7 +10671,7 @@ function safeRender(id, component) {
 
 class TabControl extends TreeBase {
   stateName = new String$1("$tabControl");
-  background = new String$1("");
+  background = new Color("");
   scale = new Float(6);
   tabEdge = new Select(["bottom", "top", "left", "right", "none"], {
     defaultValue: "top",
@@ -10460,23 +10689,23 @@ class TabControl extends TreeBase {
   template() {
     const { state } = Globals;
     const panels = this.children;
-    let activeTabName = state.get(this.props.stateName);
+    let activeTabName = state.get(this.stateName.value);
     // collect panel info
     panels.forEach((panel, index) => {
-      panel.tabName = state.interpolate(panel.props.name); // internal name
-      panel.tabLabel = state.interpolate(panel.props.label || panel.props.name); // display name
+      panel.tabName = state.interpolate(panel.name.value); // internal name
+      panel.tabLabel = state.interpolate(panel.label.value || panel.name.value); // display name
       if (index == 0 && !activeTabName) {
         activeTabName = panel.tabName;
-        state.define(this.props.stateName, panel.tabName);
+        state.define(this.stateName.value, panel.tabName);
       }
       panel.active = activeTabName == panel.tabName || panels.length === 1;
     });
-    let buttons = [this.empty];
-    if (this.props.tabEdge != "none") {
+    let buttons = [];
+    if (this.tabEdge.value != "none") {
       buttons = panels
-        .filter((panel) => panel.props.label != "UNLABELED")
+        .filter((panel) => panel.label.value != "UNLABELED")
         .map((panel) => {
-          const color = panel.props.background;
+          const color = panel.background.value;
           const buttonStyle = {
             backgroundColor: color,
           };
@@ -10484,14 +10713,14 @@ class TabControl extends TreeBase {
             <button
               ?active=${panel.active}
               style=${styleString(buttonStyle)}
-              .dataset=${{
+              data=${{
                 name: this.name.value,
                 label: panel.tabLabel,
                 component: this.constructor.name,
                 id: panel.id,
               }}
               click
-              onClick=${() => {
+              @Activate=${() => {
                 this.switchTab(panel.tabName);
               }}
               tabindex="-1"
@@ -10501,34 +10730,25 @@ class TabControl extends TreeBase {
           </li>`;
         });
     }
-    this.currentPanel = panels.find((panel) => panel.active);
-    const panel = this.panelTemplate();
     return this.component(
-      { classes: [this.props.tabEdge] },
+      { classes: [this.tabEdge.value] },
       html`
-        <ul class="buttons" hint=${this.hint}>
+        <ul class="buttons">
           ${buttons}
         </ul>
-        <div class="panels flex">${panel}</div>
+        <div class="panels flex">
+          ${panels.map((panel) => panel.safeTemplate())}
+        </div>
       `,
     );
-  }
-
-  panelTemplate() {
-    return this.currentPanel?.safeTemplate() || this.empty;
   }
 
   /**
    * @param {string} tabName
    */
   switchTab(tabName) {
-    Globals.state.update({ [this.props.stateName]: tabName });
+    Globals.state.update({ [this.stateName.value]: tabName });
   }
-
-  /** @type {string | null} */
-  hint = null;
-
-  restoreFocus() {}
 }
 TreeBase.register(TabControl, "TabControl");
 
@@ -10556,7 +10776,7 @@ class TabPanel extends Stack {
       html`<button
         id=${this.id + "-activate"}
         ?active=${this.active}
-        onclick=${() => {
+        @click=${() => {
           if (this.parent) {
             const parent = this.parent;
             callAfterRender(() => {
@@ -10569,6 +10789,16 @@ class TabPanel extends Stack {
         ${caption}
       </button>`,
     ];
+  }
+
+  /** @param {string[]} classes
+   * @returns {string}
+   */
+  CSSClasses(...classes) {
+    if (this.active) {
+      classes.push("ActivePanel");
+    }
+    return super.CSSClasses(...classes);
   }
 
   highlight() {}
@@ -10585,16 +10815,12 @@ class ModalDialog extends TreeBase {
 
   template() {
     const state = Globals.state;
-    const { stateName } = this.props;
-    const open = !!state.get(stateName) || this.open.value ? "open" : "";
-    if (open) {
-      return this.component(
-        { classes: [open] },
-        html`<div>${this.children.map((child) => child.safeTemplate())}</div>`
-      );
-    } else {
-      return this.empty;
-    }
+    const open =
+      !!state.get(this.stateName.value) || this.open.value ? "open" : "";
+    return this.component(
+      { classes: [open] },
+      html`<div>${this.children.map((child) => child.safeTemplate())}</div>`,
+    );
   }
 }
 TreeBase.register(ModalDialog, "ModalDialog");
@@ -10681,9 +10907,7 @@ class VSD extends TreeBase {
   template() {
     const { data, state, actions } = Globals;
     const editing = state.get("editing");
-    const items = /** @type {VRow[]} */ (
-      data.getMatchingRows(GridFilter.toContentFilters(this.children), state)
-    );
+    const items = /** @type {VRow[]} */ (data.getMatchingRows(this.children));
     const src = items.find((item) => item.image)?.image || "";
     let dragging = 0;
     const coords = [
@@ -10695,16 +10919,18 @@ class VSD extends TreeBase {
     return this.component(
       { classes: ["show"] },
       html`<div>
-        ${imageOrVideo(src, "", () => this.sizeMarkers(this.markers))}
+        ${imageOrVideo(src, "", () => {
+          this.sizeMarkers(this.markers);
+        })}
         <div
           class="markers"
           ref=${(/** @type {HTMLDivElement & { observer: any }} */ node) => {
             this.sizeMarkers(node);
           }}
-          onpointermove=${editing &&
+          @pointermove=${editing &&
           ((/** @type {PointerEvent} */ event) => {
             const rect = this.markers.getBoundingClientRect();
-            const div = document.querySelector("span.coords");
+            const div = document.querySelector("#UI span.coords");
             if (!div) return;
             coords[dragging][0] = Math.round(
               (100 * (event.pageX - rect.left)) / rect.width,
@@ -10722,11 +10948,11 @@ class VSD extends TreeBase {
             }
             div.innerHTML = clip;
           })}
-          onpointerdown=${editing &&
+          @pointerdown=${editing &&
           (() => {
             dragging = 1;
           })}
-          onpointerup=${editing &&
+          @pointerup=${editing &&
           (() => {
             dragging = 0;
             navigator.clipboard.writeText(clip);
@@ -10744,13 +10970,14 @@ class VSD extends TreeBase {
                     height: pct(item.h),
                     position: "absolute",
                   })}
-                  ?invisible=${item.invisible}
-                  .dataset=${{
+                  ?invisible=${!!item.invisible}
+                  data=${{
                     ComponentName: this.name.value,
                     ComponentType: this.constructor.name,
                     ...item,
                   }}
-                  onClick=${actions.handler(this.name.value, item, "press")}
+                  click
+                  @Activate=${actions.handler(this.name.value, item, "press")}
                 >
                   <span>${item.label || ""}</span>
                 </button>`,
@@ -10774,14 +11001,14 @@ class VSD extends TreeBase {
   }
 
   settingsDetails() {
-    const props = this.propsAsProps;
+    const props = this.props;
     const inputs = Object.values(props).map((prop) => prop.input());
     const filters = GridFilter.FilterSettings(this.children);
-    return html`<div>${filters}${inputs}</div>`;
+    return [html`<div>${filters}${inputs}</div>`];
   }
 
   settingsChildren() {
-    return this.empty;
+    return html`<div />`;
   }
 }
 TreeBase.register(VSD, "VSD");
@@ -10795,23 +11022,24 @@ class Button extends TreeBase {
   scale = new Float(1);
 
   template() {
-    const style = styleString({ backgroundColor: this.props.background });
-    const { name, label } = this.props;
+    const style = styleString({ backgroundColor: this.background.value });
+    const name = this.name.value;
+    const label = this.label.value;
     return this.component(
       {},
       html`<button
         class="button"
         name=${name}
         style=${style}
-        .dataset=${{
+        data=${{
           name: name,
           label: label,
-          ComponentName: this.props.name,
+          ComponentName: name,
           ComponentType: this.constructor.name,
         }}
       >
         ${label}
-      </button>`
+      </button>`,
     );
   }
 
@@ -10826,6 +11054,9 @@ const monitor = '';
 class Monitor extends TreeBase {
   template() {
     const { state, actions: rules } = Globals;
+    const stateKeys = [
+      ...new Set([...Object.keys(state.values), ...accessed.keys()]),
+    ].sort();
     const s = html`<table class="state">
       <thead>
         <tr>
@@ -10834,15 +11065,19 @@ class Monitor extends TreeBase {
         </tr>
       </thead>
       <tbody>
-        ${Object.keys(state.values)
+        ${stateKeys
           .filter((key) => key.startsWith("$"))
           .map((key) => {
-            const value = state.get(key).toString();
+            let value = state.get(key);
+            value = toString(value);
             let clamped = value.slice(0, 30);
             if (value.length > clamped.length) {
               clamped += "...";
             }
-            return html`<tr>
+            return html`<tr
+              ?updated=${state.hasBeenUpdated(key)}
+              ?undefined=${accessed.get(key) === false}
+            >
               <td>${key}</td>
               <td>${clamped}</td>
             </tr>`;
@@ -10851,6 +11086,12 @@ class Monitor extends TreeBase {
     </table>`;
 
     const row = rules.last.data || {};
+    const rowAccessedKeys = [...accessed.keys()]
+      .filter((key) => key.startsWith("_"))
+      .map((key) => key.slice(1));
+    const rowKeys = [
+      ...new Set([...Object.keys(row), ...rowAccessedKeys]),
+    ].sort();
     const f = html`<table class="fields">
       <thead>
         <tr>
@@ -10859,9 +11100,12 @@ class Monitor extends TreeBase {
         </tr>
       </thead>
       <tbody>
-        ${Object.keys(row).map((key) => {
+        ${rowKeys.map((key) => {
           const value = row[key];
-          return html`<tr>
+          return html`<tr
+            ?undefined=${accessed.get(`_${key}`) === false}
+            ?accessed=${accessed.has(`_${key}`)}
+          >
             <td>#${key}</td>
             <td>${value}</td>
           </tr>`;
@@ -10870,7 +11114,7 @@ class Monitor extends TreeBase {
     </table>`;
 
     return html`<button
-        onclick=${() => {
+        @click=${() => {
           state.clear();
           rules.configure();
         }}
@@ -10891,8 +11135,8 @@ class Speech extends TreeBase {
 
   async speak() {
     const { state } = Globals;
-    const { stateName, voiceURI, pitch, rate, volume } = this.props;
-    const message = strip(state.get(stateName));
+    const voiceURI = this.voiceURI.value;
+    const message = toString(state.get(this.stateName.value));
     const voices = await getVoices();
     const voice =
       voiceURI && voices.find((voice) => voice.voiceURI == voiceURI);
@@ -10901,29 +11145,20 @@ class Speech extends TreeBase {
       utterance.voice = voice;
       utterance.lang = voice.lang;
     }
-    utterance.pitch = pitch;
-    utterance.rate = rate;
-    utterance.volume = volume;
+    utterance.pitch = this.pitch.value;
+    utterance.rate = this.rate.value;
+    utterance.volume = this.volume.value;
     speechSynthesis.cancel();
     speechSynthesis.speak(utterance);
   }
 
   template() {
-    const { stateName } = this.props;
     const { state } = Globals;
-    if (state.hasBeenUpdated(stateName)) {
+    if (state.hasBeenUpdated(this.stateName.value)) {
       this.speak();
     }
-    return this.empty;
+    return html`<div />`;
   }
-
-  // settings() {
-  //   console.log("speech settings");
-  //   return html`<div class="Speech">
-  //     ${this.stateName.input()} ${this.voiceURI.input()} ${this.pitch.input()}
-  //     ${this.rate.input()} ${this.volume.input()}
-  //   </div>`;
-  // }
 }
 TreeBase.register(Speech, "Speech");
 
@@ -10959,10 +11194,11 @@ class VoiceSelect extends HTMLSelectElement {
     const voices = await getVoices();
     const current = this.getAttribute("value");
     for (const voice of voices) {
-      const item = html.node`<option value=${voice.voiceURI} ?selected=${
-        voice.voiceURI == current
-      }>${voice.name}</option>`;
-      this.add(/** @type {HTMLOptionElement} */ (item));
+      const item = document.createElement("option");
+      item.value = voice.voiceURI;
+      if (voice.voiceURI == current) item.setAttribute("selected", "");
+      item.innerText = voice.name;
+      this.add(item);
     }
   }
 }
@@ -12979,18 +13215,16 @@ let Audio$1 = class Audio extends TreeBase {
 
   async playAudio() {
     const { state } = Globals;
-    const { stateName } = this.props;
-    const fileName = strip(state.get(stateName) || "");
+    const fileName = state.get(this.stateName.value) || "";
     (await db.getAudio(fileName)).play();
   }
 
   template() {
-    const { stateName } = this.props;
     const { state } = Globals;
-    if (state.hasBeenUpdated(stateName)) {
+    if (state.hasBeenUpdated(this.stateName.value)) {
       this.playAudio();
     }
-    return this.empty;
+    return html`<div />`;
   }
 };
 TreeBase.register(Audio$1, "Audio");
@@ -13053,44 +13287,80 @@ const scriptRel = 'modulepreload';const assetsURL = function(dep) { return "/OS-
     });
 };
 
-/**
- * Customize the TabControl for use in the Designer interface
- */
-class Designer extends TabControl {
-  allowDelete = false;
+const designer = '';
+
+class Designer extends TreeBase {
+  stateName = new String$1("$tabControl");
+  background = new String$1("");
+  scale = new Float(6);
+  name = new String$1("tabs");
+
+  hint = "T";
+
+  allowedChildren = ["DesignerPanel"];
+
+  /** @type {DesignerPanel[]} */
+  children = [];
 
   /** @type {DesignerPanel | undefined} */
   currentPanel = undefined;
 
-  hint = "T";
-
-  panelTemplate() {
-    return this.currentPanel?.settings() || this.empty;
-  }
-
   template() {
-    return html`<div
-      onkeydown=${this.keyHandler}
-      onfocusin=${this.focusin}
-      onclick=${this.designerClick}
-    >
-      ${super.template()}
-    </div>`;
-  }
-
-  /**
-   * Wrap the body of a component
-   * Include the tabcontrol class so we inherit its properties
-   *
-   * @param {Object} attrs
-   * @param {Hole} body
-   * @returns {Hole}
-   */
-  component(attrs, body) {
-    const { classes } = attrs;
-    classes.push("tabcontrol");
-    attrs = { ...attrs, classes };
-    return super.component(attrs, body);
+    const { state } = Globals;
+    const panels = this.children;
+    let activeTabName = state.get(this.stateName.value);
+    // collect panel info
+    panels.forEach((panel, index) => {
+      panel.tabName = state.interpolate(panel.name.value); // internal name
+      panel.tabLabel = state.interpolate(panel.label.value || panel.name.value); // display name
+      if (index == 0 && !activeTabName) {
+        activeTabName = panel.tabName;
+        state.define(this.stateName.value, panel.tabName);
+      }
+      panel.active = activeTabName == panel.tabName || panels.length === 1;
+      if (panel.active) {
+        this.currentPanel = panel;
+      }
+    });
+    let buttons = [];
+    buttons = panels
+      .filter((panel) => panel.label.value != "UNLABELED")
+      .map((panel) => {
+        return html`<li>
+          <button
+            ?active=${panel.active}
+            data=${{
+              name: this.name.value,
+              label: panel.tabLabel,
+              component: this.constructor.name,
+              id: panel.id,
+            }}
+            @click=${() => {
+              this.switchTab(panel.tabName);
+            }}
+            tabindex="-1"
+          >
+            ${panel.tabLabel}
+          </button>
+        </li>`;
+      });
+    return this.component(
+      { classes: ["top", "tabcontrol"] },
+      html`
+        <ul class="buttons" hint="T" @keyup=${this.tabButtonKeyHandler}>
+          ${buttons}
+        </ul>
+        <div
+          class="panels flex"
+          @keydown=${this.keyHandler}
+          @focusin=${this.focusin}
+          @click=${this.designerClick}
+        >
+          ${panels.map((panel) => panel.settings())}
+        </div>
+        ${colorNamesDataList()}
+      `,
+    );
   }
 
   /**
@@ -13098,7 +13368,7 @@ class Designer extends TabControl {
    */
   switchTab(tabName) {
     callAfterRender(() => this.restoreFocus());
-    super.switchTab(tabName);
+    Globals.state.update({ [this.stateName.value]: tabName });
   }
 
   /**
@@ -13114,9 +13384,11 @@ class Designer extends TabControl {
     for (const element of panel.querySelectorAll("[aria-selected]")) {
       element.removeAttribute("aria-selected");
     }
-    const id = event.target.closest("[id]")?.id || "";
-    this.currentPanel.lastFocused = id;
-    event.target.setAttribute("aria-selected", "true");
+    if (panel.contains(event.target)) {
+      const id = event.target.closest("[id]")?.id || "";
+      this.currentPanel.lastFocused = id;
+      event.target.setAttribute("aria-selected", "true");
+    }
 
     if (this.currentPanel.name.value == "Layout") {
       this.currentPanel.highlight();
@@ -13155,15 +13427,8 @@ class Designer extends TabControl {
             elem = document.querySelector(`[id^=${prefix}]`);
           }
         }
-        // console.log(
-        //   "restore focus",
-        //   elem,
-        //   this.currentPanel.lastFocused,
-        //   this.currentPanel
-        // );
         if (elem) elem.focus();
       } else {
-        // console.log("restoreFocus else path");
         const panelNode = document.getElementById(this.currentPanel.id);
         if (panelNode) {
           const focusable = /** @type {HTMLElement} */ (
@@ -13176,10 +13441,8 @@ class Designer extends TabControl {
 
           if (focusable) {
             focusable.focus();
-            // console.log("send focus to element in panel");
           } else {
             panelNode.focus();
-            // console.log("send focus to empty panel");
           }
         }
       }
@@ -13193,7 +13456,7 @@ class Designer extends TabControl {
     if (!this.currentPanel) return;
     if (
       event.target instanceof HTMLButtonElement &&
-      event.target.matches("#designer .tabcontrol .buttons button")
+      event.target.matches("#designer .buttons button")
     ) {
       this.tabButtonKeyHandler(event);
     } else {
@@ -13221,14 +13484,16 @@ class Designer extends TabControl {
       callAfterRender(() => Globals.designer.restoreFocus());
       Globals.state.update();
     } else {
+      event.preventDefault();
       // get the components on this panel
       // todo expand this to all components
-      const components = [...document.querySelectorAll(".panels .settings")];
+      const components = [
+        ...document.querySelectorAll(".DesignerPanel.ActivePanel .settings"),
+      ];
       // determine which one contains the focus
       const focusedComponent = document.querySelector(
-        '.panels .settings:has([aria-selected="true"]):not(:has(.settings [aria-selected="true"]))',
+        '.DesignerPanel.ActivePanel .settings:has([aria-selected="true"]):not(:has(.settings [aria-selected="true"]))',
       );
-      console.log({ event, focusedComponent });
       if (!focusedComponent) return;
       // get its index
       const index = components.indexOf(focusedComponent);
@@ -13258,10 +13523,10 @@ class Designer extends TabControl {
    */
   tabButtonKeyHandler({ key }) {
     const tabButtons = /** @type {HTMLButtonElement[]} */ ([
-      ...document.querySelectorAll("#designer .tabcontrol .buttons button"),
+      ...document.querySelectorAll("#designer .buttons button"),
     ]);
     const focused = /** @type {HTMLButtonElement} */ (
-      document.querySelector("#designer .tabcontrol .buttons button:focus")
+      document.querySelector("#designer .buttons button:focus")
     );
     if (key == "Escape") {
       Globals.designer.restoreFocus();
@@ -13333,7 +13598,18 @@ class Designer extends TabControl {
 }
 TreeBase.register(Designer, "Designer");
 
-class DesignerPanel extends TabPanel {
+class DesignerPanel extends TreeBase {
+  name = new String$1("");
+  label = new String$1("");
+
+  /** @type {Designer | null} */
+  parent = null;
+
+  active = false;
+  tabName = "";
+  tabLabel = "";
+  lastFocused = "";
+
   // where to store in the db
   static tableName = "";
   // default value if it isn't found
@@ -13344,9 +13620,6 @@ class DesignerPanel extends TabPanel {
     // @ts-expect-error
     return this.constructor.tableName;
   }
-
-  /** @type {string[]} */
-  allowedChildren = [];
 
   /**
    * Load a panel from the database.
@@ -13370,6 +13643,35 @@ class DesignerPanel extends TabPanel {
     // I don't think this happens
     return this.create(expected);
   }
+
+  /**
+   * Render the details of a components settings
+   */
+  settingsDetails() {
+    const caption = this.active ? "Active" : "Activate";
+    let details = super.settingsDetails();
+    if (!Array.isArray(details)) details = [details];
+    return [
+      ...details,
+      html`<button
+        id=${this.id + "-activate"}
+        ?active=${this.active}
+        @click=${() => {
+          if (this.parent) {
+            const parent = this.parent;
+            callAfterRender(() => {
+              Globals.layout.highlight();
+            });
+            parent.switchTab(this.name.value);
+          }
+        }}
+      >
+        ${caption}
+      </button>`,
+    ];
+  }
+
+  highlight() {}
 
   /**
    * An opportunity to upgrade the format if needed
@@ -13396,6 +13698,17 @@ class DesignerPanel extends TabPanel {
       await db.undo(tableName);
       Globals.restart();
     }
+  }
+
+  /** @param {string[]} classes
+   * @returns {string}
+   */
+  CSSClasses(...classes) {
+    classes.push("DesignerPanel");
+    if (this.active) {
+      classes.push("ActivePanel");
+    }
+    return super.CSSClasses(...classes);
   }
 }
 
@@ -13432,14 +13745,14 @@ async function wait(promise, message = "Please wait") {
         html`<div>
           <p class="error">${e.message}</p>
           <button
-            onclick=${() => {
+            @click=${() => {
               div.remove();
               resolve(e.message);
             }}
           >
             OK
           </button>
-        </div>`
+        </div>`,
       );
     });
   }
@@ -13531,7 +13844,7 @@ async function saveContent(name, rows, type) {
   const workbook = XLSX.utils.book_new();
   for (const sheetName of sheetNames) {
     let sheetRows = rows.filter(
-      (row) => sheetName == (row.sheetName || "sheet1")
+      (row) => sheetName == (row.sheetName || "sheet1"),
     );
     if (type != "csv") {
       sheetRows = sheetRows.map((row) => {
@@ -13555,7 +13868,7 @@ class Content extends DesignerPanel {
     // list the names that are checked
     const toDelete = [
       ...document.querySelectorAll(
-        "#ContentMedia input[type=checkbox]:checked"
+        "#ContentMedia input[type=checkbox]:checked",
       ),
     ].map((element) => {
       // clear the checks as we go
@@ -13576,7 +13889,7 @@ class Content extends DesignerPanel {
   /** Check or uncheck all the media file checkboxes */
   selectAll({ target }) {
     for (const element of document.querySelectorAll(
-      '#ContentMedia input[type="checkbox"]'
+      '#ContentMedia input[type="checkbox"]',
     )) {
       const checkbox = /** @type {HTMLInputElement} */ (element);
       checkbox.checked = target.checked;
@@ -13585,45 +13898,39 @@ class Content extends DesignerPanel {
 
   settings() {
     const data = Globals.data;
-    return html`<div class="content" id=${this.id}>
-      <h1>Content</h1>
-      <p>
-        ${data.allrows.length} rows with these fields:
-        ${String(data.allFields).replaceAll(",", ", ")}
-      </p>
-      <h2>Media files</h2>
-      <button onclick=${this.deleteSelected}>Delete checked</button>
-      <label
-        ><input
-          type="checkbox"
-          name="Select all"
-          id="ContentSelectAll"
-          oninput=${this.selectAll}
-        />Select All</label
-      >
-      <ol id="ContentMedia" style="column-count: 3">
-        ${(/** @type {HTMLElement} */ comment) => {
-          /* I'm experimenting here. db.listImages() is asynchronous but I don't want
-           * to convert this entire application to the async version of uhtml. Can I
-           * inject content asynchronously using the callback mechanism he provides?
-           * As I understand it, when an interpolation is a function he places a
-           * comment node in the output and passes it to the function.
-           * I am using the comment node to find the parent container, then rendering
-           * the asynchronous content when it becomes available being careful to keep
-           * the comment node in the output. It seems to work, is it safe?
-           */
-          db.listMedia().then((names) => {
-            const list = names.map(
-              (name) =>
-                html`<li>
-                  <label><input type="checkbox" name=${name} />${name}</label>
-                </li>`
-            );
-            if (comment.parentNode)
-              render(comment.parentNode, html`${comment}${list}`);
-          });
-        }}
-      </ol>
+    return html`<div class=${this.CSSClasses("content")} id=${this.id}>
+      <div>
+        <h1>Content</h1>
+        <p>
+          ${data.allrows.length} rows with these fields:
+          ${String([...data.allFields].sort()).replaceAll(",", ", ")}
+        </p>
+        <h2>Media files</h2>
+        <button @click=${this.deleteSelected}>Delete checked</button>
+        <label
+          ><input
+            type="checkbox"
+            name="Select all"
+            id="ContentSelectAll"
+            @input=${this.selectAll}
+          />Select All</label
+        >
+        <ol
+          id="ContentMedia"
+          style="column-count: 3"
+          ref=${(/** @type {HTMLOListElement} */ ol) => {
+            db.listMedia().then((names) => {
+              const list = names.map(
+                (name) =>
+                  html`<li>
+                    <label><input type="checkbox" name=${name} />${name}</label>
+                  </li>`,
+              );
+              render(ol, html`${list}`);
+            });
+          }}
+        ></ol>
+      </div>
     </div>`;
   }
 }
@@ -13668,7 +13975,9 @@ class Logger extends TreeBase {
 
   template() {
     const { state, actions } = Globals;
-    const { stateName, logUntil, logThese } = this.props;
+    const stateName = this.stateName.value;
+    const logUntil = this.logUntil.value;
+    const logThese = this.logThese.value;
     const logging =
       !!state.get(stateName) && logUntil && new Date() < new Date(logUntil);
     const getValue = access(state, actions.last.data);
@@ -13709,6 +14018,7 @@ class Logger extends TreeBase {
   }
 
   init() {
+    super.init();
     this.onUpdate();
   }
 
@@ -13816,10 +14126,10 @@ class Layout extends DesignerPanel {
 
   settings() {
     return html`<div
-      class="treebase layout"
+      class=${this.CSSClasses("layout")}
       help="Layout tab"
       id=${this.id}
-      onkeydown=${(/** @type {KeyboardEvent} */ event) => {
+      @keydown=${(/** @type {KeyboardEvent} */ event) => {
         const { key, ctrlKey } = event;
         if ((key == "H" || key == "h") && ctrlKey) {
           event.preventDefault();
@@ -13842,11 +14152,10 @@ class Layout extends DesignerPanel {
     /** @param {Object} obj */
     function oldToNew(obj) {
       if ("type" in obj) {
-        // console.log("upgrade", obj);
         // convert to new representation
         const newObj = {
           children: obj.children.map((/** @type {Object} */ child) =>
-            oldToNew(child)
+            oldToNew(child),
           ),
         };
         if ("filters" in obj.props) {
@@ -13862,7 +14171,6 @@ class Layout extends DesignerPanel {
         const { filters, ...props } = obj.props;
         newObj.props = props;
         obj = newObj;
-        // console.log("upgraded", obj);
       }
       return obj;
     }
@@ -13894,7 +14202,7 @@ class Layout extends DesignerPanel {
       element.removeAttribute("highlight");
     }
     // find the selection in the panel
-    let selected = document.querySelector("[aria-selected]");
+    let selected = document.querySelector("#UI [aria-selected]");
     if (!selected) return;
     selected = selected.closest("[id]");
     if (!selected) return;
@@ -13953,7 +14261,7 @@ const actions = '';
 
 class Actions extends DesignerPanel {
   name = new String$1("Actions");
-  scale = new Integer(1);
+  scale = new Float(1);
 
   allowedChildren = ["Action"];
 
@@ -13969,7 +14277,7 @@ class Actions extends DesignerPanel {
   last = {
     /** @type {Action|Null} */
     rule: null,
-    /** @type {Object} */
+    /** @type {Row} */
     data: {},
     /** @type {string} */
     event: "",
@@ -14011,20 +14319,19 @@ class Actions extends DesignerPanel {
     this.last = { origin, event, data, rule: null };
     // first for the event then for any that got queued.
     for (;;) {
-      const context = { ...Functions, state: Globals.state, ...data };
       for (const rule of this.children) {
-        if (origin != rule.props.origin && rule.props.origin != "*") {
+        if (origin != rule.origin.value && rule.origin.value != "*") {
           continue;
         }
         const result = rule.conditions.every((restriction) =>
-          restriction.Condition.eval(context),
+          restriction.Condition.valueInContext({ data }),
         );
         if (result) {
           this.last.rule = rule;
           const patch = Object.fromEntries(
             rule.updates.map((update) => [
-              update.props.stateName,
-              update.newValue.eval(context),
+              update.stateName.value,
+              update.newValue.valueInContext({ data }),
             ]),
           );
           Globals.state.update(patch);
@@ -14064,13 +14371,13 @@ class Actions extends DesignerPanel {
     const result = new Set();
     for (const rule of this.children) {
       for (const condition of rule.conditions) {
-        for (const [match] of condition.props.Condition.matchAll(/\$\w+/g)) {
+        for (const [match] of condition.Condition.text.matchAll(/\$\w+/g)) {
           result.add(match);
         }
       }
       for (const update of rule.updates) {
-        result.add(update.props.stateName);
-        for (const [match] of update.newValue.value.matchAll(/\$\w+/g)) {
+        result.add(update.stateName.value);
+        for (const [match] of update.newValue.text.matchAll(/\$\w+/g)) {
           result.add(match);
         }
       }
@@ -14081,7 +14388,11 @@ class Actions extends DesignerPanel {
   settings() {
     const { actions } = Globals;
     const rule = this.last.rule;
-    return html`<div class="actions" help="Actions" id=${this.id}>
+    return html`<div
+      class=${this.CSSClasses("actions")}
+      help="Actions"
+      id=${this.id}
+    >
       <table>
         <thead>
           <tr>
@@ -14189,6 +14500,7 @@ let Action$1 = class Action extends TreeBase {
   }
 
   init() {
+    super.init();
     if (this.children.length == 0) {
       // add a condition and update if none are present
       TreeBase.create(ActionCondition, this, {}).init();
@@ -14199,7 +14511,7 @@ let Action$1 = class Action extends TreeBase {
 TreeBase.register(Action$1, "Action");
 
 class ActionCondition extends TreeBase {
-  Condition = new Expression("", {
+  Condition = new Conditional("", {
     hiddenLabel: true,
     valueWhenEmpty: true,
   });
@@ -14285,14 +14597,15 @@ function focusPanel() {
 function focusTabs() {
   clearHints();
   const currentTab = /** @type {HTMLButtonElement} */ (
-    document.querySelector("#designer .tabcontrol .buttons button[active]")
+    document.querySelector("#designer #tabs .buttons button[active]")
   );
+  console.log({ currentTab });
   if (currentTab) {
     currentTab.focus();
     return;
   }
   const tabs = /** @type {HTMLButtonElement[]} */ ([
-    ...document.querySelectorAll(".designing .tabcontrol .buttons button"),
+    ...document.querySelectorAll(".designing #designer #tabs .buttons button"),
   ]);
   if (!tabs.length) return;
   tabs[0].focus();
@@ -14381,7 +14694,7 @@ class Customize extends TreeBase {
 
   template() {
     return html`<style>
-      ${this.css.editedValue}
+      ${Globals.state.interpolate(this.css.editedValue)}
     </style>`;
   }
 }
@@ -16812,6 +17125,21 @@ const defaultMethods = {
 
 const method = '';
 
+/**
+ * Conditionally show an indicator with a title
+ *
+ * @param {boolean} toggle
+ * @param {string} title
+ * @returns {Hole}
+ */
+function toggleIndicator(toggle, title) {
+  if (toggle) {
+    return html`<span class="indicator" title=${title}>&#9679;</span>`;
+  } else {
+    return html`<!--empty-->`;
+  }
+}
+
 // allow tearing down handlers when changing configurations
 const stop$ = new Subject();
 
@@ -16845,7 +17173,7 @@ class MethodChooser extends DesignerPanel {
   }
 
   settings() {
-    return html`<div class="MethodChooser" id=${this.id}>
+    return html`<div class=${this.CSSClasses("MethodChooser")} id=${this.id}>
       ${this.unorderedChildren()}
     </div> `;
   }
@@ -16921,7 +17249,7 @@ class Method extends TreeBase {
   PointerEnterDebounce = new Float(0, { label: "Pointer enter/leave" });
   PointerDownDebounce = new Float(0, { label: "Pointer down/up" });
   Key = new UID();
-  Active = new Boolean$1(false);
+  Active = new OneOfGroup(false, { group: "ActiveMethod" });
 
   allowedChildren = [
     "Timer",
@@ -17022,23 +17350,27 @@ class Method extends TreeBase {
             </fieldset> `,
           ]
         : [];
-    return html`<div>
-      ${Name.input()} ${Active.input()} ${Pattern.input()} ${Debounce}
-      ${timers.length > 0
-        ? html`<fieldset>
-            <legend>Timers</legend>
-            ${this.unorderedChildren(timers)}
-          </fieldset>`
-        : this.empty}
-      <fieldset>
-        <legend>Handlers</legend>
-        ${this.orderedChildren(this.handlers)}
-      </fieldset>
-    </div>`;
+    return [
+      html`<div>
+        ${Name.input()} ${Active.input()} ${Pattern.input()} ${Debounce}
+        ${timers.length > 0
+          ? [
+              html`<fieldset>
+                <legend>Timers</legend>
+                ${this.unorderedChildren(timers)}
+              </fieldset>`,
+            ]
+          : []}
+        <fieldset>
+          <legend>Handlers</legend>
+          ${this.orderedChildren(this.handlers)}
+        </fieldset>
+      </div>`,
+    ];
   }
 
   settingsChildren() {
-    return this.empty;
+    return html`<div />`;
   }
 
   /** Configure the rxjs pipelines to implement this method */
@@ -17143,7 +17475,9 @@ class Handler extends TreeBase {
   test(event) {
     return (
       this.Signal.value == event.type &&
-      this.conditions.every((condition) => condition.eval(event.access))
+      this.conditions.every((condition) =>
+        condition.eval({ data: event.access }),
+      )
     );
   }
 
@@ -17156,7 +17490,6 @@ class Handler extends TreeBase {
 
   /** @param {EventLike} event */
   respond(event) {
-    // console.log("handler respond", event.type, this.responses);
     const method = this.nearestParent(Method);
     if (!method) return;
     method.cancelTimers();
@@ -17167,16 +17500,16 @@ class Handler extends TreeBase {
 }
 
 class HandlerCondition extends TreeBase {
-  Condition = new Expression("", { hiddenLabel: true });
+  Condition = new Conditional("", { hiddenLabel: true });
 
   settings() {
     const { Condition } = this;
     return html`<div class="Condition">${Condition.input()}</div>`;
   }
 
-  /** @param {Object} context */
+  /** @param {EvalContext} context */
   eval(context) {
-    return this.Condition.eval(context);
+    return this.Condition.valueInContext(context);
   }
 
   /** move my parent instead of me.
@@ -17199,9 +17532,9 @@ class HandlerKeyCondition extends HandlerCondition {
     return html`<div class="Key">${Key.input()}</div>`;
   }
 
-  /** @param {Object} context */
+  /** @param {EvalContext} context */
   eval(context) {
-    return this.Key.value == context.key;
+    return this.Key.value == context.data.key;
   }
 }
 TreeBase.register(HandlerKeyCondition, "HandlerKeyCondition");
@@ -17231,7 +17564,7 @@ class HandlerResponse extends TreeBaseSwitchable {
   }
 
   subTemplate() {
-    return this.empty;
+    return html`<div />`;
   }
 
   /** move my parent instead of me.
@@ -17416,7 +17749,7 @@ function cueTarget(target, defaultValue) {
 }
 
 function clearCues() {
-  for (const element of document.querySelectorAll("[cue]")) {
+  for (const element of document.querySelectorAll("#UI [cue]")) {
     element.removeAttribute("cue");
     const video = element.querySelector("video");
     if (video && !video.hasAttribute("autoplay")) {
@@ -17459,7 +17792,6 @@ class Group {
     if (!value) {
       value = this.access.Cue;
     }
-    //    console.log("cue group", this);
     for (const member of this.members) {
       if (member instanceof HTMLButtonElement) cueTarget(member, value);
       else if (member instanceof Group) member.cue(value);
@@ -17508,7 +17840,7 @@ class PatternList extends DesignerPanel {
   static defaultValue = defaultPatterns;
 
   settings() {
-    return html`<div class="PatternList" id=${this.id}>
+    return html`<div class=${this.CSSClasses("PatternList")} id=${this.id}>
       ${this.unorderedChildren()}
     </div>`;
   }
@@ -17573,7 +17905,7 @@ class PatternManager extends PatternBase {
   Name = new String$1("a pattern");
   Key = new UID();
   Active = new OneOfGroup(false, {
-    name: "pattern-active",
+    group: "pattern-active",
     label: "Default",
   });
 
@@ -17586,23 +17918,25 @@ class PatternManager extends PatternBase {
 
   settingsDetails() {
     const { Cue, Name, Active } = this;
-    return html`
-      <div>
-        ${Name.input()} ${Active.input()} ${Cue.input()}
-        <button
-          onclick=${() => {
-            this.animate();
-          }}
-        >
-          Animate
-        </button>
-        ${this.orderedChildren()}
-      </div>
-    `;
+    return [
+      html`
+        <div>
+          ${Name.input()} ${Active.input()} ${Cue.input()}
+          <button
+            @click=${() => {
+              this.animate();
+            }}
+          >
+            Animate
+          </button>
+          ${this.orderedChildren()}
+        </div>
+      `,
+    ];
   }
 
   settingsChildren() {
-    return this.empty;
+    return html`<div />`;
   }
 
   /**
@@ -17621,7 +17955,7 @@ class PatternManager extends PatternBase {
         }
       }
     }
-    if (members.length > 0) return [new Group(members, this.props)];
+    if (members.length > 0) return [new Group(members, this.propsAsObject)];
     else return [];
   }
 
@@ -17650,9 +17984,8 @@ class PatternManager extends PatternBase {
     } else {
       members = buttons;
     }
-    this.targets = new Group(members, { ...this.props, Cycles: 1 });
-    // console.log("refresh", this.targets);
-    this.stack = [{ group: this.targets, index: -1 }];
+    this.targets = new Group(members, { ...this.propsAsObject, Cycles: 1 });
+    this.stack = [{ group: this.targets, index: 0 }];
     this.cue();
 
     // stop any running animations
@@ -17671,12 +18004,10 @@ class PatternManager extends PatternBase {
 
   next() {
     const top = this.stack[0];
-    // console.log("next", { top }, this);
     if (top.index < top.group.length - 1) {
       top.index++;
     } else if (this.stack.length > 1) {
       this.stack.shift();
-      // console.log("stack pop");
     } else if (this.stack.length == 1) {
       top.index = 0;
     } else ;
@@ -17686,7 +18017,6 @@ class PatternManager extends PatternBase {
   /** @param {EventLike} event */
   activate(event) {
     const target = event.target;
-    // console.log("activate", event);
     if (target) {
       // adjust the stack to accomodate the target
       for (;;) {
@@ -17694,37 +18024,29 @@ class PatternManager extends PatternBase {
         const newIndex = top.group.members.indexOf(target);
         if (newIndex >= 0) {
           top.index = newIndex;
-          // console.log("set index", top.index);
           break;
         }
         if (this.stack.length == 1) {
           top.index = 0;
-          // console.log("not found");
           break;
         } else {
           this.stack.shift();
-          // console.log("pop stack");
         }
       }
     }
-    //    console.log("stack", this.stack);
     let current = this.current;
     if (!current) return;
     if (current instanceof Group) {
-      // console.log("activate group", current, this.stack);
       while (current.length == 1 && current.members[0] instanceof Group) {
         current = current.members[0];
       }
       // I need to work out the index here. Should be the group under the pointer
       this.stack.unshift({ group: current, index: event?.groupIndex || 0 });
-      // console.log("push stack", this.current, this.stack);
     } else if (current instanceof HTMLButtonElement) {
       if (current.hasAttribute("click")) {
-        current.click();
+        current.dispatchEvent(new Event("Activate"));
       } else {
         const name = current.dataset.ComponentName;
-        // console.log("activate button", current);
-        // console.log("applyRules", name, current.access);
         Globals.actions.applyRules(name || "", "press", current.dataset);
       }
     }
@@ -17739,7 +18061,6 @@ class PatternManager extends PatternBase {
   cue() {
     this.clearCue();
     const current = this.current;
-    //    console.log("cue current", current);
     if (!current) return;
     this.cued = true;
     cueTarget(current, this.Cue.value);
@@ -17772,7 +18093,6 @@ class PatternManager extends PatternBase {
       event.access = event.target.dataset;
     }
     if (!event.target) return event;
-    // console.log("ret", this.stack);
     event.originalTarget = event.target;
     for (let level = 0; level < this.stack.length; level++) {
       const group = this.stack[level].group;
@@ -17781,10 +18101,8 @@ class PatternManager extends PatternBase {
       let index = members.indexOf(event.target);
       if (index >= 0) {
         if (level === 0) {
-          // console.log("A", event);
           return event;
         } else {
-          // console.log("B", index);
           return {
             ...event,
             target: group,
@@ -17799,7 +18117,6 @@ class PatternManager extends PatternBase {
           if (member instanceof Group) {
             let i = member.contains(event.target);
             if (i >= 0) {
-              // console.log("C", i);
               return {
                 ...event,
                 target: member,
@@ -17891,7 +18208,7 @@ class PatternGroup extends PatternBase {
         }
       }
     }
-    if (members.length > 0) return [new Group(members, this.props)];
+    if (members.length > 0) return [new Group(members, this.propsAsObject)];
     else return [];
   }
 }
@@ -17945,7 +18262,7 @@ class Filter extends PatternBase {
         .filter((target) => target.length > 0);
     } else {
       return input.filter((/** @type {HTMLButtonElement} */ button) =>
-        this.Filter.eval(button.dataset),
+        this.Filter.valueInContext({ data: button.dataset }),
       );
     }
   }
@@ -18023,7 +18340,7 @@ class GroupBy extends PatternBase {
         )
         .filter((target) => target.length > 0);
     } else {
-      const { GroupBy, Name, ...props } = this.props;
+      const { GroupBy, Name, ...props } = this.propsAsObject;
       const key = GroupBy.slice(1);
       const result = [];
       const groupMap = new Map();
@@ -18083,7 +18400,6 @@ class ResponderCue extends HandlerResponse {
 
   /** @param {EventLike} event */
   respond(event) {
-    //    console.log("cue", event);
     cueTarget(event.target, this.Cue.value);
   }
 }
@@ -18123,7 +18439,7 @@ class ResponderStartTimer extends HandlerResponse {
     // hand the interval to Cue CSS for animations
     document.documentElement.style.setProperty(
       "--timerInterval",
-      `${timer.Interval.value}s`
+      `${timer.Interval.value}s`,
     );
     timer.start(event);
   }
@@ -18178,7 +18494,7 @@ class KeyHandler extends Handler {
     if (method.streams[streamName]) return;
 
     // construct debounced key event stream
-    const debounceInterval = method.KeyDebounce.valueAsNumber * 1000;
+    const debounceInterval = method.KeyDebounce.value * 1000;
     const keyDown$ = /** @type RxJs.Observable<KeyboardEvent> */ (
       fromEvent(document, "keydown")
     );
@@ -18258,8 +18574,9 @@ class KeyHandler extends Handler {
     );
     return (
       event.type == signal &&
-      (keys.length == 0 || keys.some((key) => key.eval(event.access))) &&
-      conditions.every((condition) => condition.eval(event.access))
+      (keys.length == 0 ||
+        keys.some((key) => key.eval({ data: event.access }))) &&
+      conditions.every((condition) => condition.eval({ data: event.access }))
     );
   }
 }
@@ -18284,18 +18601,13 @@ class PointerHandler extends Handler {
   allowedChildren = ["HandlerCondition", "HandlerResponse"];
 
   Signal = new Select(pointerSignals);
-  SkipOnRedraw = new Boolean$1(false);
 
   settings() {
     const { conditions, responses, Signal } = this;
-    const skip =
-      this.Signal.value == "pointerover"
-        ? this.SkipOnRedraw.input()
-        : this.empty;
     return html`
       <fieldset class="Handler" tabindex="0" id="${this.id}">
         <legend>Pointer Handler</legend>
-        ${Signal.input()} ${skip}
+        ${Signal.input()}
         <fieldset class="Conditions">
           <legend>Conditions</legend>
           ${this.unorderedChildren(conditions)}
@@ -18317,8 +18629,8 @@ class PointerHandler extends Handler {
 
     const pattern = method.pattern;
 
-    const inOutThreshold = method.PointerEnterDebounce.valueAsNumber * 1000;
-    const upDownThreshold = method.PointerDownDebounce.valueAsNumber * 1000;
+    const inOutThreshold = method.PointerEnterDebounce.value * 1000;
+    const upDownThreshold = method.PointerDownDebounce.value * 1000;
 
     /**
      * Get the types correct
@@ -18410,7 +18722,6 @@ class PointerHandler extends Handler {
           current = over;
           if (current !== None) {
             emittedEvents.push({ ...current, type: "pointerover" });
-            // console.log("push pointerover", events);
           }
         } else {
           current = over;
@@ -18750,6 +19061,7 @@ class SocketHandler extends Handler {
   }
 
   init() {
+    super.init();
     // set the signal value
     this.Signal.set("socket");
 
@@ -18845,12 +19157,10 @@ class SocketHandler extends Handler {
       URL: this.URL.value,
       state: Globals.state.values,
     };
-    const filters = GridFilter.toContentFilters(this.filters);
+    const filters = this.filters;
     if (filters.length > 0) {
       const content = Globals.data.getMatchingRows(
         filters,
-        Globals.state,
-        undefined, // no cache for now
         false, // do not pass NULL for the undefined fields
       );
       message["content"] = content;
@@ -18903,7 +19213,7 @@ class TimerHandler extends Handler {
     const timer = method.timer(timerName);
     if (!timer) return;
 
-    const delayTime = 1000 * timer.Interval.valueAsNumber;
+    const delayTime = 1000 * timer.Interval.value;
     method.streams[streamName] = timer.subject$.pipe(
       switchMap((event) =>
         event.type == "cancel"
@@ -19007,32 +19317,31 @@ class CueList extends DesignerPanel {
   allowDelete = false;
 
   settings() {
-    return html`<div class="CueList" id=${this.id}>
+    return html`<div class=${this.CSSClasses("CueList")} id=${this.id}>
       ${this.unorderedChildren()}
     </div>`;
   }
 
-  /** @returns {Hole|Hole[]} */
   template() {
     const result = this.children.map(
       (child) =>
         html`<style>
           ${child.css}
-        </style>`
+        </style>`,
     );
     if (this.children.length > 0) {
       const defaultCue = this.defaultCue;
       const defaultCSS = defaultCue.css.replaceAll(
         defaultCue.Key.value,
-        "DefaultCue"
+        "DefaultCue",
       );
       result.push(
         html`<style>
           ${defaultCSS}
-        </style>`
+        </style>`,
       );
     }
-    return result;
+    return html`${result}`;
   }
 
   get cueMap() {
@@ -19076,7 +19385,7 @@ class Cue extends TreeBaseSwitchable {
   Name = new String$1("a cue");
   Key = new UID();
   CueType = new TypeSelect(CueTypes);
-  Default = new OneOfGroup(false, { name: "DefaultCue" });
+  Default = new OneOfGroup(false, { group: "DefaultCue" });
 
   settingsSummary() {
     return html`<h3>
@@ -19085,15 +19394,17 @@ class Cue extends TreeBaseSwitchable {
   }
 
   settingsDetails() {
-    return html`<div class="Cue">
-      ${this.Name.input()} ${this.Default.input()} ${this.CueType.input()}
-      ${this.subTemplate()}
-    </div>`;
+    return [
+      html`<div class="Cue">
+        ${this.Name.input()} ${this.Default.input()} ${this.CueType.input()}
+        ${this.subTemplate()}
+      </div>`,
+    ];
   }
 
   /** @returns {Hole[]} */
   subTemplate() {
-    return [this.empty];
+    return [];
   }
 
   get css() {
@@ -19113,14 +19424,15 @@ class CueCss extends Cue {
   }
 
   get css() {
-    return this.Code.editedValue;
+    return Globals.state.interpolate(this.Code.editedValue);
   }
 
   onUpdate() {
-    this.Code.editCSS(this.props);
+    this.Code.editCSS(this.propsAsObject);
   }
 
   init() {
+    super.init();
     this.onUpdate();
   }
 }
@@ -19131,11 +19443,14 @@ class CueOverlay extends Cue {
   Opacity = new Float(0.3);
 
   subTemplate() {
-    return [this.Color.input(), this.Opacity.input(),
+    return [
+      this.Color.input(),
+      this.Opacity.input(),
       html`<details>
         <summary>generated CSS</summary>
         <pre><code>${this.css.replaceAll(this.Key.value, "$Key")}</code></pre>
-      </details>`];
+      </details>`,
+    ];
   }
 
   get css() {
@@ -19174,12 +19489,16 @@ class CueFill extends Cue {
   Repeat = new Boolean$1(false);
 
   subTemplate() {
-    return [this.Color.input(), this.Opacity.input(),
-      this.Direction.input(), this.Repeat.input(),
+    return [
+      this.Color.input(),
+      this.Opacity.input(),
+      this.Direction.input(),
+      this.Repeat.input(),
       html`<details>
         <summary>generated CSS</summary>
         <pre><code>${this.css.replaceAll(this.Key.value, "$Key")}</code></pre>
-      </details>`];
+      </details>`,
+    ];
   }
 
   get css() {
@@ -19219,11 +19538,14 @@ class CueCircle extends Cue {
   Opacity = new Float(0.3);
 
   subTemplate() {
-    return [this.Color.input(), this.Opacity.input(),
+    return [
+      this.Color.input(),
+      this.Opacity.input(),
       html`<details>
         <summary>generated CSS</summary>
         <pre><code>${this.css.replaceAll(this.Key.value, "$Key")}</code></pre>
-      </details>`];
+      </details>`,
+    ];
   }
 
   get css() {
@@ -19290,7 +19612,7 @@ const TrackyMouse = {
 TrackyMouse.loadDependencies = function () {
   TrackyMouse.dependenciesRoot = TrackyMouse.dependenciesRoot.replace(
     /\/+$/,
-    ""
+    "",
   );
   const loadScript = (src) => {
     return new Promise((resolve, reject) => {
@@ -19441,12 +19763,11 @@ TrackyMouse.init = function (div) {
     facemeshFirstEstimation = true;
     facemeshLoaded = false;
     facemeshWorker = new Worker(
-      `${TrackyMouse.dependenciesRoot}/facemesh.worker.js`
+      `${TrackyMouse.dependenciesRoot}/facemesh.worker.js`,
     );
     facemeshWorker.addEventListener(
       "message",
       (e) => {
-        // console.log('Message received from worker', e.data);
         if (e.data.type === "LOADED") {
           facemeshLoaded = true;
           facemeshEstimateFaces = () => {
@@ -19463,13 +19784,13 @@ TrackyMouse.init = function (div) {
                     resolve(e.data.predictions);
                   }
                 },
-                { once: true }
+                { once: true },
               );
             });
           };
         }
       },
-      { once: true }
+      { once: true },
     );
     facemeshWorker.postMessage({ type: "LOAD", options: facemeshOptions });
   };
@@ -19540,7 +19861,7 @@ TrackyMouse.init = function (div) {
         },
         (error) => {
           console.log(error);
-        }
+        },
       );
     paused = false;
   };
@@ -19634,12 +19955,12 @@ TrackyMouse.init = function (div) {
       this.curPyramid.allocate(
         cameraVideo.videoWidth,
         cameraVideo.videoHeight,
-        jsfeat.U8C1_t
+        jsfeat.U8C1_t,
       );
       this.prevPyramid.allocate(
         cameraVideo.videoWidth,
         cameraVideo.videoHeight,
-        jsfeat.U8C1_t
+        jsfeat.U8C1_t,
       );
 
       this.pointCount = 0;
@@ -19681,12 +20002,12 @@ TrackyMouse.init = function (div) {
             debugPointsCtx,
             this.curXY[inputOffset],
             this.curXY[inputOffset + 1],
-            5
+            5,
           );
           debugPointsCtx.fillText(
             condition.toString(),
             5 + this.curXY[inputOffset],
-            this.curXY[inputOffset + 1]
+            this.curXY[inputOffset + 1],
           );
           // console.log(this.curXY[inputOffset], this.curXY[inputOffset + 1]);
           ctx.strokeStyle = ctx.fillStyle;
@@ -19733,7 +20054,7 @@ TrackyMouse.init = function (div) {
         imageData.data,
         imageData.width,
         imageData.height,
-        this.curPyramid.data[0]
+        this.curPyramid.data[0],
       );
       this.curPyramid.build(this.curPyramid.data[0], true);
       jsfeat.optical_flow_lk.track(
@@ -19746,7 +20067,7 @@ TrackyMouse.init = function (div) {
         maxIterations,
         this.pointStatus,
         epsilon,
-        minEigen
+        minEigen,
       );
       this.prunePoints();
     }
@@ -19796,12 +20117,12 @@ TrackyMouse.init = function (div) {
     if (mirror) {
       mainOops.addPoint(
         ((rect.right - event.clientX) / rect.width) * canvas.width,
-        ((event.clientY - rect.top) / rect.height) * canvas.height
+        ((event.clientY - rect.top) / rect.height) * canvas.height,
       );
     } else {
       mainOops.addPoint(
         ((event.clientX - rect.left) / rect.width) * canvas.width,
-        ((event.clientY - rect.top) / rect.height) * canvas.height
+        ((event.clientY - rect.top) / rect.height) * canvas.height,
       );
     }
   });
@@ -19932,7 +20253,7 @@ TrackyMouse.init = function (div) {
                 } catch (e) {}
               }, 500);
             },
-            facemeshFirstEstimation ? 20000 : 2000
+            facemeshFirstEstimation ? 20000 : 2000,
           );
           facemeshEstimateFaces().then(
             (predictions) => {
@@ -19971,16 +20292,16 @@ TrackyMouse.init = function (div) {
               // nostrils
               workerSyncedOops.addPoint(
                 annotations.noseLeftCorner[0][0],
-                annotations.noseLeftCorner[0][1]
+                annotations.noseLeftCorner[0][1],
               );
               workerSyncedOops.addPoint(
                 annotations.noseRightCorner[0][0],
-                annotations.noseRightCorner[0][1]
+                annotations.noseRightCorner[0][1],
               );
               // midway between eyes
               workerSyncedOops.addPoint(
                 annotations.midwayBetweenEyes[0][0],
-                annotations.midwayBetweenEyes[0][1]
+                annotations.midwayBetweenEyes[0][1],
               );
 
               // Bring points from workerSyncedOops to realtime mainOops
@@ -19993,7 +20314,7 @@ TrackyMouse.init = function (div) {
                 maybeAddPoint(
                   mainOops,
                   workerSyncedOops.curXY[pointOffset],
-                  workerSyncedOops.curXY[pointOffset + 1]
+                  workerSyncedOops.curXY[pointOffset + 1],
                 );
               }
               // Don't do this! It's not how this is supposed to work.
@@ -20030,11 +20351,11 @@ TrackyMouse.init = function (div) {
                 var distance = Math.hypot(
                   (annotations.noseTip[0][0] - mainOops.curXY[pointOffset]) *
                     1.4,
-                  annotations.noseTip[0][1] - mainOops.curXY[pointOffset + 1]
+                  annotations.noseTip[0][1] - mainOops.curXY[pointOffset + 1],
                 );
                 var headSize = Math.hypot(
                   annotations.leftCheek[0][0] - annotations.rightCheek[0][0],
-                  annotations.leftCheek[0][1] - annotations.rightCheek[0][1]
+                  annotations.leftCheek[0][1] - annotations.rightCheek[0][1],
                 );
                 if (distance > headSize) {
                   return false;
@@ -20046,14 +20367,14 @@ TrackyMouse.init = function (div) {
                     annotations.leftEyeLower0[0][0] -
                       mainOops.curXY[pointOffset],
                     annotations.leftEyeLower0[0][1] -
-                      mainOops.curXY[pointOffset + 1]
+                      mainOops.curXY[pointOffset + 1],
                   ),
                   Math.hypot(
                     annotations.rightEyeLower0[0][0] -
                       mainOops.curXY[pointOffset],
                     annotations.rightEyeLower0[0][1] -
-                      mainOops.curXY[pointOffset + 1]
-                  )
+                      mainOops.curXY[pointOffset + 1],
+                  ),
                 );
                 if (distance < headSize * 0.42) {
                   return false;
@@ -20064,7 +20385,7 @@ TrackyMouse.init = function (div) {
             () => {
               facemeshEstimating = false;
               facemeshFirstEstimation = false;
-            }
+            },
           );
         }
       }
@@ -20132,12 +20453,12 @@ TrackyMouse.init = function (div) {
             // distance from tip of nose (stretched so make an ellipse taller than wide)
             var distance = Math.hypot(
               (face[62][0] - mainOops.curXY[pointOffset]) * 1.4,
-              face[62][1] - mainOops.curXY[pointOffset + 1]
+              face[62][1] - mainOops.curXY[pointOffset + 1],
             );
             // distance based on outer eye corners
             var headSize = Math.hypot(
               face[23][0] - face[28][0],
-              face[23][1] - face[28][1]
+              face[23][1] - face[28][1],
             );
             if (distance > headSize) {
               return false;
@@ -20262,11 +20583,12 @@ class HeadMouse extends TreeBase {
   promise;
 
   template() {
+    const stateName = this.stateName.value;
+    const { state } = Globals;
+    const updated = state.hasBeenUpdated(stateName);
     this.promise.then(() => {
-      const stateName = this.stateName.value;
-      const { state } = Globals;
-      if (state.hasBeenUpdated(stateName)) {
-        const status = state.values[stateName];
+      if (updated) {
+        const status = state.get(stateName, "off");
         if (status == "on" || status == "setup") {
           document.body.classList.toggle("HeadMouse", true);
           TrackyMouse.useCamera();
@@ -20278,10 +20600,11 @@ class HeadMouse extends TreeBase {
         }
       }
     });
-    return [];
+    return html`<div />`;
   }
 
   init() {
+    super.init();
     TrackyMouse.dependenciesRoot = "./tracky-mouse";
     this.promise = TrackyMouse.loadDependencies();
     this.promise.then(() => {
@@ -20300,6 +20623,9 @@ class HeadMouse extends TreeBase {
         };
       };
       let last_el_over;
+      /** @param {number} x
+       * @param {number} y
+       */
       TrackyMouse.onPointerMove = (x, y) => {
         const target = document.elementFromPoint(x, y) || document.body;
         if (target !== last_el_over) {
@@ -20311,7 +20637,7 @@ class HeadMouse extends TreeBase {
                 buttons: 1,
                 bubbles: true,
                 cancelable: false,
-              })
+              }),
             );
             last_el_over.dispatchEvent(event);
           }
@@ -20322,7 +20648,7 @@ class HeadMouse extends TreeBase {
               buttons: 1,
               bubbles: true,
               cancelable: false,
-            })
+            }),
           );
           target.dispatchEvent(event);
           last_el_over = target;
@@ -20334,7 +20660,7 @@ class HeadMouse extends TreeBase {
             buttons: 1,
             bubbles: true,
             cancelable: true,
-          })
+          }),
         );
         target.dispatchEvent(event);
       };
@@ -20415,7 +20741,7 @@ class Menu {
     return html`<div
       class="Menu"
       id=${this.id}
-      onfocusout=${this.focusHandler}
+      @focusout=${this.focusHandler}
       ref=${this}
     >
       <button
@@ -20423,8 +20749,8 @@ class Menu {
         aria-expanded=${this.expanded}
         aria-controls=${this.contentId}
         aria-haspopup="true"
-        onclick=${this.toggleExpanded}
-        onkeyup=${this.buttonKeyHandler}
+        @click=${this.toggleExpanded}
+        @keyup=${this.buttonKeyHandler}
       >
         ${this.label}
       </button>
@@ -20433,7 +20759,7 @@ class Menu {
         role="menu"
         id=${this.contentId}
         aria-labelledby=${this.buttonId}
-        onkeyup=${this.menuKeyHandler}
+        @keyup=${this.menuKeyHandler}
       >
         ${this.items.map((item, index) => {
           return html`<li role="menuitem" divider=${item.divider}>
@@ -20441,7 +20767,7 @@ class Menu {
               index=${index}
               aria-disabled=${!item.callback}
               title=${item.title}
-              onclick=${() => {
+              @click=${() => {
                 if (item.callback) {
                   this.toggleExpanded();
                   item.apply();
@@ -20637,7 +20963,7 @@ if (navigator.serviceWorker) {
 function workerUpdateButton() {
   return html`<button
     id="update-available-button"
-    onclick=${() => {
+    @click=${() => {
       if (registration && registration.waiting) {
         registration.waiting.postMessage("SKIP_WAITING");
       }
@@ -20666,7 +20992,6 @@ function getComponentMenuItems(component, which = "all", wrapper) {
         new MenuItem({
           label: `${friendlyName(className)}`,
           callback: wrapper(() => {
-            console.log("add", className, component.className);
             const result = TreeBase.create(className, component);
             result.init();
             return result.id;
@@ -20684,7 +21009,6 @@ function getComponentMenuItems(component, which = "all", wrapper) {
           title: `Delete ${friendlyName(component.className)}`,
           callback: wrapper(() => {
             // remove returns the id of the nearest neighbor or the parent
-            console.log("delete", component.className, component.id);
             const nextId = component.remove();
             return nextId;
           }),
@@ -20774,24 +21098,34 @@ function getPanelMenuItems(type) {
   let menuItems = getComponentMenuItems(component, type, itemCallback);
 
   // Add the parent's actions in some cases
-  const parent = component.parent;
+  let parent = component.parent;
 
-  let parentItems = [];
-  if (
-    type === "add" &&
-    parent &&
-    !(component instanceof Stack && parent instanceof Stack) &&
-    !(component instanceof PatternGroup && parent instanceof PatternGroup) &&
-    !(parent instanceof Designer)
-  ) {
-    parentItems = getComponentMenuItems(parent, type, itemCallback);
+  let parentItems = new Map();
+  for (let i = 0; i < 3; i++) {
+    if (
+      type !== "add" ||
+      !parent ||
+      (component instanceof Stack && parent instanceof Stack) ||
+      (component instanceof PatternGroup && parent instanceof PatternGroup) ||
+      parent instanceof Designer
+    ) {
+      break;
+    }
+
+    for (const item of getComponentMenuItems(parent, type, itemCallback)) {
+      if (!parentItems.has(item.label)) {
+        parentItems.set(item.label, item);
+      }
+    }
+    if (parentItems.size > 10) break;
+    parent = parent.parent;
     // if (menuItems.length && parentItems.length) {
     //   parentItems[0].divider = "Parent";
     // }
     // menuItems = menuItems.concat(parentItems);
   }
 
-  return { child: menuItems, parent: parentItems };
+  return { child: menuItems, parent: [...parentItems.values()] };
 }
 
 /** @param {ToolBar} bar */
@@ -21062,7 +21396,7 @@ function getEditMenuItems() {
   items = items.concat(moveItems.child, deleteItems.child);
   const parentItems = moveItems.parent.concat(deleteItems.parent);
   if (parentItems.length > 0) {
-    parentItems[0].divider = "Parent";
+    parentItems[0].divider = "Parents";
     items = items.concat(parentItems);
   }
   return items;
@@ -21133,9 +21467,7 @@ class DesignListDialog {
     const dialog = /** @type {HTMLDialogElement} */ (
       document.getElementById("OpenDialog")
     );
-    const list = html.node`<div
-        onclick=${() => dialog.close()}
-      >
+    const list = html`<div @click=${() => dialog.close()}>
       <h1>Open one of your designs</h1>
       <ul>
         ${names.map(
@@ -21146,10 +21478,9 @@ class DesignListDialog {
         )}
       </ul>
       <button>Cancel</button>
-      </div>`;
+    </div>`;
     if (dialog) {
-      dialog.innerHTML = "";
-      dialog.appendChild(list);
+      render(dialog, list);
     }
     dialog.showModal();
   }
@@ -21172,7 +21503,7 @@ class DesignListDialog {
       }
       dialog.close();
     }
-    const list = html.node`<div>
+    const list = html`<div>
       <h1>Check the designs you want to unload</h1>
       <ul>
         ${names.map((name) => {
@@ -21187,12 +21518,11 @@ class DesignListDialog {
           </li>`;
         })}
       </ul>
-      <button onclick=${unloadChecked}>Unload</button>
-      <button onclick=${() => dialog.close()}>Cancel</button>
-      </div>`;
+      <button @click=${unloadChecked}>Unload</button>
+      <button @click=${() => dialog.close()}>Cancel</button>
+    </div>`;
     if (dialog) {
-      dialog.innerHTML = "";
-      dialog.appendChild(list);
+      render(dialog, list);
     }
     dialog.showModal();
   }
@@ -21211,7 +21541,7 @@ class ToolBar extends TreeBase {
       () => {
         const { child, parent } = getPanelMenuItems("add");
         if (parent.length > 0) {
-          parent[0].divider = "Parent";
+          parent[0].divider = "Parent" + (parent.length > 1 ? "s" : "");
         }
         return child.concat(parent);
       },
@@ -21233,7 +21563,7 @@ class ToolBar extends TreeBase {
                 type="text"
                 .value=${db.designName}
                 .size=${Math.max(db.designName.length, 12)}
-                onchange=${(/** @type {InputEventWithTarget} */ event) =>
+                @change=${(/** @type {InputEventWithTarget} */ event) =>
                   db
                     .renameDesign(event.target.value)
                     .then(() => (window.location.hash = db.designName))}
@@ -21274,8 +21604,6 @@ class ToolBar extends TreeBase {
 }
 TreeBase.register(ToolBar, "ToolBar");
 
-const designer = '';
-
 const colors = '';
 
 /** let me wait for the page to load */
@@ -21289,11 +21617,13 @@ const pageLoaded = new Promise((resolve) => {
 /** Load page and data then go
  */
 async function start() {
+  let editing = true;
   if (window.location.search && !window.location.hash.slice(1)) {
     const params = new URLSearchParams(window.location.search);
     const fetch = params.get("fetch");
     if (fetch) {
       await wait(db.readDesignFromURL(fetch));
+      editing = params.get("edit") !== null;
       window.history.replaceState(
         {},
         document.title,
@@ -21310,18 +21640,19 @@ async function start() {
   const dataArray = await db.read("content", []);
   await pageLoaded;
 
+  Globals.data = new Data(dataArray);
   const layout = await Layout.load(Layout);
   Globals.layout = layout;
   Globals.tree = layout.children[0];
   Globals.state = new State$1(`UIState`);
   Globals.actions = await Actions.load(Actions);
-  Globals.data = new Data(dataArray);
   Globals.cues = await CueList.load(CueList);
   Globals.patterns = await PatternList.load(PatternList);
   Globals.method = await MethodChooser.load(MethodChooser);
   Globals.restart = async () => {
     // tear down any existing event handlers before restarting
     Globals.method.stop();
+    TreeBase.treeBaseCounter = 0;
     start();
   };
   Globals.error = new Messages();
@@ -21336,7 +21667,7 @@ async function start() {
   }
 
   /* Designer */
-  Globals.state.define("editing", true); // for now
+  Globals.state.define("editing", editing); // for now
   Globals.designer = /** @type {Designer} */ (
     Designer.fromObject({
       className: "Designer",
@@ -21367,6 +21698,7 @@ async function start() {
   function renderUI() {
     const startTime = performance.now();
     document.body.classList.toggle("designing", Globals.state.get("editing"));
+    // clear the changed flag, TODO there must be a better way!
     safeRender("cues", Globals.cues);
     safeRender("UI", Globals.tree);
     safeRender("toolbar", toolbar);
@@ -21375,6 +21707,11 @@ async function start() {
     safeRender("errors", Globals.error);
     postRender();
     Globals.method.refresh();
+    // clear the accessed bits for the next cycle
+    accessed.clear();
+    // clear the updated bits for the next cycle
+    Globals.state.clearUpdated();
+
     if (location.host.startsWith("localhost")) {
       const timer = document.getElementById("timer");
       if (timer) {
