@@ -17916,6 +17916,7 @@ class PatternManager extends PatternBase {
     group: "pattern-active",
     label: "Default",
   });
+  StartVisible = new Boolean$1(false);
 
   settingsSummary() {
     const { Name, Active } = this;
@@ -17925,11 +17926,12 @@ class PatternManager extends PatternBase {
   }
 
   settingsDetails() {
-    const { Cue, Name, Active } = this;
+    const { Cue, Name, Active, StartVisible } = this;
     return [
       html`
         <div>
           ${Name.input()} ${Active.input()} ${Cue.input()}
+          ${StartVisible.input()}
           <button
             @click=${() => {
               this.animate();
@@ -17993,7 +17995,9 @@ class PatternManager extends PatternBase {
       members = buttons;
     }
     this.targets = new Group(members, { ...this.propsAsObject, Cycles: 1 });
-    this.stack = [{ group: this.targets, index: 0 }];
+    this.stack = [
+      { group: this.targets, index: this.StartVisible.value ? 0 : -1 },
+    ];
     this.cue();
 
     // stop any running animations
