@@ -10390,9 +10390,17 @@ class Grid extends TreeBase {
       }
     }
 
+    // empty result provokes a crash from uhtmlV4
+    if (!result.length) {
+      rows = columns = 1;
+      result.push(this.emptyCell());
+    }
+
     style.gridTemplate = `repeat(${rows}, calc(100% / ${rows})) / repeat(${columns}, 1fr)`;
 
-    return this.component({ style }, html`${result}`);
+    const body = html`<div style=${styleString(style)}>${result}</div>`;
+
+    return this.component({}, body);
   }
 
   settingsDetails() {

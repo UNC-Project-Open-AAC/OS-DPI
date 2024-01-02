@@ -284,6 +284,11 @@ table.GridFilter td:nth-child(4) label.labeledInput {
   flex-direction: column;
 }
 .grid {
+  height: 100%;
+  width: 100%;
+}
+
+.grid > div {
   display: grid;
   grid-auto-rows: 1fr;
   height: 100%;
