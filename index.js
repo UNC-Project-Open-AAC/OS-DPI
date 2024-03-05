@@ -1,3 +1,9 @@
+function __vite__mapDeps(indexes) {
+  if (!__vite__mapDeps.viteFileDeps) {
+    __vite__mapDeps.viteFileDeps = []
+  }
+  return indexes.map((i) => __vite__mapDeps.viteFileDeps[i])
+}
 true&&(function polyfill() {
     const relList = document.createElement('link').relList;
     if (relList && relList.supports && relList.supports('modulepreload')) {
@@ -42,7 +48,559 @@ true&&(function polyfill() {
     }
 }());
 
-const site = '';
+/*! (c) Andrea Giammarchi @webreflection ISC */
+(function () {
+
+  var attributesObserver = (function (whenDefined, MutationObserver) {
+    var attributeChanged = function attributeChanged(records) {
+      for (var i = 0, length = records.length; i < length; i++) dispatch(records[i]);
+    };
+    var dispatch = function dispatch(_ref) {
+      var target = _ref.target,
+        attributeName = _ref.attributeName,
+        oldValue = _ref.oldValue;
+      target.attributeChangedCallback(attributeName, oldValue, target.getAttribute(attributeName));
+    };
+    return function (target, is) {
+      var attributeFilter = target.constructor.observedAttributes;
+      if (attributeFilter) {
+        whenDefined(is).then(function () {
+          new MutationObserver(attributeChanged).observe(target, {
+            attributes: true,
+            attributeOldValue: true,
+            attributeFilter: attributeFilter
+          });
+          for (var i = 0, length = attributeFilter.length; i < length; i++) {
+            if (target.hasAttribute(attributeFilter[i])) dispatch({
+              target: target,
+              attributeName: attributeFilter[i],
+              oldValue: null
+            });
+          }
+        });
+      }
+      return target;
+    };
+  });
+
+  function _unsupportedIterableToArray(o, minLen) {
+    if (!o) return;
+    if (typeof o === "string") return _arrayLikeToArray(o, minLen);
+    var n = Object.prototype.toString.call(o).slice(8, -1);
+    if (n === "Object" && o.constructor) n = o.constructor.name;
+    if (n === "Map" || n === "Set") return Array.from(o);
+    if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
+  }
+  function _arrayLikeToArray(arr, len) {
+    if (len == null || len > arr.length) len = arr.length;
+    for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+    return arr2;
+  }
+  function _createForOfIteratorHelper(o, allowArrayLike) {
+    var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"];
+    if (!it) {
+      if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") {
+        if (it) o = it;
+        var i = 0;
+        var F = function () {};
+        return {
+          s: F,
+          n: function () {
+            if (i >= o.length) return {
+              done: true
+            };
+            return {
+              done: false,
+              value: o[i++]
+            };
+          },
+          e: function (e) {
+            throw e;
+          },
+          f: F
+        };
+      }
+      throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+    }
+    var normalCompletion = true,
+      didErr = false,
+      err;
+    return {
+      s: function () {
+        it = it.call(o);
+      },
+      n: function () {
+        var step = it.next();
+        normalCompletion = step.done;
+        return step;
+      },
+      e: function (e) {
+        didErr = true;
+        err = e;
+      },
+      f: function () {
+        try {
+          if (!normalCompletion && it.return != null) it.return();
+        } finally {
+          if (didErr) throw err;
+        }
+      }
+    };
+  }
+
+  /*! (c) Andrea Giammarchi - ISC */
+  var TRUE = true,
+    FALSE = false,
+    QSA$1 = 'querySelectorAll';
+
+  /**
+   * Start observing a generic document or root element.
+   * @param {(node:Element, connected:boolean) => void} callback triggered per each dis/connected element
+   * @param {Document|Element} [root=document] by default, the global document to observe
+   * @param {Function} [MO=MutationObserver] by default, the global MutationObserver
+   * @param {string[]} [query=['*']] the selectors to use within nodes
+   * @returns {MutationObserver}
+   */
+  var notify = function notify(callback) {
+    var root = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : document;
+    var MO = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : MutationObserver;
+    var query = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : ['*'];
+    var loop = function loop(nodes, selectors, added, removed, connected, pass) {
+      var _iterator = _createForOfIteratorHelper(nodes),
+        _step;
+      try {
+        for (_iterator.s(); !(_step = _iterator.n()).done;) {
+          var node = _step.value;
+          if (pass || QSA$1 in node) {
+            if (connected) {
+              if (!added.has(node)) {
+                added.add(node);
+                removed["delete"](node);
+                callback(node, connected);
+              }
+            } else if (!removed.has(node)) {
+              removed.add(node);
+              added["delete"](node);
+              callback(node, connected);
+            }
+            if (!pass) loop(node[QSA$1](selectors), selectors, added, removed, connected, TRUE);
+          }
+        }
+      } catch (err) {
+        _iterator.e(err);
+      } finally {
+        _iterator.f();
+      }
+    };
+    var mo = new MO(function (records) {
+      if (query.length) {
+        var selectors = query.join(',');
+        var added = new Set(),
+          removed = new Set();
+        var _iterator2 = _createForOfIteratorHelper(records),
+          _step2;
+        try {
+          for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+            var _step2$value = _step2.value,
+              addedNodes = _step2$value.addedNodes,
+              removedNodes = _step2$value.removedNodes;
+            loop(removedNodes, selectors, added, removed, FALSE, FALSE);
+            loop(addedNodes, selectors, added, removed, TRUE, FALSE);
+          }
+        } catch (err) {
+          _iterator2.e(err);
+        } finally {
+          _iterator2.f();
+        }
+      }
+    });
+    var observe = mo.observe;
+    (mo.observe = function (node) {
+      return observe.call(mo, node, {
+        subtree: TRUE,
+        childList: TRUE
+      });
+    })(root);
+    return mo;
+  };
+
+  var QSA = 'querySelectorAll';
+  var _self$1 = self,
+    document$2 = _self$1.document,
+    Element$1 = _self$1.Element,
+    MutationObserver$2 = _self$1.MutationObserver,
+    Set$2 = _self$1.Set,
+    WeakMap$1 = _self$1.WeakMap;
+  var elements = function elements(element) {
+    return QSA in element;
+  };
+  var filter = [].filter;
+  var qsaObserver = (function (options) {
+    var live = new WeakMap$1();
+    var drop = function drop(elements) {
+      for (var i = 0, length = elements.length; i < length; i++) live["delete"](elements[i]);
+    };
+    var flush = function flush() {
+      var records = observer.takeRecords();
+      for (var i = 0, length = records.length; i < length; i++) {
+        parse(filter.call(records[i].removedNodes, elements), false);
+        parse(filter.call(records[i].addedNodes, elements), true);
+      }
+    };
+    var matches = function matches(element) {
+      return element.matches || element.webkitMatchesSelector || element.msMatchesSelector;
+    };
+    var notifier = function notifier(element, connected) {
+      var selectors;
+      if (connected) {
+        for (var q, m = matches(element), i = 0, length = query.length; i < length; i++) {
+          if (m.call(element, q = query[i])) {
+            if (!live.has(element)) live.set(element, new Set$2());
+            selectors = live.get(element);
+            if (!selectors.has(q)) {
+              selectors.add(q);
+              options.handle(element, connected, q);
+            }
+          }
+        }
+      } else if (live.has(element)) {
+        selectors = live.get(element);
+        live["delete"](element);
+        selectors.forEach(function (q) {
+          options.handle(element, connected, q);
+        });
+      }
+    };
+    var parse = function parse(elements) {
+      var connected = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+      for (var i = 0, length = elements.length; i < length; i++) notifier(elements[i], connected);
+    };
+    var query = options.query;
+    var root = options.root || document$2;
+    var observer = notify(notifier, root, MutationObserver$2, query);
+    var attachShadow = Element$1.prototype.attachShadow;
+    if (attachShadow) Element$1.prototype.attachShadow = function (init) {
+      var shadowRoot = attachShadow.call(this, init);
+      observer.observe(shadowRoot);
+      return shadowRoot;
+    };
+    if (query.length) parse(root[QSA](query));
+    return {
+      drop: drop,
+      flush: flush,
+      observer: observer,
+      parse: parse
+    };
+  });
+
+  var _self = self,
+    document$1 = _self.document,
+    Map = _self.Map,
+    MutationObserver$1 = _self.MutationObserver,
+    Object$1 = _self.Object,
+    Set$1 = _self.Set,
+    WeakMap = _self.WeakMap,
+    Element = _self.Element,
+    HTMLElement = _self.HTMLElement,
+    Node = _self.Node,
+    Error = _self.Error,
+    TypeError$1 = _self.TypeError,
+    Reflect = _self.Reflect;
+  var defineProperty = Object$1.defineProperty,
+    keys = Object$1.keys,
+    getOwnPropertyNames = Object$1.getOwnPropertyNames,
+    setPrototypeOf = Object$1.setPrototypeOf;
+  var legacy = !self.customElements;
+  var expando = function expando(element) {
+    var key = keys(element);
+    var value = [];
+    var ignore = new Set$1();
+    var length = key.length;
+    for (var i = 0; i < length; i++) {
+      value[i] = element[key[i]];
+      try {
+        delete element[key[i]];
+      } catch (SafariTP) {
+        ignore.add(i);
+      }
+    }
+    return function () {
+      for (var _i = 0; _i < length; _i++) ignore.has(_i) || (element[key[_i]] = value[_i]);
+    };
+  };
+  if (legacy) {
+    var HTMLBuiltIn = function HTMLBuiltIn() {
+      var constructor = this.constructor;
+      if (!classes.has(constructor)) throw new TypeError$1('Illegal constructor');
+      var is = classes.get(constructor);
+      if (override) return augment(override, is);
+      var element = createElement.call(document$1, is);
+      return augment(setPrototypeOf(element, constructor.prototype), is);
+    };
+    var createElement = document$1.createElement;
+    var classes = new Map();
+    var defined = new Map();
+    var prototypes = new Map();
+    var registry = new Map();
+    var query = [];
+    var handle = function handle(element, connected, selector) {
+      var proto = prototypes.get(selector);
+      if (connected && !proto.isPrototypeOf(element)) {
+        var redefine = expando(element);
+        override = setPrototypeOf(element, proto);
+        try {
+          new proto.constructor();
+        } finally {
+          override = null;
+          redefine();
+        }
+      }
+      var method = "".concat(connected ? '' : 'dis', "connectedCallback");
+      if (method in proto) element[method]();
+    };
+    var _qsaObserver = qsaObserver({
+        query: query,
+        handle: handle
+      }),
+      parse = _qsaObserver.parse;
+    var override = null;
+    var whenDefined = function whenDefined(name) {
+      if (!defined.has(name)) {
+        var _,
+          $ = new Promise(function ($) {
+            _ = $;
+          });
+        defined.set(name, {
+          $: $,
+          _: _
+        });
+      }
+      return defined.get(name).$;
+    };
+    var augment = attributesObserver(whenDefined, MutationObserver$1);
+    self.customElements = {
+      define: function define(is, Class) {
+        if (registry.has(is)) throw new Error("the name \"".concat(is, "\" has already been used with this registry"));
+        classes.set(Class, is);
+        prototypes.set(is, Class.prototype);
+        registry.set(is, Class);
+        query.push(is);
+        whenDefined(is).then(function () {
+          parse(document$1.querySelectorAll(is));
+        });
+        defined.get(is)._(Class);
+      },
+      get: function get(is) {
+        return registry.get(is);
+      },
+      whenDefined: whenDefined
+    };
+    defineProperty(HTMLBuiltIn.prototype = HTMLElement.prototype, 'constructor', {
+      value: HTMLBuiltIn
+    });
+    self.HTMLElement = HTMLBuiltIn;
+    document$1.createElement = function (name, options) {
+      var is = options && options.is;
+      var Class = is ? registry.get(is) : registry.get(name);
+      return Class ? new Class() : createElement.call(document$1, name);
+    };
+    // in case ShadowDOM is used through a polyfill, to avoid issues
+    // with builtin extends within shadow roots
+    if (!('isConnected' in Node.prototype)) defineProperty(Node.prototype, 'isConnected', {
+      configurable: true,
+      get: function get() {
+        return !(this.ownerDocument.compareDocumentPosition(this) & this.DOCUMENT_POSITION_DISCONNECTED);
+      }
+    });
+  } else {
+    legacy = !self.customElements.get('extends-br');
+    if (legacy) {
+      try {
+        var BR = function BR() {
+          return self.Reflect.construct(HTMLBRElement, [], BR);
+        };
+        BR.prototype = HTMLLIElement.prototype;
+        var is = 'extends-br';
+        self.customElements.define('extends-br', BR, {
+          'extends': 'br'
+        });
+        legacy = document$1.createElement('br', {
+          is: is
+        }).outerHTML.indexOf(is) < 0;
+        var _self$customElements = self.customElements,
+          get = _self$customElements.get,
+          _whenDefined = _self$customElements.whenDefined;
+        self.customElements.whenDefined = function (is) {
+          var _this = this;
+          return _whenDefined.call(this, is).then(function (Class) {
+            return Class || get.call(_this, is);
+          });
+        };
+      } catch (o_O) {}
+    }
+  }
+  if (legacy) {
+    var _parseShadow = function _parseShadow(element) {
+      var root = shadowRoots.get(element);
+      _parse(root.querySelectorAll(this), element.isConnected);
+    };
+    var customElements = self.customElements;
+    var _createElement = document$1.createElement;
+    var define = customElements.define,
+      _get = customElements.get,
+      upgrade = customElements.upgrade;
+    var _ref = Reflect || {
+        construct: function construct(HTMLElement) {
+          return HTMLElement.call(this);
+        }
+      },
+      construct = _ref.construct;
+    var shadowRoots = new WeakMap();
+    var shadows = new Set$1();
+    var _classes = new Map();
+    var _defined = new Map();
+    var _prototypes = new Map();
+    var _registry = new Map();
+    var shadowed = [];
+    var _query = [];
+    var getCE = function getCE(is) {
+      return _registry.get(is) || _get.call(customElements, is);
+    };
+    var _handle = function _handle(element, connected, selector) {
+      var proto = _prototypes.get(selector);
+      if (connected && !proto.isPrototypeOf(element)) {
+        var redefine = expando(element);
+        _override = setPrototypeOf(element, proto);
+        try {
+          new proto.constructor();
+        } finally {
+          _override = null;
+          redefine();
+        }
+      }
+      var method = "".concat(connected ? '' : 'dis', "connectedCallback");
+      if (method in proto) element[method]();
+    };
+    var _qsaObserver2 = qsaObserver({
+        query: _query,
+        handle: _handle
+      }),
+      _parse = _qsaObserver2.parse;
+    var _qsaObserver3 = qsaObserver({
+        query: shadowed,
+        handle: function handle(element, connected) {
+          if (shadowRoots.has(element)) {
+            if (connected) shadows.add(element);else shadows["delete"](element);
+            if (_query.length) _parseShadow.call(_query, element);
+          }
+        }
+      }),
+      parseShadowed = _qsaObserver3.parse;
+    // qsaObserver also patches attachShadow
+    // be sure this runs *after* that
+    var attachShadow = Element.prototype.attachShadow;
+    if (attachShadow) Element.prototype.attachShadow = function (init) {
+      var root = attachShadow.call(this, init);
+      shadowRoots.set(this, root);
+      return root;
+    };
+    var _whenDefined2 = function _whenDefined2(name) {
+      if (!_defined.has(name)) {
+        var _,
+          $ = new Promise(function ($) {
+            _ = $;
+          });
+        _defined.set(name, {
+          $: $,
+          _: _
+        });
+      }
+      return _defined.get(name).$;
+    };
+    var _augment = attributesObserver(_whenDefined2, MutationObserver$1);
+    var _override = null;
+    getOwnPropertyNames(self).filter(function (k) {
+      return /^HTML.*Element$/.test(k);
+    }).forEach(function (k) {
+      var HTMLElement = self[k];
+      function HTMLBuiltIn() {
+        var constructor = this.constructor;
+        if (!_classes.has(constructor)) throw new TypeError$1('Illegal constructor');
+        var _classes$get = _classes.get(constructor),
+          is = _classes$get.is,
+          tag = _classes$get.tag;
+        if (is) {
+          if (_override) return _augment(_override, is);
+          var element = _createElement.call(document$1, tag);
+          element.setAttribute('is', is);
+          return _augment(setPrototypeOf(element, constructor.prototype), is);
+        } else return construct.call(this, HTMLElement, [], constructor);
+      }
+
+      defineProperty(HTMLBuiltIn.prototype = HTMLElement.prototype, 'constructor', {
+        value: HTMLBuiltIn
+      });
+      defineProperty(self, k, {
+        value: HTMLBuiltIn
+      });
+    });
+    document$1.createElement = function (name, options) {
+      var is = options && options.is;
+      if (is) {
+        var Class = _registry.get(is);
+        if (Class && _classes.get(Class).tag === name) return new Class();
+      }
+      var element = _createElement.call(document$1, name);
+      if (is) element.setAttribute('is', is);
+      return element;
+    };
+    customElements.get = getCE;
+    customElements.whenDefined = _whenDefined2;
+    customElements.upgrade = function (element) {
+      var is = element.getAttribute('is');
+      if (is) {
+        var _constructor = _registry.get(is);
+        if (_constructor) {
+          _augment(setPrototypeOf(element, _constructor.prototype), is);
+          // apparently unnecessary because this is handled by qsa observer
+          // if (element.isConnected && element.connectedCallback)
+          //   element.connectedCallback();
+          return;
+        }
+      }
+      upgrade.call(customElements, element);
+    };
+    customElements.define = function (is, Class, options) {
+      if (getCE(is)) throw new Error("'".concat(is, "' has already been defined as a custom element"));
+      var selector;
+      var tag = options && options["extends"];
+      _classes.set(Class, tag ? {
+        is: is,
+        tag: tag
+      } : {
+        is: '',
+        tag: is
+      });
+      if (tag) {
+        selector = "".concat(tag, "[is=\"").concat(is, "\"]");
+        _prototypes.set(selector, Class.prototype);
+        _registry.set(is, Class);
+        _query.push(selector);
+      } else {
+        define.apply(customElements, arguments);
+        shadowed.push(selector = is);
+      }
+      _whenDefined2(is).then(function () {
+        if (tag) {
+          _parse(document$1.querySelectorAll(selector));
+          shadows.forEach(_parseShadow, [selector]);
+        } else parseShadowed(document$1.querySelectorAll(selector));
+      });
+      _defined.get(is)._(Class);
+    };
+  }
+
+})();
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
@@ -3148,288 +3706,6 @@ function requireStacktraceGps () {
 
 var stacktraceExports = stacktrace.exports;
 
-const { isArray: isArray$3 } = Array;
-const { getPrototypeOf: getPrototypeOf$1, getOwnPropertyDescriptor } = Object;
-
-const empty = [];
-
-const newRange = () => document.createRange();
-
-/**
- * Set the `key` `value` pair to the *Map* or *WeakMap* and returns the `value`
- * @template T
- * @param {Map | WeakMap} map
- * @param {any} key
- * @param {T} value
- * @returns {T}
- */
-const set = (map, key, value) => {
-  map.set(key, value);
-  return value;
-};
-
-const gPD = (ref, prop) => {
-  let desc;
-  do { desc = getOwnPropertyDescriptor(ref, prop); }
-  while(!desc && (ref = getPrototypeOf$1(ref)));
-  return desc;
-};
-
-/** @typedef {import("domconstants/constants").ATTRIBUTE_NODE} ATTRIBUTE_NODE */
-/** @typedef {import("domconstants/constants").TEXT_NODE} TEXT_NODE */
-/** @typedef {import("domconstants/constants").COMMENT_NODE} COMMENT_NODE */
-/** @typedef {ATTRIBUTE_NODE | TEXT_NODE | COMMENT_NODE} Type */
-
-/** @typedef {import("./persistent-fragment.js").PersistentFragment} PersistentFragment */
-/** @typedef {import("./rabbit.js").Hole} Hole */
-
-/** @typedef {unknown} Value */
-/** @typedef {Node | Element | PersistentFragment} Target */
-/** @typedef {null | undefined | string | number | boolean | Node | Element | PersistentFragment} DOMValue */
-
-/**
- * @typedef {Object} Entry
- * @property {Type} type
- * @property {number[]} path
- * @property {function} update
- * @property {string} name
- */
-
-/**
- * @param {PersistentFragment} c content retrieved from the template
- * @param {Entry[]} e entries per each hole in the template
- * @param {number} l the length of content childNodes
- * @returns
- */
-const cel = (c, e, l) => ({ c, e, l });
-
-/**
- * @typedef {Object} HoleDetails
- * @property {null | Node | PersistentFragment} n the current live node, if any and not the `t` one
- */
-
-/** @type {() => HoleDetails} */
-const comment = () => ({ n: null });
-
-/**
- * @typedef {Object} Detail
- * @property {any} v the current value of the interpolation / hole
- * @property {function} u the callback to update the value
- * @property {Node} t the target comment node or element
- * @property {string} n the name of the attribute, if any
- */
-
-/**
- * @param {any} v the current value of the interpolation / hole
- * @param {function} u the callback to update the value
- * @param {Node} t the target comment node or element
- * @param {string} n the name of the attribute, if any
- * @returns {Detail}
- */
-const detail = (v, u, t, n) => ({ v, u, t, n });
-
-/**
- * @param {Type} t the operation type
- * @param {number[]} p the path to retrieve the node
- * @param {function} u the update function
- * @param {string} n the attribute name, if any
- * @returns {Entry}
- */
-const entry = (t, p, u, n = '') => ({ t, p, u, n });
-
-/**
- * @typedef {Object} Cache
- * @property {Cache[]} s the stack of caches per each interpolation / hole
- * @property {null | TemplateStringsArray} t the cached template
- * @property {null | Node | PersistentFragment} n the node returned when parsing the template
- * @property {Detail[]} d the list of updates to perform
- */
-
-/**
- * @param {Cache[]} s the cache stack
- * @returns {Cache}
- */
-const cache$1 = s => ({ s, t: null, n: null, d: empty});
-
-/**
- * @typedef {Object} Parsed
- * @property {Node | PersistentFragment} n the returned node after parsing the template
- * @property {Detail[]} d the list of details to update the node
- */
-
-/**
- * @param {Node | PersistentFragment} n the returned node after parsing the template
- * @param {Detail[]} d the list of details to update the node
- * @returns {Parsed}
- */
-const parsed = (n, d) => ({ n, d });
-
-const ATTRIBUTE_NODE = 2;
-const TEXT_NODE = 3;
-const COMMENT_NODE = 8;
-const DOCUMENT_FRAGMENT_NODE = 11;
-
-/*! (c) Andrea Giammarchi - ISC */
-const {setPrototypeOf} = Object;
-
-/**
- * @param {Function} Class any base class to extend without passing through it via super() call.
- * @returns {Function} an extensible class for the passed one.
- * @example
- *  // creating this very same module utility
- *  import custom from 'custom-function/factory';
- *  const CustomFunction = custom(Function);
- *  class MyFunction extends CustomFunction {}
- *  const mf = new MyFunction(() => {});
- */
-const custom = Class => {
-  function Custom(target) {
-    return setPrototypeOf(target, new.target.prototype);
-  }
-  Custom.prototype = Class.prototype;
-  return Custom;
-};
-
-let range$1;
-/**
- * @param {Node | Element} firstChild
- * @param {Node | Element} lastChild
- * @param {boolean} preserve
- * @returns
- */
-const drop = (firstChild, lastChild, preserve) => {
-  if (!range$1) range$1 = newRange();
-  if (preserve)
-    range$1.setStartAfter(firstChild);
-  else
-    range$1.setStartBefore(firstChild);
-  range$1.setEndAfter(lastChild);
-  range$1.deleteContents();
-  return firstChild;
-};
-
-/**
- * @param {PersistentFragment} fragment
- * @returns {Node | Element}
- */
-const remove = ({firstChild, lastChild}, preserve) => drop(firstChild, lastChild, preserve);
-
-let checkType = false;
-
-/**
- * @param {Node} node
- * @param {1 | 0 | -0 | -1} operation
- * @returns {Node}
- */
-const diffFragment = (node, operation) => (
-  checkType && node.nodeType === DOCUMENT_FRAGMENT_NODE ?
-    ((1 / operation) < 0 ?
-      (operation ? remove(node, true) : node.lastChild) :
-      (operation ? node.valueOf() : node.firstChild)) :
-    node
-);
-
-/** @extends {DocumentFragment} */
-class PersistentFragment extends custom(DocumentFragment) {
-  #nodes;
-  #length;
-  constructor(fragment) {
-    const _nodes = [...fragment.childNodes];
-    super(fragment);
-    this.#nodes = _nodes;
-    this.#length = _nodes.length;
-    checkType = true;
-  }
-  get firstChild() { return this.#nodes[0]; }
-  get lastChild() { return this.#nodes.at(-1); }
-  get parentNode() { return this.#nodes[0].parentNode; }
-  remove() {
-    remove(this, false);
-  }
-  replaceWith(node) {
-    remove(this, true).replaceWith(node);
-  }
-  valueOf() {
-    if (this.childNodes.length !== this.#length)
-      this.replaceChildren(...this.#nodes);
-    return this;
-  }
-}
-
-/**
- * @param {DocumentFragment} content
- * @param {number[]} path
- * @returns {Element}
- */
-const find = (content, path) => path.reduceRight(childNodesIndex, content);
-const childNodesIndex = (node, i) => node.childNodes[i];
-
-/** @param {(template: TemplateStringsArray, values: any[]) => import("./parser.js").Resolved} parse */
-const create = parse => (
-  /** @param {(template: TemplateStringsArray, values: any[]) => import("./literals.js").Parsed} parse */
-  (template, values) => {
-    const { c: content, e: entries, l: length } = parse(template, values);
-    const root = content.cloneNode(true);
-    // reverse loop to avoid missing paths while populating
-    // TODO: is it even worth to pre-populate nodes? see rabbit.js too
-    let current, prev, i = entries.length, details = i ? entries.slice(0) : empty;
-    while (i--) {
-      const { t: type, p: path, u: update, n: name } = entries[i];
-      const node = path === prev ? current : (current = find(root, (prev = path)));
-      const callback = type === COMMENT_NODE ? update() : update;
-      details[i] = detail(callback(node, values[i], name, empty), callback, node, name);
-    }
-    return parsed(
-      length === 1 ? root.firstChild : new PersistentFragment(root),
-      details
-    );
-  }
-);
-
-const TEXT_ELEMENTS = /^(?:plaintext|script|style|textarea|title|xmp)$/i;
-const VOID_ELEMENTS = /^(?:area|base|br|col|embed|hr|img|input|keygen|link|menuitem|meta|param|source|track|wbr)$/i;
-
-/*! (c) Andrea Giammarchi - ISC */
-
-const elements = /<([a-zA-Z0-9]+[a-zA-Z0-9:._-]*)([^>]*?)(\/?)>/g;
-const attributes = /([^\s\\>"'=]+)\s*=\s*(['"]?)\x01/g;
-const holes = /[\x01\x02]/g;
-
-// \x01 Node.ELEMENT_NODE
-// \x02 Node.ATTRIBUTE_NODE
-
-/**
- * Given a template, find holes as both nodes and attributes and
- * return a string with holes as either comment nodes or named attributes.
- * @param {string[]} template a template literal tag array
- * @param {string} prefix prefix to use per each comment/attribute
- * @param {boolean} xml enforces self-closing tags
- * @returns {string} X/HTML with prefixed comments or attributes
- */
-const parser$1 = (template, prefix, xml) => {
-  let i = 0;
-  return template
-    .join('\x01')
-    .trim()
-    .replace(
-      elements,
-      (_, name, attrs, selfClosing) => `<${
-          name
-        }${
-          attrs.replace(attributes, '\x02=$2$1').trimEnd()
-        }${
-          selfClosing ? (
-            (xml || VOID_ELEMENTS.test(name)) ? ' /' : `></${name}`
-          ) : ''
-        }>`
-    )
-    .replace(
-      holes,
-      hole => hole === '\x01' ? `<!--${prefix + i++}-->` : (prefix + i++)
-    )
-  ;
-};
-
 /**
  * ISC License
  *
@@ -3588,9 +3864,167 @@ const udomdiff = (parentNode, a, b, get, before) => {
   return b;
 };
 
+const { isArray: isArray$3 } = Array;
+const { getPrototypeOf: getPrototypeOf$1, getOwnPropertyDescriptor } = Object;
+
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+
+const empty = [];
+
+const newRange = () => document.createRange();
+
+/**
+ * Set the `key` `value` pair to the *Map* or *WeakMap* and returns the `value`
+ * @template T
+ * @param {Map | WeakMap} map
+ * @param {any} key
+ * @param {T} value
+ * @returns {T}
+ */
+const set = (map, key, value) => {
+  map.set(key, value);
+  return value;
+};
+
+/**
+ * Return a descriptor, if any, for the referenced *Element*
+ * @param {Element} ref
+ * @param {string} prop
+ * @returns 
+ */
+const gPD = (ref, prop) => {
+  let desc;
+  do { desc = getOwnPropertyDescriptor(ref, prop); }
+  while(!desc && (ref = getPrototypeOf$1(ref)));
+  return desc;
+};
+
+const ELEMENT_NODE = 1;
+const COMMENT_NODE = 8;
+const DOCUMENT_FRAGMENT_NODE = 11;
+
+/*! (c) Andrea Giammarchi - ISC */
+const {setPrototypeOf} = Object;
+
+/**
+ * @param {Function} Class any base class to extend without passing through it via super() call.
+ * @returns {Function} an extensible class for the passed one.
+ * @example
+ *  // creating this very same module utility
+ *  import custom from 'custom-function/factory';
+ *  const CustomFunction = custom(Function);
+ *  class MyFunction extends CustomFunction {}
+ *  const mf = new MyFunction(() => {});
+ */
+const custom = Class => {
+  function Custom(target) {
+    return setPrototypeOf(target, new.target.prototype);
+  }
+  Custom.prototype = Class.prototype;
+  return Custom;
+};
+
+let range$1;
+/**
+ * @param {Node | Element} firstChild
+ * @param {Node | Element} lastChild
+ * @param {boolean} preserve
+ * @returns
+ */
+const drop = (firstChild, lastChild, preserve) => {
+  if (!range$1) range$1 = newRange();
+  /* c8 ignore start */
+  if (preserve)
+    range$1.setStartAfter(firstChild);
+  else
+    range$1.setStartBefore(firstChild);
+  /* c8 ignore stop */
+  range$1.setEndAfter(lastChild);
+  range$1.deleteContents();
+  return firstChild;
+};
+
+/**
+ * @param {PersistentFragment} fragment
+ * @returns {Node | Element}
+ */
+const remove = ({firstChild, lastChild}, preserve) => drop(firstChild, lastChild, preserve);
+
+let checkType = false;
+
+/**
+ * @param {Node} node
+ * @param {1 | 0 | -0 | -1} operation
+ * @returns {Node}
+ */
+const diffFragment = (node, operation) => (
+  checkType && node.nodeType === DOCUMENT_FRAGMENT_NODE ?
+    ((1 / operation) < 0 ?
+      (operation ? remove(node, true) : node.lastChild) :
+      (operation ? node.valueOf() : node.firstChild)) :
+    node
+);
+
+const comment = value => document.createComment(value);
+
+/** @extends {DocumentFragment} */
+class PersistentFragment extends custom(DocumentFragment) {
+  #firstChild = comment('<>');
+  #lastChild = comment('</>');
+  #nodes = empty;
+  constructor(fragment) {
+    super(fragment);
+    this.replaceChildren(...[
+      this.#firstChild,
+      ...fragment.childNodes,
+      this.#lastChild,
+    ]);
+    checkType = true;
+  }
+  get firstChild() { return this.#firstChild; }
+  get lastChild() { return this.#lastChild; }
+  get parentNode() { return this.#firstChild.parentNode; }
+  remove() {
+    remove(this, false);
+  }
+  replaceWith(node) {
+    remove(this, true).replaceWith(node);
+  }
+  valueOf() {
+    let { firstChild, lastChild, parentNode } = this;
+    if (parentNode === this) {
+      if (this.#nodes === empty)
+        this.#nodes = [...this.childNodes];
+    }
+    else {
+      /* c8 ignore start */
+      // there are cases where a fragment might be just appended
+      // out of the box without valueOf() invoke (first render).
+      // When these are moved around and lose their parent and,
+      // such parent is not the fragment itself, it's possible there
+      // where changes or mutations in there to take care about.
+      // This is a render-only specific issue but it's tested and
+      // it's worth fixing to me to have more consistent fragments.
+      if (parentNode) {
+        this.#nodes = [firstChild];
+        while (firstChild !== lastChild)
+          this.#nodes.push((firstChild = firstChild.nextSibling));
+      }
+      /* c8 ignore stop */
+      this.replaceChildren(...this.#nodes);
+    }
+    return this;
+  }
+}
+
 const setAttribute = (element, name, value) =>
   element.setAttribute(name, value);
 
+/**
+ * @param {Element} element
+ * @param {string} name
+ * @returns {void}
+ */
 const removeAttribute = (element, name) =>
   element.removeAttribute(name);
 
@@ -3609,8 +4043,6 @@ const aria = (element, value) => {
   }
   return value;
 };
-
-const arrayComment = () => array;
 
 let listeners;
 
@@ -3635,32 +4067,31 @@ const at = (element, value, name) => {
 
 /**
  * @template T
- * @this {import("./literals.js").HoleDetails}
- * @param {Node} node
+ * @param {import("./literals.js").Detail} detail
  * @param {T} value
  * @returns {T}
  */
-function hole(node, value) {
-  const n = this.n || (this.n = node);
+const hole = (detail, value) => {
+  const { t: node, n: hole } = detail;
+  let nullish = false;
   switch (typeof value) {
-    case 'string':
-    case 'number':
-    case 'boolean': {
-      if (n !== node) n.replaceWith((this.n = node));
-      this.n.data = value;
-      break;
-    }
     case 'object':
-    case 'undefined': {
-      if (value == null) (this.n = node).data = '';
-      else this.n = value.valueOf();
-      n.replaceWith(this.n);
+      if (value !== null) {
+        (hole || node).replaceWith((detail.n = value.valueOf()));
+        break;
+      }
+    case 'undefined':
+      nullish = true;
+    default:
+      node.data = nullish ? '' : value;
+      if (hole) {
+        detail.n = null;
+        hole.replaceWith(node);
+      }
       break;
-    }
   }
   return value;
-}
-const boundComment = () => hole.bind(comment());
+};
 
 /**
  * @template T
@@ -3775,11 +4206,29 @@ const toggle = (element, value, name) => (
  * @param {Node[]} prev
  * @returns {Node[]}
  */
-const array = (node, value, _, prev) => (
-  value.length ?
-    udomdiff(node.parentNode, prev, value, diffFragment, node) :
-    (prev.length && drop(prev[0], prev.at(-1), false), empty)
-);
+const array = (node, value, prev) => {
+  // normal diff
+  const { length } = value;
+  node.data = `[${length}]`;
+  if (length)
+    return udomdiff(node.parentNode, prev, value, diffFragment, node);
+  /* c8 ignore start */
+  switch (prev.length) {
+    case 1:
+      prev[0].remove();
+    case 0:
+      break;
+    default:
+      drop(
+        diffFragment(prev[0], 0),
+        diffFragment(prev.at(-1), -0),
+        false
+      );
+      break;
+  }
+  /* c8 ignore stop */
+  return empty;
+};
 
 const attr = new Map([
   ['aria', aria],
@@ -3827,6 +4276,135 @@ const text = (element, value) => (
   value
 );
 
+/** @typedef {import("./persistent-fragment.js").PersistentFragment} PersistentFragment */
+/** @typedef {import("./rabbit.js").Hole} Hole */
+
+/** @typedef {unknown} Value */
+/** @typedef {Node | Element | PersistentFragment} Target */
+/** @typedef {null | undefined | string | number | boolean | Node | Element | PersistentFragment} DOMValue */
+/** @typedef {Hole | Node} ArrayValue */
+
+const abc = (a, b, c) => ({ a, b, c });
+
+const bc = (b, c) => ({ b, c });
+
+/**
+ * @typedef {Object} Detail
+ * @property {any} v the current value of the interpolation / hole
+ * @property {function} u the callback to update the value
+ * @property {Node} t the target comment node or element
+ * @property {string | null | Node} n the attribute name, if any, or `null`
+ * @property {Cache | ArrayValue[] | null} c the cache value for this detail
+ */
+
+/**
+ * @returns {Detail}
+ */
+const detail = (u, t, n, c) => ({ v: empty, u, t, n, c });
+
+/**
+ * @typedef {Object} Entry
+ * @property {number[]} a the path to retrieve the node
+ * @property {function} b the update function
+ * @property {string | null} c the attribute name, if any, or `null`
+ */
+
+/**
+ * @typedef {Object} Cache
+ * @property {null | TemplateStringsArray} a the cached template
+ * @property {null | Node | PersistentFragment} b the node returned when parsing the template
+ * @property {Detail[]} c the list of updates to perform
+ */
+
+/**
+ * @returns {Cache}
+ */
+const cache$1 = () => abc(null, null, empty);
+
+/**
+ * @param {DocumentFragment} content
+ * @param {number[]} path
+ * @returns {Element}
+ */
+const find = (content, path) => path.reduceRight(childNodesIndex, content);
+const childNodesIndex = (node, i) => node.childNodes[i];
+
+/** @param {(template: TemplateStringsArray, values: any[]) => import("./parser.js").Resolved} parse */
+const create = parse => (
+  /**
+   * @param {TemplateStringsArray} template
+   * @param {any[]} values
+   * @returns {import("./literals.js").Cache}
+   */
+  (template, values) => {
+    const { a: fragment, b: entries, c: direct } = parse(template, values);
+    const root = document.importNode(fragment, true);
+    /** @type {import("./literals.js").Detail[]} */
+    let details = empty;
+    if (entries !== empty) {
+      details = [];
+      for (let current, prev, i = 0; i < entries.length; i++) {
+        const { a: path, b: update, c: name } = entries[i];
+        const node = path === prev ? current : (current = find(root, (prev = path)));
+        details[i] = detail(
+          update,
+          node,
+          name,
+          update === array ? [] : (update === hole ? cache$1() : null)
+        );
+      }
+    }
+    return bc(
+      direct ? root.firstChild : new PersistentFragment(root),
+      details,
+    );
+  }
+);
+
+const TEXT_ELEMENTS = /^(?:plaintext|script|style|textarea|title|xmp)$/i;
+const VOID_ELEMENTS = /^(?:area|base|br|col|embed|hr|img|input|keygen|link|menuitem|meta|param|source|track|wbr)$/i;
+
+/*! (c) Andrea Giammarchi - ISC */
+
+const elements = /<([a-zA-Z0-9]+[a-zA-Z0-9:._-]*)([^>]*?)(\/?)>/g;
+const attributes = /([^\s\\>"'=]+)\s*=\s*(['"]?)\x01/g;
+const holes = /[\x01\x02]/g;
+
+// \x01 Node.ELEMENT_NODE
+// \x02 Node.ATTRIBUTE_NODE
+
+/**
+ * Given a template, find holes as both nodes and attributes and
+ * return a string with holes as either comment nodes or named attributes.
+ * @param {string[]} template a template literal tag array
+ * @param {string} prefix prefix to use per each comment/attribute
+ * @param {boolean} xml enforces self-closing tags
+ * @returns {string} X/HTML with prefixed comments or attributes
+ */
+const parser$1 = (template, prefix, xml) => {
+  let i = 0;
+  return template
+    .join('\x01')
+    .trim()
+    .replace(
+      elements,
+      (_, name, attrs, selfClosing) => `<${
+          name
+        }${
+          attrs.replace(attributes, '\x02=$2$1').trimEnd()
+        }${
+          selfClosing ? (
+            (xml || VOID_ELEMENTS.test(name)) ? ' /' : `></${name}`
+          ) : ''
+        }>`
+    )
+    .replace(
+      holes,
+      hole => hole === '\x01' ? `<!--${prefix + i++}-->` : (prefix + i++)
+    )
+  ;
+};
+
 let template = document.createElement('template'), svg, range;
 
 /**
@@ -3837,7 +4415,7 @@ let template = document.createElement('template'), svg, range;
 const createContent = (text, xml) => {
   if (xml) {
     if (!svg) {
-      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg = document.createElementNS(SVG_NAMESPACE, 'svg');
       range = newRange();
       range.selectNodeContents(svg);
     }
@@ -3853,10 +4431,9 @@ const createContent = (text, xml) => {
 
 /**
  * @typedef {Object} Resolved
- * @property {DocumentFragment} content
- * @property {Entry[]} entries
- * @property {function[]} updates
- * @property {number} length
+ * @param {DocumentFragment} f content retrieved from the template
+ * @param {Entry[]} e entries per each hole in the template
+ * @param {boolean} d direct node to handle
  */
 
 /**
@@ -3873,6 +4450,8 @@ const createPath = node => {
   return path;
 };
 
+const textNode = () => document.createTextNode('');
+
 /**
  * @param {TemplateStringsArray} template
  * @param {boolean} xml
@@ -3881,46 +4460,73 @@ const createPath = node => {
 const resolve = (template, values, xml) => {
   const content = createContent(parser$1(template, prefix, xml), xml);
   const { length } = template;
-  let asArray = false, entries = empty;
+  let entries = empty;
   if (length > 1) {
-    const tw = document.createTreeWalker(content, 1 | 128);
     const replace = [];
+    const tw = document.createTreeWalker(content, 1 | 128);
     let i = 0, search = `${prefix}${i++}`;
     entries = [];
     while (i < length) {
       const node = tw.nextNode();
+      // these are holes or arrays
       if (node.nodeType === COMMENT_NODE) {
         if (node.data === search) {
-          let update = isArray$3(values[i - 1]) ? arrayComment : boundComment;
-          if (update === boundComment) replace.push(node);
-          else asArray = true;
-          entries.push(entry(COMMENT_NODE, createPath(node), update));
+          // ⚠️ once array, always array!
+          const update = isArray$3(values[i - 1]) ? array : hole;
+          if (update === hole) replace.push(node);
+          entries.push(abc(createPath(node), update, null));
           search = `${prefix}${i++}`;
         }
       }
       else {
         let path;
+        // these are attributes
         while (node.hasAttribute(search)) {
           if (!path) path = createPath(node);
           const name = node.getAttribute(search);
-          entries.push(entry(ATTRIBUTE_NODE, path, attribute(node, name, xml), name));
+          entries.push(abc(path, attribute(node, name, xml), name));
           removeAttribute(node, search);
           search = `${prefix}${i++}`;
         }
+        // these are special text-only nodes
         if (
+          !xml &&
           TEXT_ELEMENTS.test(node.localName) &&
           node.textContent.trim() === `<!--${search}-->`
         ) {
-          entries.push(entry(TEXT_NODE, path || createPath(node), text));
+          entries.push(abc(path || createPath(node), text, null));
           search = `${prefix}${i++}`;
         }
       }
     }
+    // can't replace holes on the fly or the tree walker fails
     for (i = 0; i < replace.length; i++)
-      replace[i].replaceWith(document.createTextNode(''));
+      replace[i].replaceWith(textNode());
   }
-  const l = content.childNodes.length;
-  return set(cache, template, cel(content, entries, l === 1 && asArray ? 0 : l));
+
+  // need to decide if there should be a persistent fragment
+  const { childNodes } = content;
+  let { length: len } = childNodes;
+
+  // html`` or svg`` to signal an empty content
+  // these nodes can be passed directly as never mutated
+  if (len < 1) {
+    len = 1;
+    content.appendChild(textNode());
+  }
+  // html`${'b'}` or svg`${[]}` cases
+  else if (
+    len === 1 &&
+    // ignore html`static` or svg`static` because
+    // these nodes can be passed directly as never mutated
+    length !== 1 &&
+    childNodes[0].nodeType !== ELEMENT_NODE
+  ) {
+    // use a persistent fragment for these cases too
+    len = 0;
+  }
+
+  return set(cache, template, abc(content, entries, len === 1));
 };
 
 /** @type {WeakMap<TemplateStringsArray, Resolved>} */
@@ -3937,32 +4543,43 @@ const parseHTML = create(parser(false));
 const parseSVG = create(parser(true));
 
 /**
- * @param {import("./literals.js").Cache} cache
+ * @param {import("./literals.js").Cache} info
  * @param {Hole} hole
  * @returns {Node}
  */
-const unroll = (cache, { s: svg, t: template, v: values }) => {
-  if (values.length && cache.s === empty) cache.s = [];
-  const length = unrollValues(cache, values);
-  if (cache.t !== template) {
-    const { n: node, d: details } = (svg ? parseSVG : parseHTML)(template, values);
-    cache.t = template;
-    cache.n = node;
-    cache.d = details;
+const unroll = (info, { s, t, v }) => {
+  if (info.a !== t) {
+    const { b, c } = (s ? parseSVG : parseHTML)(t, v);
+    info.a = t;
+    info.b = b;
+    info.c = c;
   }
-  else {
-    const { d: details } = cache;
-    for (let i = 0; i < length; i++) {
-      const value = values[i];
-      const detail = details[i];
-      const { v: previous } = detail;
-      if (value !== previous) {
-        const { u: update, t: target, n: name } = detail;
-        detail.v = update(target, value, name, previous);
-      }
+  for (let { c } = info, i = 0; i < c.length; i++) {
+    const value = v[i];
+    const detail = c[i];
+    switch (detail.u) {
+      case array:
+        detail.v = array(
+          detail.t,
+          unrollValues(detail.c, value),
+          detail.v
+        );
+        break;
+      case hole:
+        const current = value instanceof Hole ?
+          unroll(detail.c || (detail.c = cache$1()), value) :
+          (detail.c = null, value)
+        ;
+        if (current !== detail.v)
+          detail.v = hole(detail, current);
+        break;
+      default:
+        if (value !== detail.v)
+          detail.v = detail.u(detail.t, value, detail.n, detail.v);
+        break;
     }
   }
-  return cache.n;
+  return info.b;
 };
 
 /**
@@ -3970,19 +4587,16 @@ const unroll = (cache, { s: svg, t: template, v: values }) => {
  * @param {any[]} values
  * @returns {number}
  */
-const unrollValues = ({ s: stack }, values) => {
-  const { length } = values;
-  for (let i = 0; i < length; i++) {
-    const hole = values[i];
-    if (hole instanceof Hole)
-      values[i] = unroll(stack[i] || (stack[i] = cache$1(empty)), hole);
-    else if (isArray$3(hole))
-      unrollValues(stack[i] || (stack[i] = cache$1([])), hole);
-    else
-      stack[i] = null;
-  }
+const unrollValues = (stack, values) => {
+  let i = 0, { length } = values;
   if (length < stack.length) stack.splice(length);
-  return length;
+  for (; i < length; i++) {
+    const value = values[i];
+    if (value instanceof Hole)
+      values[i] = unroll(stack[i] || (stack[i] = cache$1()), value);
+    else stack[i] = null;
+  }
+  return values;
 };
 
 /**
@@ -3997,6 +4611,9 @@ class Hole {
     this.s = svg;
     this.t = template;
     this.v = values;
+  }
+  toDOM(info = cache$1()) {
+    return unroll(info, this);
   }
 }
 
@@ -4013,14 +4630,14 @@ const known = new WeakMap;
  * @returns
  */
 const render = (where, what) => {
-  const info = known.get(where) || set(known, where, cache$1(empty));
-  if (info.n !== unroll(info, typeof what === 'function' ? what() : what))
-    where.replaceChildren(info.n);
+  const info = known.get(where) || set(known, where, cache$1());
+  const { b } = info;
+  if (b !== (typeof what === 'function' ? what() : what).toDOM(info))
+    where.replaceChildren(info.b.valueOf());
   return where;
 };
 
 /*! (c) Andrea Giammarchi - MIT */
-
 
 /** @typedef {import("./literals.js").Value} Value */
 
@@ -4028,10 +4645,6 @@ const tag = svg => (template, ...values) => new Hole(svg, template, values);
 
 /** @type {(template: TemplateStringsArray, ...values:Value[]) => Hole} A tag to render HTML content. */
 const html = tag(false);
-
-const errors = '';
-
-const props = '';
 
 var main = {};
 
@@ -4233,8 +4846,8 @@ function setHashKey(obj, h) {
      }
    ```
  */
-function noop$2() {}
-noop$2.$inject = [];
+function noop$1() {}
+noop$1.$inject = [];
 
 /**
  * @ngdoc function
@@ -5799,7 +6412,7 @@ ASTCompiler.prototype = {
 			args,
 			expression,
 			computed;
-		recursionFn = recursionFn || noop$2;
+		recursionFn = recursionFn || noop$1;
 		if (!skipWatchIdCheck && isDefined(ast.watchId)) {
 			intoId = intoId || this.nextId();
 			this.if_(
@@ -6392,7 +7005,7 @@ ASTInterpreter.prototype = {
 		});
 		var fn =
 			ast.body.length === 0
-				? noop$2
+				? noop$1
 				: ast.body.length === 1
 				? expressions[0]
 				: function (scope, locals) {
@@ -6890,13 +7503,11 @@ main.filters = filters;
  * @property {State} state
  * @property {import("./data").Data} data
  * @property {import("./components/actions").Actions} actions
- * @property {TreeBase} tree
  * @property {import('./components/layout').Layout} layout
  * @property {import('./components/access/pattern').PatternList} patterns
  * @property {import('./components/access/cues').CueList} cues
  * @property {import('./components/access/method').MethodChooser} method
  * @property {import('./components/monitor').Monitor} monitor
- * @property {import('./components/toolbar').ToolBar} toolbar
  * @property {import('./components/designer').Designer} designer
  * @property {import('./components/errors').Messages} error
  * @property {function():Promise<void>} restart
@@ -6905,4312 +7516,6 @@ main.filters = filters;
 /** @type {GlobalsObject} */
 // @ts-ignore Object missing properties
 const Globals = {}; // values are supplied in start.js
-
-/** @param {function(string, string): string} f */
-function updateString(f) {
-  /** @param {string} value */
-  return function (value) {
-    /** @param {string | undefined} old */
-    return function (old) {
-      return f(old || "", value);
-    };
-  };
-}
-/** @param {function(number, number): number} f */
-function updateNumber(f) {
-  /** @param {number} value */
-  return function (value) {
-    /** @param {number | undefined} old */
-    return function (old) {
-      return f(old || 0, value);
-    };
-  };
-}
-const Functions = {
-  increment: updateNumber((old, value) => old + value),
-  add_word: updateString((old, value) => old + value + " "),
-  add_letter: updateString((old, value) => old + value),
-  complete: updateString((old, value) => {
-    if (old.length == 0 || old.endsWith(" ")) {
-      return old + value;
-    } else {
-      return old.replace(/\w+$/, value);
-    }
-  }),
-  replace_last: updateString((old, value) => old.replace(/\w*\s*$/, value)),
-  replace_last_letter: updateString((old, value) => old.slice(0, -1) + value),
-  random: (/** @type {string} */ arg) => {
-    let args = arg.split(",");
-    return args[Math.floor(Math.random() * args.length)];
-  },
-  max: Math.max,
-  min: Math.min,
-  if: (/** @type {boolean} */ c, /** @type {any} */ t, /** @type {any} */ f) =>
-    c ? t : f,
-  abs: (/** @type {number} */ v) => Math.abs(v),
-};
-
-/**
- * Translate an expression from Excel-like to Javascript
- *
- * @param {string} expression
- * @returns {string}
- */
-function translate(expression) {
-  /* translate the expression from the excel like form to javascript */
-  // remove any initial = sign
-  let exp = expression.replace(/^=/, "");
-  // translate single = to ==
-  exp = exp.replaceAll(/(?<![=<>!])=/g, "==");
-  // translate words
-  exp = exp.replaceAll(/(?<!['"])[#](\w+)/g, "_$1");
-  return exp;
-}
-
-/**
- * Cleanup access to state and data
- *
- * @param {State} state
- * @param {Row} data
- * @returns {function(string): any}
- */
-function access(state, data) {
-  return function (name) {
-    if (!name) return "";
-    if (state && name.startsWith("$")) {
-      return state.get(name);
-    }
-    if (data && name.startsWith("#")) {
-      const r = data[name.slice(1)];
-      if (r == null) return "";
-      return r;
-    }
-    return "";
-  };
-}
-
-/** Track access to states and fields, true if the value was undefined
- * @type {Map<string, boolean>}
- */
-const accessed = new Map();
-
-/* intercept access to variables so I can track access to undefined state and field values
- * and map them to empty strings.
- */
-const variableHandler = {
-  /** @param {Object} target
-   * @param {string} prop
-   */
-  get(target, prop) {
-    let result = undefined;
-    if (prop.startsWith("$")) {
-      result = target.states[prop];
-      accessed.set(prop, prop in target.states);
-    } else if (prop.startsWith("_")) {
-      let ps = prop.slice(1);
-      result = target.data[ps];
-      accessed.set(prop, Globals.data.allFields.has("#" + ps));
-    } else if (prop in Functions) {
-      result = Functions[prop];
-    } else {
-      console.error("undefined", prop);
-    }
-    if (result === undefined || result === null) {
-      result = "";
-    }
-    return result;
-  },
-
-  /** The expressions library is testing for own properties for safety.
-   * I need to defeat that for the renaming I want to do.
-   * @param {Object} target;
-   * @param {string} prop;
-   */
-  getOwnPropertyDescriptor(target, prop) {
-    if (prop.startsWith("$")) {
-      return Object.getOwnPropertyDescriptor(target.states, prop);
-    } else if (prop.startsWith("_")) {
-      return Object.getOwnPropertyDescriptor(target.data, prop.slice(1));
-    } else {
-      return Object.getOwnPropertyDescriptor(Functions, prop);
-    }
-  },
-};
-
-/**
- * Compile an expression returning the function or an error
- * @param {string} expression
- * @returns {[ ((context?:Object)=>any ) | undefined, Error | undefined ]}
- *
- * */
-function compileExpression(expression) {
-  const te = translate(expression);
-  try {
-    const exp = main.compile(te);
-    /** @param {EvalContext} context */
-    return [
-      (context = {}) => {
-        let states =
-          "states" in context
-            ? { ...Globals.state.values, ...context.states }
-            : Globals.state.values;
-        let data = context.data ?? [];
-        const r = exp(
-          new Proxy(
-            {
-              Functions,
-              states,
-              data,
-            },
-            variableHandler,
-          ),
-        );
-        return r;
-      },
-      undefined,
-    ];
-  } catch (e) {
-    return [undefined, e];
-  }
-}
-
-/*
- * Bang color names from http://www.procato.com/rgb+index/?csv
- */
-const ColorNames = {
-  white: "#ffffff",
-  red: "#ff0000",
-  green: "#00ff00",
-  blue: "#0000ff",
-  yellow: "#ffff00",
-  magenta: "#ff00ff",
-  cyan: "#00ffff",
-  black: "#000000",
-  "pinkish white": "#fff6f6",
-  "very pale pink": "#ffe2e2",
-  "pale pink": "#ffc2c2",
-  "light pink": "#ff9e9e",
-  "light brilliant red": "#ff6565",
-  "luminous vivid red": "#ff0000",
-  "pinkish gray": "#e7dada",
-  "pale grayish pink": "#e7b8b8",
-  pink: "#e78b8b",
-  "brilliant red": "#e75151",
-  "vivid red": "#e70000",
-  "reddish gray": "#a89c9c",
-  "grayish red": "#a87d7d",
-  "moderate red": "#a84a4a",
-  "strong red": "#a80000",
-  "reddish brownish gray": "#595353",
-  "dark grayish reddish brown": "#594242",
-  "reddish brown": "#592727",
-  "deep reddish brown": "#590000",
-  "reddish brownish black": "#1d1a1a",
-  "very reddish brown": "#1d1111",
-  "very deep reddish brown": "#1d0000",
-  "pale scarlet": "#ffc9c2",
-  "very light scarlet": "#ffaa9e",
-  "light brilliant scarlet": "#ff7865",
-  "luminous vivid scarlet": "#ff2000",
-  "light scarlet": "#e7968b",
-  "brilliant scarlet": "#e76451",
-  "vivid scarlet": "#e71d00",
-  "moderate scarlet": "#a8554a",
-  "strong scarlet": "#a81500",
-  "dark scarlet": "#592d27",
-  "deep scarlet": "#590b00",
-  "very pale vermilion": "#ffe9e2",
-  "pale vermilion": "#ffd1c2",
-  "very light vermilion": "#ffb69e",
-  "light brilliant vermilion": "#ff8b65",
-  "luminous vivid vermilion": "#ff4000",
-  "pale, light grayish vermilion": "#e7c4b8",
-  "light vermilion": "#e7a28b",
-  "brilliant vermilion": "#e77751",
-  "vivid vermilion": "#e73a00",
-  "grayish vermilion": "#a8887d",
-  "moderate vermilion": "#a8614a",
-  "strong vermilion": "#a82a00",
-  "dark grayish vermilion": "#594842",
-  "dark vermilion": "#593427",
-  "deep vermilion": "#591600",
-  "pale tangelo": "#ffd9c2",
-  "very light tangelo": "#ffc29e",
-  "light brilliant tangelo": "#ff9f65",
-  "luminous vivid tangelo": "#ff6000",
-  "light tangelo": "#e7ae8b",
-  "brilliant tangelo": "#e78951",
-  "vivid tangelo": "#e75700",
-  "moderate tangelo": "#a86d4a",
-  "strong tangelo": "#a83f00",
-  "dark tangelo": "#593a27",
-  "deep tangelo": "#592100",
-  "very pale orange": "#fff0e2",
-  "pale orange": "#ffe0c2",
-  "very light orange": "#ffcf9e",
-  "light brilliant orange": "#ffb265",
-  "luminous vivid orange": "#ff8000",
-  "pale, light grayish brown": "#e7d0b8",
-  "light orange": "#e7b98b",
-  "brilliant orange": "#e79c51",
-  "vivid orange": "#e77400",
-  "grayish brown": "#a8937d",
-  "moderate orange": "#a8794a",
-  "strong orange": "#a85400",
-  "dark grayish brown": "#594e42",
-  brown: "#594027",
-  "deep brown": "#592d00",
-  "very brown": "#1d1711",
-  "very deep brown": "#1d0e00",
-  "pale gamboge": "#ffe8c2",
-  "very light gamboge": "#ffdb9e",
-  "light brilliant gamboge": "#ffc565",
-  "luminous vivid gamboge": "#ff9f00",
-  "light gamboge": "#e7c58b",
-  "brilliant gamboge": "#e7af51",
-  "vivid gamboge": "#e79100",
-  "moderate gamboge": "#a8854a",
-  "strong gamboge": "#a86900",
-  "dark gamboge": "#594627",
-  "deep gamboge": "#593800",
-  "very pale amber": "#fff8e2",
-  "pale amber": "#fff0c2",
-  "very light amber": "#ffe79e",
-  "light brilliant amber": "#ffd865",
-  "luminous vivid amber": "#ffbf00",
-  "pale, light grayish amber": "#e7dcb8",
-  "light amber": "#e7d08b",
-  "brilliant amber": "#e7c251",
-  "vivid amber": "#e7ae00",
-  "grayish amber": "#a89e7d",
-  "moderate amber": "#a8914a",
-  "strong amber": "#a87e00",
-  "dark grayish amber": "#595442",
-  "dark amber": "#594d27",
-  "deep amber": "#594300",
-  "pale gold": "#fff7c2",
-  "very light gold": "#fff39e",
-  "light brilliant gold": "#ffec65",
-  "luminous vivid gold": "#ffdf00",
-  "light gold": "#e7dc8b",
-  "brilliant gold": "#e7d551",
-  "vivid gold": "#e7ca00",
-  "moderate gold": "#a89c4a",
-  "strong gold": "#a89300",
-  "dark gold": "#595327",
-  "deep gold": "#594e00",
-  "yellowish white": "#fffff6",
-  "very pale yellow": "#ffffe2",
-  "pale yellow": "#ffffc2",
-  "very light yellow": "#ffff9e",
-  "light brilliant yellow": "#ffff65",
-  "luminous vivid yellow": "#ffff00",
-  "light yellowish gray": "#e7e7da",
-  "pale, light grayish olive": "#e7e7b8",
-  "light yellow": "#e7e78b",
-  "brilliant yellow": "#e7e751",
-  "vivid yellow": "#e7e700",
-  "yellowish gray": "#a8a89c",
-  "grayish olive": "#a8a87d",
-  "moderate olive": "#a8a84a",
-  "strong olive": "#a8a800",
-  "dark olivish gray": "#595953",
-  "dark grayish olive": "#595942",
-  "dark olive": "#595927",
-  "deep olive": "#595900",
-  "yellowish black": "#1d1d1a",
-  "very dark olive": "#1d1d11",
-  "very deep olive": "#1d1d00",
-  "pale apple green": "#f7ffc2",
-  "very light apple green": "#f3ff9e",
-  "light brilliant apple green": "#ecff65",
-  "luminous vivid apple green": "#dfff00",
-  "light apple green": "#dce78b",
-  "brilliant apple green": "#d5e751",
-  "vivid apple green": "#cae700",
-  "moderate apple green": "#9ca84a",
-  "strong apple green": "#93a800",
-  "dark apple green": "#535927",
-  "deep apple green": "#4e5900",
-  "very pale lime green": "#f8ffe2",
-  "pale lime green": "#f0ffc2",
-  "very light lime green": "#e7ff9e",
-  "light brilliant lime green": "#d8ff65",
-  "luminous vivid lime green": "#bfff00",
-  "pale, light grayish lime green": "#dce7b8",
-  "light lime green": "#d0e78b",
-  "brilliant lime green": "#c2e751",
-  "vivid lime green": "#aee700",
-  "grayish lime green": "#9ea87d",
-  "moderate lime green": "#91a84a",
-  "strong lime green": "#7ea800",
-  "dark grayish lime green": "#545942",
-  "dark lime green": "#4d5927",
-  "deep lime green": "#435900",
-  "pale spring bud": "#e8ffc2",
-  "very light spring bud": "#dbff9e",
-  "light brilliant spring bud": "#c5ff65",
-  "luminous vivid spring bud": "#9fff00",
-  "light spring bud": "#c5e78b",
-  "brilliant spring bud": "#afe751",
-  "vivid spring bud": "#91e700",
-  "moderate spring bud": "#85a84a",
-  "strong spring bud": "#69a800",
-  "dark spring bud": "#465927",
-  "deep spring bud": "#385900",
-  "very pale chartreuse green": "#f0ffe2",
-  "pale chartreuse green": "#e0ffc2",
-  "very light chartreuse green": "#cfff9e",
-  "light brilliant chartreuse green": "#b2ff65",
-  "luminous vivid chartreuse green": "#80ff00",
-  "pale, light grayish chartreuse green": "#d0e7b8",
-  "light chartreuse green": "#b9e78b",
-  "brilliant chartreuse green": "#9ce751",
-  "vivid chartreuse green": "#74e700",
-  "grayish chartreuse green": "#93a87d",
-  "moderate chartreuse green": "#79a84a",
-  "strong chartreuse green": "#54a800",
-  "dark grayish chartreuse green": "#4e5942",
-  "dark chartreuse green": "#405927",
-  "deep chartreuse green": "#2d5900",
-  "very dark chartreuse green": "#171d11",
-  "very deep chartreuse green": "#0e1d00",
-  "pale pistachio": "#d9ffc2",
-  "very light pistachio": "#c2ff9e",
-  "light brilliant pistachio": "#9fff65",
-  "luminous vivid pistachio": "#60ff00",
-  "light pistachio": "#aee78b",
-  "brilliant pistachio": "#89e751",
-  "vivid pistachio": "#57e700",
-  "moderate pistachio": "#6da84a",
-  "strong pistachio": "#3fa800",
-  "dark pistachio": "#3a5927",
-  "deep pistachio": "#215900",
-  "very pale harlequin": "#e9ffe2",
-  "pale harlequin": "#d1ffc2",
-  "very light harlequin": "#b6ff9e",
-  "light brilliant harlequin": "#8bff65",
-  "luminous vivid harlequin": "#40ff00",
-  "pale, light grayish harlequin": "#c4e7b8",
-  "light harlequin": "#a2e78b",
-  "brilliant harlequin": "#77e751",
-  "vivid harlequin": "#3ae700",
-  "grayish harlequin": "#88a87d",
-  "moderate harlequin": "#61a84a",
-  "strong harlequin": "#2aa800",
-  "dark grayish harlequin": "#485942",
-  "dark harlequin": "#345927",
-  "deep harlequin": "#165900",
-  "pale sap green": "#c9ffc2",
-  "very light sap green": "#aaff9e",
-  "light brilliant sap green": "#78ff65",
-  "luminous vivid sap green": "#20ff00",
-  "light sap green": "#96e78b",
-  "brilliant sap green": "#64e751",
-  "vivid sap green": "#1de700",
-  "moderate sap green": "#55a84a",
-  "strong sap green": "#15a800",
-  "dark sap green": "#2d5927",
-  "deep sap green": "#0b5900",
-  "greenish white": "#f6fff6",
-  "very pale green": "#e2ffe2",
-  "pale green": "#c2ffc2",
-  "very light green": "#9eff9e",
-  "light brilliant green": "#65ff65",
-  "luminous vivid green": "#00ff00",
-  "light greenish gray": "#dae7da",
-  "pale, light grayish green": "#b8e7b8",
-  "light green": "#8be78b",
-  "brilliant green": "#51e751",
-  "vivid green": "#00e700",
-  "greenish gray": "#9ca89c",
-  "grayish green": "#7da87d",
-  "moderate green": "#4aa84a",
-  "strong green": "#00a800",
-  "dark greenish gray": "#535953",
-  "dark grayish green": "#425942",
-  "dark green": "#275927",
-  "deep green": "#005900",
-  "greenish black": "#1a1d1a",
-  "very dark green": "#111d11",
-  "very deep green": "#001d00",
-  "pale emerald green": "#c2ffc9",
-  "very light emerald green": "#9effaa",
-  "light brilliant emerald green": "#65ff78",
-  "luminous vivid emerald green": "#00ff20",
-  "light emerald green": "#8be796",
-  "brilliant emerald green": "#51e764",
-  "vivid emerald green": "#00e71d",
-  "moderate emerald green": "#4aa855",
-  "strong emerald green": "#00a815",
-  "dark emerald green": "#27592d",
-  "deep emerald green": "#00590b",
-  "very pale malachite green": "#e2ffe9",
-  "pale malachite green": "#c2ffd1",
-  "very light malachite green": "#9effb6",
-  "light brilliant malachite green": "#65ff8b",
-  "luminous vivid malachite green": "#00ff40",
-  "pale, light grayish malachite green": "#b8e7c4",
-  "light malachite green": "#8be7a2",
-  "brilliant malachite green": "#51e777",
-  "vivid malachite green": "#00e73a",
-  "grayish malachite green": "#7da888",
-  "moderate malachite green": "#4aa861",
-  "strong malachite green": "#00a82a",
-  "dark grayish malachite green": "#425948",
-  "dark malachite green": "#275934",
-  "deep malachite green": "#005916",
-  "pale sea green": "#c2ffd9",
-  "very light sea green": "#9effc2",
-  "light brilliant sea green": "#65ff9f",
-  "luminous vivid sea green": "#00ff60",
-  "light sea green": "#8be7ae",
-  "brilliant sea green": "#51e789",
-  "vivid sea green": "#00e757",
-  "moderate sea green": "#4aa86d",
-  "strong sea green": "#00a83f",
-  "dark sea green": "#27593a",
-  "deep sea green": "#005921",
-  "very pale spring green": "#e2fff0",
-  "pale spring green": "#c2ffe0",
-  "very light spring green": "#9effcf",
-  "light brilliant spring green": "#65ffb2",
-  "luminous vivid spring green": "#00ff80",
-  "pale, light grayish spring green": "#b8e7d0",
-  "light spring green": "#8be7b9",
-  "brilliant spring green": "#51e79c",
-  "vivid spring green": "#00e774",
-  "grayish spring green": "#7da893",
-  "moderate spring green": "#4aa879",
-  "strong spring green": "#00a854",
-  "dark grayish spring green": "#42594e",
-  "dark spring green": "#275940",
-  "deep spring green": "#00592d",
-  "very dark spring green": "#111d17",
-  "very deep spring green": "#001d0e",
-  "pale aquamarine": "#c2ffe8",
-  "very light aquamarine": "#9effdb",
-  "light brilliant aquamarine": "#65ffc5",
-  "luminous vivid aquamarine": "#00ff9f",
-  "light aquamarine": "#8be7c5",
-  "brilliant aquamarine": "#51e7af",
-  "vivid aquamarine": "#00e791",
-  "moderate aquamarine": "#4aa885",
-  "strong aquamarine": "#00a869",
-  "dark aquamarine": "#275946",
-  "deep aquamarine": "#005938",
-  "very pale turquoise": "#e2fff8",
-  "pale turquoise": "#c2fff0",
-  "very light turquoise": "#9effe7",
-  "light brilliant turquoise": "#65ffd8",
-  "luminous vivid turquoise": "#00ffbf",
-  "pale, light grayish turquoise": "#b8e7dc",
-  "light turquoise": "#8be7d0",
-  "brilliant turquoise": "#51e7c2",
-  "vivid turquoise": "#00e7ae",
-  "grayish turquoise": "#7da89e",
-  "moderate turquoise": "#4aa891",
-  "strong turquoise": "#00a87e",
-  "dark grayish turquoise": "#425954",
-  "dark turquoise": "#27594d",
-  "deep turquoise": "#005943",
-  "pale opal": "#c2fff7",
-  "very light opal": "#9efff3",
-  "light brilliant opal": "#65ffec",
-  "luminous vivid opal": "#00ffdf",
-  "light opal": "#8be7dc",
-  "brilliant opal": "#51e7d5",
-  "vivid opal": "#00e7ca",
-  "moderate opal": "#4aa89c",
-  "strong opal": "#00a893",
-  "dark opal": "#275953",
-  "deep opal": "#00594e",
-  "cyanish white": "#f6ffff",
-  "very pale cyan": "#e2ffff",
-  "pale cyan": "#c2ffff",
-  "very light cyan": "#9effff",
-  "light brilliant cyan": "#65ffff",
-  "luminous vivid cyan": "#00ffff",
-  "light cyanish gray": "#dae7e7",
-  "pale, light grayish cyan": "#b8e7e7",
-  "light cyan": "#8be7e7",
-  "brilliant cyan": "#51e7e7",
-  "vivid cyan": "#00e7e7",
-  "cyanish gray": "#9ca8a8",
-  "grayish cyan": "#7da8a8",
-  "moderate cyan": "#4aa8a8",
-  "strong cyan": "#00a8a8",
-  "dark cyanish gray": "#535959",
-  "dark grayish cyan": "#425959",
-  "dark cyan": "#275959",
-  "deep cyan": "#005959",
-  "cyanish black": "#1a1d1d",
-  "very dark cyan": "#111d1d",
-  "very deep cyan": "#001d1d",
-  "pale arctic blue": "#c2f7ff",
-  "very light arctic blue": "#9ef3ff",
-  "light brilliant arctic blue": "#65ecff",
-  "luminous vivid arctic blue": "#00dfff",
-  "light arctic blue": "#8bdce7",
-  "brilliant arctic blue": "#51d5e7",
-  "vivid arctic blue": "#00cae7",
-  "moderate arctic blue": "#4a9ca8",
-  "strong arctic blue": "#0093a8",
-  "dark arctic blue": "#275359",
-  "deep arctic blue": "#004e59",
-  "very pale cerulean": "#e2f8ff",
-  "pale cerulean": "#c2f0ff",
-  "very light cerulean": "#9ee7ff",
-  "light brilliant cerulean": "#65d8ff",
-  "luminous vivid cerulean": "#00bfff",
-  "pale, light grayish cerulean": "#b8dce7",
-  "light cerulean": "#8bd0e7",
-  "brilliant cerulean": "#51c2e7",
-  "vivid cerulean": "#00aee7",
-  "grayish cerulean": "#7d9ea8",
-  "moderate cerulean": "#4a91a8",
-  "strong cerulean": "#007ea8",
-  "dark grayish cerulean": "#425459",
-  "dark cerulean": "#274d59",
-  "deep cerulean": "#004359",
-  "pale cornflower blue": "#c2e8ff",
-  "very light cornflower blue": "#9edbff",
-  "light brilliant cornflower blue": "#65c5ff",
-  "luminous vivid cornflower blue": "#009fff",
-  "light cornflower blue": "#8bc5e7",
-  "brilliant cornflower blue": "#51afe7",
-  "vivid cornflower blue": "#0091e7",
-  "moderate cornflower blue": "#4a85a8",
-  "strong cornflower blue": "#0069a8",
-  "dark cornflower blue": "#274659",
-  "deep cornflower blue": "#003859",
-  "very pale azure": "#e2f0ff",
-  "pale azure": "#c2e0ff",
-  "very light azure": "#9ecfff",
-  "light brilliant azure": "#65b2ff",
-  "luminous vivid azure": "#0080ff",
-  "pale, light grayish azure": "#b8d0e7",
-  "light azure": "#8bb9e7",
-  "brilliant azure": "#519ce7",
-  "vivid azure": "#0074e7",
-  "grayish azure": "#7d93a8",
-  "moderate azure": "#4a79a8",
-  "strong azure": "#0054a8",
-  "dark grayish azure": "#424e59",
-  "dark azure": "#274059",
-  "deep azure": "#002d59",
-  "very dark azure": "#11171d",
-  "very deep azure": "#000e1d",
-  "pale cobalt blue": "#c2d9ff",
-  "very light cobalt blue": "#9ec2ff",
-  "light brilliant cobalt blue": "#659fff",
-  "luminous vivid cobalt blue": "#0060ff",
-  "light cobalt blue": "#8baee7",
-  "brilliant cobalt blue": "#5189e7",
-  "vivid cobalt blue": "#0057e7",
-  "moderate cobalt blue": "#4a6da8",
-  "strong cobalt blue": "#003fa8",
-  "dark cobalt blue": "#273a59",
-  "deep cobalt blue": "#002159",
-  "very pale sapphire blue": "#e2e9ff",
-  "pale sapphire blue": "#c2d1ff",
-  "very light sapphire blue": "#9eb6ff",
-  "light brilliant sapphire blue": "#658bff",
-  "luminous vivid sapphire blue": "#0040ff",
-  "pale, light grayish sapphire blue": "#b8c4e7",
-  "light sapphire blue": "#8ba2e7",
-  "brilliant sapphire blue": "#5177e7",
-  "vivid sapphire blue": "#003ae7",
-  "grayish sapphire blue": "#7d88a8",
-  "moderate sapphire blue": "#4a61a8",
-  "strong sapphire blue": "#002aa8",
-  "dark grayish sapphire blue": "#424859",
-  "dark sapphire blue": "#273459",
-  "deep sapphire blue": "#001659",
-  "pale phthalo blue": "#c2c9ff",
-  "very light phthalo blue": "#9eaaff",
-  "light brilliant phthalo blue": "#6578ff",
-  "luminous vivid phthalo blue": "#0020ff",
-  "light phthalo blue": "#8b96e7",
-  "brilliant phthalo blue": "#5164e7",
-  "vivid phthalo blue": "#001de7",
-  "moderate phthalo blue": "#4a55a8",
-  "strong phthalo blue": "#0015a8",
-  "dark phthalo blue": "#272d59",
-  "deep phthalo blue": "#000b59",
-  "bluish white": "#f6f6ff",
-  "very pale blue": "#e2e2ff",
-  "pale blue": "#c2c2ff",
-  "very light blue": "#9e9eff",
-  "light brilliant blue": "#6565ff",
-  "luminous vivid blue": "#0000ff",
-  "light bluish gray": "#dadae7",
-  "pale, light grayish blue": "#b8b8e7",
-  "light blue": "#8b8be7",
-  "brilliant blue": "#5151e7",
-  "vivid blue": "#0000e7",
-  "bluish gray": "#9c9ca8",
-  "grayish blue": "#7d7da8",
-  "moderate blue": "#4a4aa8",
-  "strong blue": "#0000a8",
-  "dark bluish gray": "#535359",
-  "dark grayish blue": "#424259",
-  "dark blue": "#272759",
-  "deep blue": "#000059",
-  "bluish black": "#1a1a1d",
-  "very dark blue": "#11111d",
-  "very deep blue": "#00001d",
-  "pale persian blue": "#c9c2ff",
-  "very light persian blue": "#aa9eff",
-  "light brilliant persian blue": "#7865ff",
-  "luminous vivid persian blue": "#2000ff",
-  "light persian blue": "#968be7",
-  "brilliant persian blue": "#6451e7",
-  "vivid persian blue": "#1d00e7",
-  "moderate persian blue": "#554aa8",
-  "strong persian blue": "#1500a8",
-  "dark persian blue": "#2d2759",
-  "deep persian blue": "#0b0059",
-  "very pale indigo": "#e9e2ff",
-  "pale indigo": "#d1c2ff",
-  "very light indigo": "#b69eff",
-  "light brilliant indigo": "#8b65ff",
-  "luminous vivid indigo": "#4000ff",
-  "pale, light grayish indigo": "#c4b8e7",
-  "light indigo": "#a28be7",
-  "brilliant indigo": "#7751e7",
-  "vivid indigo": "#3a00e7",
-  "grayish indigo": "#887da8",
-  "moderate indigo": "#614aa8",
-  "strong indigo": "#2a00a8",
-  "dark grayish indigo": "#484259",
-  "dark indigo": "#342759",
-  "deep indigo": "#160059",
-  "pale blue violet": "#d9c2ff",
-  "very light blue violet": "#c29eff",
-  "light brilliant blue violet": "#9f65ff",
-  "luminous vivid blue violet": "#6000ff",
-  "light blue violet": "#ae8be7",
-  "brilliant blue violet": "#8951e7",
-  "vivid blue violet": "#5700e7",
-  "moderate blue violet": "#6d4aa8",
-  "strong blue violet": "#3f00a8",
-  "dark blue violet": "#3a2759",
-  "deep blue violet": "#210059",
-  "very pale violet": "#f0e2ff",
-  "pale violet": "#e0c2ff",
-  "very light violet": "#cf9eff",
-  "light brilliant violet": "#b265ff",
-  "luminous vivid violet": "#8000ff",
-  "pale, light grayish violet": "#d0b8e7",
-  "light violet": "#b98be7",
-  "brilliant violet": "#9c51e7",
-  "vivid violet": "#7400e7",
-  "grayish violet": "#937da8",
-  "moderate violet": "#794aa8",
-  "strong violet": "#5400a8",
-  "dark grayish violet": "#4e4259",
-  "dark violet": "#402759",
-  "deep violet": "#2d0059",
-  "very dark violet": "#17111d",
-  "very deep violet": "#0e001d",
-  "pale purple": "#e8c2ff",
-  "very light purple": "#db9eff",
-  "light brilliant purple": "#c565ff",
-  "luminous vivid purple": "#9f00ff",
-  "light purple": "#c58be7",
-  "brilliant purple": "#af51e7",
-  "vivid purple": "#9100e7",
-  "moderate purple": "#854aa8",
-  "strong purple": "#6900a8",
-  "dark purple": "#462759",
-  "deep purple": "#380059",
-  "very pale mulberry": "#f8e2ff",
-  "pale mulberry": "#f0c2ff",
-  "very light mulberry": "#e79eff",
-  "light brilliant mulberry": "#d865ff",
-  "luminous vivid mulberry": "#bf00ff",
-  "pale, light grayish mulberry": "#dcb8e7",
-  "light mulberry": "#d08be7",
-  "brilliant mulberry": "#c251e7",
-  "vivid mulberry": "#ae00e7",
-  "grayish mulberry": "#9e7da8",
-  "moderate mulberry": "#914aa8",
-  "strong mulberry": "#7e00a8",
-  "dark grayish mulberry": "#544259",
-  "dark mulberry": "#4d2759",
-  "deep mulberry": "#430059",
-  "pale heliotrope": "#f7c2ff",
-  "very light heliotrope": "#f39eff",
-  "light brilliant heliotrope": "#ec65ff",
-  "luminous vivid heliotrope": "#df00ff",
-  "light heliotrope": "#dc8be7",
-  "brilliant heliotrope": "#d551e7",
-  "vivid heliotrope": "#ca00e7",
-  "moderate heliotrope": "#9c4aa8",
-  "strong heliotrope": "#9300a8",
-  "dark heliotrope": "#532759",
-  "deep heliotrope": "#4e0059",
-  "magentaish white": "#fff6ff",
-  "very pale magenta": "#ffe2ff",
-  "pale magenta": "#ffc2ff",
-  "very light magenta": "#ff9eff",
-  "light brilliant magenta": "#ff65ff",
-  "luminous vivid magenta": "#ff00ff",
-  "light magentaish gray": "#e7dae7",
-  "pale, light grayish magenta": "#e7b8e7",
-  "light magenta": "#e78be7",
-  "brilliant magenta": "#e751e7",
-  "vivid magenta": "#e700e7",
-  "magentaish gray": "#a89ca8",
-  "grayish magenta": "#a87da8",
-  "moderate magenta": "#a84aa8",
-  "strong magenta": "#a800a8",
-  "dark magentaish gray": "#595359",
-  "dark grayish magenta": "#594259",
-  "dark magenta": "#592759",
-  "deep magenta": "#590059",
-  "magentaish black": "#1d1a1d",
-  "very dark magenta": "#1d111d",
-  "very deep magenta": "#1d001d",
-  "pale orchid": "#ffc2f7",
-  "very light orchid": "#ff9ef3",
-  "light brilliant orchid": "#ff65ec",
-  "luminous vivid orchid": "#ff00df",
-  "light orchid": "#e78bdc",
-  "brilliant orchid": "#e751d5",
-  "vivid orchid": "#e700ca",
-  "moderate orchid": "#a84a9c",
-  "strong orchid": "#a80093",
-  "dark orchid": "#592753",
-  "deep orchid": "#59004e",
-  "very pale fuchsia": "#ffe2f8",
-  "pale fuchsia": "#ffc2f0",
-  "very light fuchsia": "#ff9ee7",
-  "light brilliant fuchsia": "#ff65d8",
-  "luminous vivid fuchsia": "#ff00bf",
-  "pale, light grayish fuchsia": "#e7b8dc",
-  "light fuchsia": "#e78bd0",
-  "brilliant fuchsia": "#e751c2",
-  "vivid fuchsia": "#e700ae",
-  "grayish fuchsia": "#a87d9e",
-  "moderate fuchsia": "#a84a91",
-  "strong fuchsia": "#a8007e",
-  "dark grayish fuchsia": "#594254",
-  "dark fuchsia": "#59274d",
-  "deep fuchsia": "#590043",
-  "pale cerise": "#ffc2e8",
-  "very light cerise": "#ff9edb",
-  "light brilliant cerise": "#ff65c5",
-  "luminous vivid cerise": "#ff009f",
-  "light cerise": "#e78bc5",
-  "brilliant cerise": "#e751af",
-  "vivid cerise": "#e70091",
-  "moderate cerise": "#a84a85",
-  "strong cerise": "#a80069",
-  "dark cerise": "#592746",
-  "deep cerise": "#590038",
-  "very pale rose": "#ffe2f0",
-  "pale rose": "#ffc2e0",
-  "very light rose": "#ff9ecf",
-  "light brilliant rose": "#ff65b2",
-  "luminous vivid rose": "#ff0080",
-  "pale, light grayish rose": "#e7b8d0",
-  "light rose": "#e78bb9",
-  "brilliant rose": "#e7519c",
-  "vivid rose": "#e70074",
-  "grayish rose": "#a87d93",
-  "moderate rose": "#a84a79",
-  "strong rose": "#a80054",
-  "dark grayish rose": "#59424e",
-  "dark rose": "#592740",
-  "deep rose": "#59002d",
-  "very dark rose": "#1d1117",
-  "very deep rose": "#1d000e",
-  "pale raspberry": "#ffc2d9",
-  "very light raspberry": "#ff9ec2",
-  "light brilliant raspberry": "#ff659f",
-  "luminous vivid raspberry": "#ff0060",
-  "light raspberry": "#e78bae",
-  "brilliant raspberry": "#e75189",
-  "vivid raspberry": "#e70057",
-  "moderate raspberry": "#a84a6d",
-  "strong raspberry": "#a8003f",
-  "dark raspberry": "#59273a",
-  "deep raspberry": "#590021",
-  "very pale crimson": "#ffe2e9",
-  "pale crimson": "#ffc2d1",
-  "very light crimson": "#ff9eb6",
-  "light brilliant crimson": "#ff658b",
-  "luminous vivid crimson": "#ff0040",
-  "pale, light grayish crimson": "#e7b8c4",
-  "light crimson": "#e78ba2",
-  "brilliant crimson": "#e75177",
-  "vivid crimson": "#e7003a",
-  "grayish crimson": "#a87d88",
-  "moderate crimson": "#a84a61",
-  "strong crimson": "#a8002a",
-  "dark grayish crimson": "#594248",
-  "dark crimson": "#592734",
-  "deep crimson": "#590016",
-  "pale amaranth": "#ffc2c9",
-  "very light amaranth": "#ff9eaa",
-  "light brilliant amaranth": "#ff6578",
-  "luminous vivid amaranth": "#ff0020",
-  "light amaranth": "#e78b96",
-  "brilliant amaranth": "#e75164",
-  "vivid amaranth": "#e7001d",
-  "moderate amaranth": "#a84a55",
-  "strong amaranth": "#a80015",
-  "dark amaranth": "#59272d",
-  "deep amaranth": "#59000b",
-};
-
-/** @param {string} strColor */
-function isValidColor(strColor) {
-  if (strColor.length == 0 || strColor in ColorNames) {
-    return true;
-  }
-  var s = new Option().style;
-  s.color = strColor;
-
-  // return 'false' if color wasn't assigned
-  return s.color !== "";
-}
-
-/** @param {string} name */
-function getColor(name) {
-  return ColorNames[name] || name;
-}
-
-/** @param {Partial<CSSStyleDeclaration>} style */
-function normalizeStyle(style) {
-  return Object.fromEntries(
-    Object.entries(style)
-      .filter(([_, value]) => value && value.toString().length)
-      .map(([key, value]) =>
-        key.toLowerCase().indexOf("color") >= 0
-          ? [key, getColor(/** @type {string} */ (value))]
-          : [key, value && value.toString()],
-      ),
-  );
-}
-
-/** @param {Partial<CSSStyleDeclaration>} styles */
-function styleString(styles) {
-  return Object.entries(normalizeStyle(styles)).reduce(
-    (acc, [key, value]) =>
-      acc +
-      key
-        .split(/(?=[A-Z])/)
-        .join("-")
-        .toLowerCase() +
-      ":" +
-      value +
-      ";",
-    "",
-  );
-}
-
-function colorNamesDataList() {
-  return html`<datalist id="ColorNames">
-    ${Object.keys(ColorNames).map((name) => html`<option value="${name}" />`)}
-  </datalist>`;
-}
-
-/* Thinking about better properties */
-
-
-/**
- * @typedef {Object} PropOptions
- * @property {boolean} [hiddenLabel]
- * @property {string} [placeholder]
- * @property {string} [title]
- * @property {string} [label]
- * @property {string} [defaultValue]
- * @property {string} [group]
- * @property {string} [language]
- * @property {any} [valueWhenEmpty]
- * @property {string} [pattern]
- * @property {function(string):string} [validate]
- * @property {string} [inputmode]
- * @property {string} [datalist]
- * @property {number} [min]
- * @property {number} [max]
- */
-
-/**
- * @template {number|boolean|string} T
- */
-class Prop {
-  label = "";
-  /** @type {T} */
-  _value;
-
-  /** true if this is a formula without leading = */
-  isFormulaByDefault = false;
-
-  /** If the entered value starts with = treat it as an expression and store it here */
-  formula = "";
-
-  /** @type {((context?:EvalContext)=>any) | undefined} compiled expression if any */
-  compiled = undefined;
-
-  // Each prop gets a unique id based on the id of its container
-  id = "";
-
-  /** @type {TreeBase} */
-  container;
-
-  /** attach the prop to its containing TreeBase component
-   * @param {string} name
-   * @param {any} value
-   * @param {TreeBase} container
-   * */
-  initialize(name, value, container) {
-    // create id from the container id
-    this.id = `${container.id}-${name}`;
-    // link to the container
-    this.container = container;
-    // set the value if provided
-    if (value != undefined) {
-      this.set(value);
-    }
-    // create a label if it has none
-    this.label =
-      this.label ||
-      name // convert from camelCase to Camel Case
-        .replace(/(?!^)([A-Z])/g, " $1")
-        .replace(/^./, (s) => s.toUpperCase());
-  }
-
-  /** @type {PropOptions} */
-  options = {};
-
-  /**
-   * @param {T} value
-   * @param {PropOptions} options */
-  constructor(value, options = {}) {
-    this._value = value;
-    this.options = options;
-    if (options.label) {
-      this.label = options.label;
-    }
-  }
-  validate = debounce(
-    (/** @type {string} */ value, /** @type {HTMLInputElement} */ input) => {
-      input.setCustomValidity("");
-      if (this.isFormulaByDefault || value.startsWith("=")) {
-        const [compiled, error] = compileExpression(value);
-        if (error) {
-          let message = error.message.replace(/^\[.*?\]/, "");
-          message = message.split("\n")[0];
-          input.setCustomValidity(message);
-        } else if (compiled && this.options.validate)
-          input.setCustomValidity(this.options.validate("" + compiled({})));
-      } else if (this.options.validate) {
-        input.setCustomValidity(this.options.validate(value));
-      }
-      input.reportValidity();
-    },
-    100,
-  );
-
-  input() {
-    const text = this.text;
-    return this.labeled(
-      html`<input
-          type="text"
-          inputmode=${this.options.inputmode}
-          .value=${text}
-          id=${this.id}
-          style=${`width: min(${text.length + 3}ch, 100%)`}
-          list=${this.options.datalist}
-          title=${this.options.title}
-          placeholder=${this.options.placeholder}
-          @keydown=${this.onkeydown}
-          @input=${this.oninput}
-          @change=${this.onchange}
-          @focus=${this.onfocus}
-        />${this.showValue()}`,
-    );
-  }
-  onkeydown = (/** @type {KeyboardEvent} */ event) => {
-    // restore the input on Escape
-    const { key, target } = event;
-    if (key == "Escape" && target instanceof HTMLInputElement) {
-      const text = this.text;
-      this.validate(text, target);
-      event.preventDefault();
-      target.value = text;
-    }
-  };
-  oninput = (/** @type {InputEvent} */ event) => {
-    // validate on each character
-    if (event.target instanceof HTMLInputElement) {
-      this.validate(event.target.value, event.target);
-      event.target.style.width = `${event.target.value.length + 1}ch`;
-    }
-  };
-  onchange = (/** @type {InputEvent} */ event) => {
-    if (
-      event.target instanceof HTMLInputElement &&
-      event.target.checkValidity()
-    ) {
-      this.set(event.target.value);
-      this.update();
-    }
-  };
-  onfocus = (/** @type {FocusEvent}*/ event) => {
-    if (this.formula && event.target instanceof HTMLInputElement) {
-      const span = event.target.nextElementSibling;
-      if (span instanceof HTMLSpanElement) {
-        const value = this.value;
-        const type = typeof value;
-        let text = "";
-        if (type === "string" || type === "number" || type === "boolean") {
-          text = "" + value;
-        }
-        span.innerText = text;
-      }
-    }
-  };
-
-  showValue() {
-    return this.formula ? [html`<span class="propValue"></span>`] : [];
-  }
-
-  /** @param {Hole} body */
-  labeled(body) {
-    return html`
-      <label class="labeledInput" ?hiddenLabel=${!!this.options.hiddenLabel}
-        ><span class="labelText">${this.label}</span> ${body}</label
-      >
-    `;
-  }
-
-  /** @param {HTMLInputElement} inputElement */
-  setValidity(inputElement) {
-    if (inputElement instanceof HTMLInputElement) {
-      if (this.error) {
-        console.log("scv", this.error.message);
-        inputElement.setCustomValidity(this.error.message);
-        inputElement.reportValidity();
-      } else {
-        console.log("csv");
-        inputElement.setCustomValidity("");
-        inputElement.reportValidity();
-      }
-    } else {
-      console.log("not found", inputElement);
-    }
-  }
-
-  /** @param {any} value
-   * @returns {T}
-   * */
-  cast(value) {
-    return value;
-  }
-
-  /**
-   * @param {any} value
-   */
-  set(value) {
-    this.compiled = undefined;
-    this.formula = "";
-    if (
-      typeof value == "string" &&
-      (this.isFormulaByDefault || value.startsWith("="))
-    ) {
-      // compile it here
-      let error;
-      [this.compiled, error] = compileExpression(value);
-      if (error) {
-        console.error("set error", this.label, value, error.message);
-      } else {
-        this.formula = value;
-      }
-    } else {
-      this._value = this.cast(value);
-    }
-  }
-
-  /**
-   * extract the value to save
-   * returns {string}
-   */
-  get text() {
-    if (this.formula || this.isFormulaByDefault) return this.formula;
-    return "" + this._value;
-  }
-
-  /** @returns {T} */
-  get value() {
-    if (this.compiled) {
-      if (!this.formula) {
-        console.log(this.options);
-        this._value = this.options.valueWhenEmpty ?? "";
-      } else {
-        const v = this.compiled();
-        this._value = this.cast(v);
-      }
-    }
-    return this._value;
-  }
-
-  /** @param {EvalContext} context - The context
-   * @returns {T} */
-  valueInContext(context = {}) {
-    if (this.compiled) {
-      if (!this.formula) {
-        this._value = this.options.valueWhenEmpty ?? "";
-      } else {
-        const v = this.compiled(context);
-        this._value = this.cast(v);
-      }
-    }
-    return this._value;
-  }
-
-  update() {
-    this.container.update();
-  }
-
-  /** @param {Error} [error] */
-  setError(error = undefined) {
-    this.error = error;
-  }
-}
-
-/** @param {string[] | Map<string,string> | function():Map<string,string>} arrayOrMap
- * @returns Map<string, string>
- */
-function toMap(arrayOrMap) {
-  if (arrayOrMap instanceof Function) {
-    return arrayOrMap();
-  }
-  if (Array.isArray(arrayOrMap)) {
-    return new Map(arrayOrMap.map((item) => [item, item]));
-  }
-  return arrayOrMap;
-}
-
-/** @extends {Prop<string>} */
-class Select extends Prop {
-  /**
-   * @param {string[] | Map<string, string> | function():Map<string,string>} choices
-   * @param {PropOptions} options
-   */
-  constructor(choices = [], options = {}) {
-    super("", options);
-    this.choices = choices;
-    this._value = options.defaultValue || "";
-  }
-
-  /** @param {Map<string,string> | null} choices */
-  input(choices = null) {
-    if (!choices) {
-      choices = toMap(this.choices);
-    }
-    this._value = this._value || this.options.defaultValue || "";
-    return this.labeled(
-      html`<select
-        id=${this.id}
-        required
-        title=${this.options.title}
-        @change=${({ target }) => {
-          this._value = target.value;
-          this.update();
-        }}
-      >
-        <option value="" disabled ?selected=${!choices.has(this._value)}>
-          ${this.options.placeholder || "Choose one..."}
-        </option>
-        ${[...choices.entries()].map(
-          ([key, value]) =>
-            html`<option value=${key} ?selected=${this._value == key}>
-              ${value}
-            </option>`,
-        )}
-      </select>`,
-    );
-  }
-
-  /** @param {any} value */
-  set(value) {
-    this._value = value;
-  }
-}
-
-class Field extends Select {
-  /**
-   * @param {PropOptions} options
-   */
-  constructor(options = {}) {
-    super(
-      () => toMap([...Globals.data.allFields, "#ComponentName"].sort()),
-      options,
-    );
-  }
-}
-
-let Cue$1 = class Cue extends Select {
-  /**
-   * @param {PropOptions} options
-   */
-  constructor(options = {}) {
-    super(() => Globals.cues.cueMap, options);
-  }
-};
-
-class Pattern extends Select {
-  /**
-   * @param {PropOptions} options
-   */
-  constructor(options = {}) {
-    super(() => Globals.patterns.patternMap, options);
-  }
-}
-
-class TypeSelect extends Select {
-  update() {
-    /* Magic happens here! The replace method on a TreeBaseSwitchable replaces the
-     * node with a new one to allow type switching in place
-     * */
-    if (this.container instanceof TreeBaseSwitchable)
-      this.container.replace(this._value);
-  }
-}
-
-/** @extends {Prop<string>} */
-let String$1 = class String extends Prop {};
-
-/* Allow entering a key name by first pressing Enter than pressing a single key
- */
-/** @extends {Prop<string>} */
-class KeyName extends Prop {
-  /**
-   * @param {string} value
-   * @param {PropOptions} options
-   */
-  constructor(value = "", options = {}) {
-    super(value, options);
-  }
-
-  input() {
-    /** @param {string} key */
-    function mapKey(key) {
-      if (key == " ") return "Space";
-      return key;
-    }
-    return this.labeled(
-      html`<input
-        type="text"
-        .value=${mapKey(this._value)}
-        id=${this.id}
-        readonly
-        @keydown=${(/** @type {KeyboardEvent} */ event) => {
-          const target = event.target;
-          if (!(target instanceof HTMLInputElement)) return;
-          if (target.hasAttribute("readonly") && event.key == "Enter") {
-            target.removeAttribute("readonly");
-            target.select();
-          } else if (!target.hasAttribute("readonly")) {
-            event.stopPropagation();
-            event.preventDefault();
-            this._value = event.key;
-            target.value = mapKey(event.key);
-            target.setAttribute("readonly", "");
-          }
-        }}
-        title="Press Enter to change then press a single key to set"
-        placeholder=${this.options.placeholder}
-      />`,
-    );
-  }
-}
-
-/** @extends {Prop<string>} */
-class TextArea extends Prop {
-  /**
-   * @param {string} value
-   * @param {PropOptions} options
-   */
-  constructor(value = "", options = {}) {
-    super(value, options);
-    this.validate = this.options.validate || ((_) => "");
-  }
-
-  input() {
-    return this.labeled(
-      html`<textarea
-        .value=${this._value}
-        id=${this.id}
-        ?invalid=${!!this.validate(this._value)}
-        @input=${({ target }) => {
-          const errorMsg = this.validate(target.value);
-          target.setCustomValidity(errorMsg);
-        }}
-        @change=${({ target }) => {
-          if (target.checkValidity()) {
-            this._value = target.value;
-            this.update();
-          }
-        }}
-        title=${this.options.title}
-        placeholder=${this.options.placeholder}
-      />`,
-    );
-  }
-}
-
-/** @extends {Prop<number>} */
-class Integer extends Prop {
-  /** @param {number} value
-   * @param {PropOptions} options
-   */
-  constructor(value = 0, options = {}) {
-    /** @param {string} value
-     * @returns {string}
-     */
-    function validate(value) {
-      if (!/^[0-9]+$/.test(value)) return "Please enter a whole number";
-      if (typeof options.min === "number" && parseInt(value) < options.min) {
-        return `Please enter a whole number at least ${this.options.min}`;
-      }
-      if (typeof options.max === "number" && parseInt(value) > options.max) {
-        return `Please enter a whole number at most ${this.options.max}`;
-      }
-      return "";
-    }
-    options = {
-      validate,
-      inputmode: "numeric",
-      ...options,
-    };
-    super(value, options);
-  }
-
-  /**
-   * Convert the input into an integer
-   * @param {any} value
-   * @returns {number}
-   */
-  cast(value) {
-    return Math.trunc(+value);
-  }
-}
-
-/** @extends {Prop<number>} */
-class Float extends Prop {
-  /** @param {number} value
-   * @param {PropOptions} options
-   */
-  constructor(value = 0, options = {}) {
-    /** @param {string} value
-     * @returns {string}
-     */
-    const validate = (value) => {
-      if (!/^[0-9]*([,.][0-9]*)?$/.test(value)) return "Please enter a number";
-      if (typeof options.min === "number" && parseFloat(value) < options.min) {
-        return `Please enter a number at least ${options.min}`;
-      }
-      if (typeof options.max === "number" && parseFloat(value) > options.max) {
-        return `Please enter a number at most ${this.options.max}`;
-      }
-      return "";
-    };
-    options = {
-      validate,
-      inputmode: "decimal",
-      ...options,
-    };
-    super(value, options);
-  }
-
-  /** @param {any} value */
-  cast(value) {
-    return +value;
-  }
-}
-
-/** @extends {Prop<boolean>} */
-let Boolean$1 = class Boolean extends Prop {
-  /** @param {boolean} value
-   * @param {PropOptions} options
-   */
-  constructor(value = false, options = {}) {
-    super(value, options);
-  }
-
-  /**
-   * @param {PropOptions} options
-   */
-  input(options = {}) {
-    options = { ...this.options, ...options };
-    return this.labeled(
-      html`<input
-        type="checkbox"
-        ?checked=${this._value}
-        id=${this.id}
-        @change=${({ target }) => {
-          this._value = target.checked;
-          this.update();
-        }}
-        title=${options.title}
-      />`,
-    );
-  }
-
-  /** @param {any} value */
-  set(value) {
-    if (typeof value === "boolean") {
-      this._value = value;
-    } else if (typeof value === "string") {
-      this._value = value === "true";
-    }
-  }
-};
-
-/** @extends {Prop<boolean>} */
-class OneOfGroup extends Prop {
-  /** @param {boolean} value
-   * @param {PropOptions} options
-   */
-  constructor(value = false, options = {}) {
-    options = { group: "AGroup", ...options };
-    super(value, options);
-  }
-
-  /**
-   * @param {PropOptions} options
-   */
-  input(options = {}) {
-    options = { ...this.options, ...options };
-    return this.labeled(
-      html`<input
-        type="checkbox"
-        .checked=${!!this._value}
-        id=${this.id}
-        name=${options.group}
-        @click=${() => {
-          this._value = true;
-          this.clearPeers();
-          this.update();
-        }}
-        title=${this.options.title}
-      />`,
-    );
-  }
-
-  /** @param {any} value */
-  set(value) {
-    if (typeof value === "boolean") {
-      this._value = value;
-    } else if (typeof value === "string") {
-      this._value = value === "true";
-    }
-    if (this._value) {
-      this.clearPeers();
-    }
-  }
-
-  /**
-   * Clear the value of peer radio buttons with the same name
-   */
-  clearPeers() {
-    const name = this.options.group;
-    const peers = this.container?.parent?.children || [];
-    for (const peer of peers) {
-      const props = peer.props;
-      for (const propName in props) {
-        const prop = props[propName];
-        if (
-          prop instanceof OneOfGroup &&
-          prop.options.group == name &&
-          prop != this
-        ) {
-          prop.set(false);
-        }
-      }
-    }
-  }
-}
-
-/** @extends {Prop<string>} */
-class UID extends Prop {
-  constructor() {
-    super("", {});
-    this._value =
-      "id" + Date.now().toString(36) + Math.random().toString(36).slice(2);
-  }
-}
-
-/** @extends {Prop<string|number|boolean>} */
-class Expression extends Prop {
-  isFormulaByDefault = true;
-
-  /** @param {string} value
-   * @param {PropOptions} options
-   */
-  constructor(value = "", options = {}) {
-    super(value, options);
-    this.formula = value;
-  }
-}
-
-/** @extends {Prop<boolean>} */
-class Conditional extends Prop {
-  isFormulaByDefault = true;
-
-  /** @param {string} value
-   * @param {PropOptions} options
-   */
-  constructor(value = "", options = {}) {
-    super(false, options);
-    this.formula = value;
-  }
-
-  get value() {
-    return !!super.value;
-  }
-
-  valueInContext(context = {}) {
-    return !!super.valueInContext(context);
-  }
-}
-
-/** @extends {Prop<string>} */
-class Code extends Prop {
-  editedValue = "";
-
-  /** @type {string[]} */
-  errors = [];
-
-  /** @type {number[]} */
-  lineOffsets = [];
-
-  /** @param {PropOptions} options */
-  constructor(value = "", options = {}) {
-    options = {
-      language: "css",
-      ...options,
-    };
-    super(value, options);
-  }
-
-  /** @param {HTMLTextAreaElement} target */
-  addLineNumbers = (target) => {
-    const numberOfLines = target.value.split("\n").length;
-    const lineNumbers = /** @type {HTMLTextAreaElement} */ (
-      target.previousElementSibling
-    );
-    const numbers = [];
-    for (let ln = 1; ln <= numberOfLines; ln++) {
-      numbers.push(ln);
-    }
-    lineNumbers.value = numbers.join("\n");
-    const rows = Math.max(4, Math.min(10, numberOfLines));
-    target.rows = rows;
-    lineNumbers.rows = rows;
-    lineNumbers.scrollTop = target.scrollTop;
-  };
-
-  /** @param {number} offset - where the error happened
-   * @param {string} message - the error message
-   */
-  addError(offset, message) {
-    const line = this._value.slice(0, offset).match(/$/gm)?.length || "??";
-    this.errors.push(`${line}: ${message}`);
-  }
-
-  /** Edit and validate the value
-   * */
-  editCSS(props = {}, editSelector = (selector = "") => selector) {
-    // replaces props in the full text
-    let value = this._value;
-    for (const prop in props) {
-      value = value.replaceAll("$" + prop, props[prop]);
-    }
-    // clear the errors
-    this.errors = [];
-    // build the new rules here
-    const editedRules = [];
-    // match a single rule
-    const ruleRE = /([\s\S]*?)({\s*[\s\S]*?}\s*)/dg;
-    for (const ruleMatch of value.matchAll(ruleRE)) {
-      let selector = ruleMatch[1];
-      const indices = ruleMatch.indices;
-      if (!indices) continue;
-      const selectorOffset = indices[1][0];
-      const body = ruleMatch[2];
-      const bodyOffset = indices[2][0];
-      // replace field names in the selector
-      selector = selector.replace(
-        /#(\w+)/g,
-        /** @param {string} _
-         * @param {string} name */
-        (_, name) =>
-          `data-${name.replace(
-            /[A-Z]/g,
-            (/** @type {string} */ m) => `-${m.toLowerCase()}`,
-          )}`,
-      );
-      // prefix the selector so it only applies to the UI
-      selector = `#UI ${editSelector(selector)}`;
-      // reconstruct the rule
-      const rule = selector + body;
-      // add it to the result
-      editedRules.push(rule);
-      // validate the rule
-      const styleSheet = new CSSStyleSheet();
-      try {
-        // add the rule to the sheet. If the selector is bad we'll get an
-        // exception. If any properties are bad they will omitted in the
-        // result. I'm adding a bogus ;gap:0; property to the end of the body
-        // because we get an exception if there is only one invalid property.
-        let irule = (Globals.state && Globals.state.interpolate(rule)) || rule;
-        const index = styleSheet.insertRule(irule.replace("}", ";gap:0;}"));
-        // retrieve the rule
-        const newRule = styleSheet.cssRules[index].cssText;
-        // extract the body
-        const ruleRE = /([\s\S]*?)({\s*[\s\S]*?}\s*)/dg;
-        const match = ruleRE.exec(newRule);
-        if (match) {
-          const newBody = match[2];
-          const propRE = /[-\w]+:/g;
-          const newProperties = newBody.match(propRE);
-          for (const propMatch of body.matchAll(propRE)) {
-            if (!newProperties || newProperties.indexOf(propMatch[0]) < 0) {
-              // the property was invalid
-              this.addError(
-                bodyOffset + (propMatch.index || 0),
-                `property ${propMatch[0]} is invalid`,
-              );
-            }
-          }
-        } else {
-          this.addError(selectorOffset, "Rule is invalid");
-        }
-      } catch (e) {
-        this.addError(selectorOffset, "Rule is invalid");
-      }
-    }
-    this.editedValue = editedRules.join("");
-  }
-
-  input() {
-    return this.labeled(
-      html`<div class="Code">
-        <div class="numbered-textarea">
-          <textarea class="line-numbers" readonly></textarea>
-          <textarea
-            class="text"
-            .value=${this._value}
-            id=${this.id}
-            @change=${({ target }) => {
-              this._value = target.value;
-              this.editCSS();
-              this.update();
-            }}
-            @keyup=${(
-              /** @type {{ target: HTMLTextAreaElement; }} */ event,
-            ) => {
-              this.addLineNumbers(event.target);
-            }}
-            @scroll=${({ target }) => {
-              target.previousElementSibling.scrollTop = target.scrollTop;
-            }}
-            ref=${this.addLineNumbers}
-            title=${this.options.title}
-            placeholder=${this.options.placeholder}
-          ></textarea>
-        </div>
-        <div class="errors">${this.errors.join("\n")}</div>
-      </div>`,
-    );
-  }
-
-  /** @param {string} value */
-  set(value) {
-    this._value = value;
-    this.editCSS();
-  }
-}
-
-/** @extends {Prop<string>} */
-class Color extends Prop {
-  /**
-   * @param {string} value
-   * @param {PropOptions} options
-   */
-  constructor(value = "white", options = {}) {
-    options = {
-      /** @param {string} value */
-      validate: (value) => {
-        if (isValidColor(value)) {
-          const swatch = document.querySelector(`#${this.id}~div`);
-          if (swatch instanceof HTMLDivElement) {
-            swatch.style.backgroundColor = getColor(value);
-          }
-          return "";
-        }
-        return "invalid color";
-      },
-      datalist: "ColorNames",
-      ...options,
-    };
-    super(value, options);
-  }
-
-  showValue() {
-    return [
-      html`<div
-        class="swatch"
-        style=${styleString({ backgroundColor: getColor(this.value) })}
-      ></div>`,
-    ];
-  }
-}
-
-/** @extends {Prop<string>} */
-class Voice extends Prop {
-  /** @param {string} value
-   * @param {PropOptions} options
-   */
-  constructor(value = "", options = {}) {
-    super(value, options);
-  }
-
-  input() {
-    return this.labeled(
-      html`<select
-        is="select-voice"
-        .value=${this._value}
-        id=${this.id}
-        @change=${(/** @type {InputEventWithTarget} */ event) => {
-          this._value = event.target.value;
-          this.update();
-        }}
-      >
-        <option value="">Default</option>
-      </select>`,
-    );
-  }
-}
-/** @extends {Prop<string>} */
-class ADate extends Prop {
-  /** @param {string} value
-   * @param {PropOptions} options
-   */
-  constructor(value = "", options = {}) {
-    super(value, options);
-  }
-
-  input() {
-    return this.labeled(
-      html`<input
-        type="date"
-        .value=${this._value}
-        id=${this.id}
-        @change=${(/** @type {InputEventWithTarget} */ event) => {
-          this._value = event.target.value;
-          this.update();
-        }}
-      />`,
-    );
-  }
-}
-
-/**
- * @template {unknown[]} T
- * @param {(...args: T)=>void} callback
- * @param {number} wait
- * @returns {(...args: T)=>void}
- * */
-const debounce = (callback, wait) => {
-  let timeoutId = null;
-  return (...args) => {
-    window.clearTimeout(timeoutId);
-    timeoutId = window.setTimeout(() => {
-      callback(...args);
-    }, wait);
-  };
-};
-
-const treebase = '';
-
-/*! (c) Andrea Giammarchi */
-
-const {iterator: iterator$1} = Symbol;
-
-const noop$1 = () => {};
-
-/**
- * A Map extend that transparently uses WeakRef around its values,
- * providing a way to observe their collection at distance.
- * @extends {Map}
- */
-class WeakValue extends Map {
-  #delete = (key, ref) => {
-    super.delete(key);
-    this.#registry.unregister(ref);
-  };
-
-  #get = (key, [ref, onValueCollected]) => {
-    const value = ref.deref();
-    if (!value) {
-      this.#delete(key, ref);
-      onValueCollected(key, this);
-    }
-    return value;
-  }
-
-  #registry = new FinalizationRegistry(key => {
-    const pair = super.get(key);
-    if (pair) {
-      super.delete(key);
-      pair[1](key, this);
-    }
-  });
-
-  constructor(iterable) {
-    super();
-    if (iterable)
-      for (const [key, value] of iterable)
-        this.set(key, value);
-  }
-
-  clear() {
-    for (const [_, [ref]] of super[iterator$1]())
-      this.#registry.unregister(ref);
-    super.clear();
-  }
-
-  delete(key) {
-    const pair = super.get(key);
-    return !!pair && !this.#delete(key, pair[0]);
-  }
-
-  forEach(callback, context) {
-    for (const [key, value] of this)
-      callback.call(context, value, key, this);
-  }
-
-  get(key) {
-    const pair = super.get(key);
-    return pair && this.#get(key, pair);
-  }
-
-  has(key) {
-    return !!this.get(key);
-  }
-
-  set(key, value, onValueCollected = noop$1) {
-    super.delete(key);
-    const ref = new WeakRef(value);
-    this.#registry.register(value, key, ref);
-    return super.set(key, [ref, onValueCollected]);
-  }
-
-  *[iterator$1]() {
-    for (const [key, pair] of super[iterator$1]()) {
-      const value = this.#get(key, pair);
-      if (value)
-        yield [key, value];
-    }
-  }
-
-  *entries() {
-    yield *this[iterator$1]();
-  }
-
-  *values() {
-    for (const [_, value] of this[iterator$1]())
-      yield value;
-  }
-}
-
-/**
- * Create an object that is persisted to sessionStorage
- *
- * @template {Object} T
- * @param {string} key
- * @param {T} initial
- * @returns {T} - same type as the initial value
- */
-function session(key, initial) {
-  // import values from storage if present
-  const json = window.sessionStorage.getItem(key);
-  if (json) {
-    const values = JSON.parse(json);
-    if (!(values instanceof Object)) throw TypeError();
-    // validate the value from storage
-    if (sameObjectShape(initial, values)) initial = values;
-  }
-  if (!(initial instanceof Object)) throw TypeError();
-  return new Proxy(initial, {
-    set(obj, prop, value) {
-      const r = Reflect.set(obj, prop, value);
-      const json = JSON.stringify(obj);
-      window.sessionStorage.setItem(key, json);
-      return r;
-    },
-  });
-}
-
-/**
- * Compare objects to see if they have the same keys and types
- * @param {Object} a
- * @param {Object} b
- * @returns {boolean}
- */
-function sameObjectShape(a, b) {
-  for (const key of Object.keys(a)) {
-    if (typeof a[key] !== typeof b[key]) return false;
-  }
-  return true;
-}
-
-/**
- * Provide user friendly names for the components
- */
-
-/**
- * Map the classname into the Menu name and the Help Wiki page name
- */
-const namesMap = {
-  Action: ["Action", "Actions"],
-  ActionCondition: ["Condition", "Actions#Condition"],
-  Actions: ["Actions", "Actions"],
-  ActionUpdate: ["Update", "Actions#Update"],
-  Audio: ["Audio", "Audio"],
-  Button: ["Button", "Button"],
-  Content: ["Content", "Content"],
-  CueCircle: ["Circle", "Cues"],
-  CueCss: ["CSS", "Cues#CSS"],
-  CueFill: ["Fill", "Cues#Fill"],
-  CueList: ["Cues", "Cues"],
-  CueOverlay: ["Overlay", "Cues#Overlay"],
-  Customize: ["Customize", "Customize"],
-  Designer: ["Designer", "Designer"],
-  Display: ["Display", "Display"],
-  Filter: ["Filter", "Patterns#Filter"],
-  Gap: ["Gap", "Gap"],
-  Grid: ["Grid", "Grid"],
-  GridFilter: ["Filter", "Grid#Filter"],
-  GroupBy: ["Group By", "Patterns#Group By"],
-  HandlerCondition: ["Condition", "Methods#Condition"],
-  HandlerKeyCondition: ["Key Condition", "Methods#Key Condition"],
-  HandlerResponse: ["Response", "Methods#Response"],
-  HeadMouse: ["Head Mouse", "Head Mouse"],
-  KeyHandler: ["Key Handler", "Methods#Key Handler"],
-  Layout: ["Layout", "Layout"],
-  Logger: ["Logger", "Logger"],
-  Method: ["Method", "Methods"],
-  MethodChooser: ["Methods", "Methods"],
-  ModalDialog: ["Modal Dialog", "Modal Dialog"],
-  Option: ["Option", "Radio#Option"],
-  OrderBy: ["Order By", "Patterns#Order By"],
-  Page: ["Page", "Page"],
-  PatternGroup: ["Group", "Patterns"],
-  PatternList: ["Patterns", "Patterns"],
-  PatternManager: ["Pattern", "Patterns"],
-  PatternSelector: ["Selector", "Patterns"],
-  PointerHandler: ["Pointer Handler", "Methods#Pointer Handler"],
-  Radio: ["Radio", "Radio"],
-  ResponderActivate: ["Activate", "Methods#Activate"],
-  ResponderCue: ["Cue", "Methods#Cue"],
-  ResponderClearCue: ["Clear Cue", "Methods#Clear Cue"],
-  ResponderEmit: ["Emit", "Methods#Emit"],
-  ResponderNext: ["Next", "Methods#Next"],
-  ResponderStartTimer: ["Start Timer", "Methods"],
-  SocketHandler: ["Socket Handler", "Methods#Socket Handler"],
-  Speech: ["Speech", "Speech"],
-  Stack: ["Stack", "Stack"],
-  TabControl: ["Tab Control", "Tab Control"],
-  TabPanel: ["Tab", "Tab"],
-  Timer: ["Timer", "Methods#Timer"],
-  TimerHandler: ["Timer Handler", "Methods#Timer Handler"],
-  VSD: ["VSD", "VSD"],
-};
-
-/**
- * Get the name for a menu item from the class name
- * @param {string} className
- */
-function friendlyName(className) {
-  return className in namesMap ? namesMap[className][0] : className;
-}
-
-/**
- * Get the Wiki name from the class name
- * @param {string} className
- */
-function wikiName(className) {
-  return namesMap[className][1].replace(" ", "-");
-}
-
-class TreeBase {
-  /** @type {TreeBase[]} */
-  children = [];
-  /** @type {TreeBase | null} */
-  parent = null;
-  /** @type {string[]} */
-  allowedChildren = [];
-  allowDelete = true;
-
-  // every component has a unique id
-  static treeBaseCounter = 0;
-  id = `TreeBase-${TreeBase.treeBaseCounter++}`;
-
-  // values here are stored in sessionStorage
-  persisted = session(this.id, {
-    settingsDetailsOpen: false,
-  });
-
-  // map from id to the component
-  static idMap = new WeakValue();
-
-  /** @param {string} id
-   * @returns {TreeBase | null} */
-  static componentFromId(id) {
-    // strip off any added bits of the id
-    const match = id.match(/TreeBase-\d+/);
-    if (match) {
-      return this.idMap.get(match[0]);
-    }
-    return null;
-  }
-
-  designer = {};
-
-  /** A mapping from the external class name to the class */
-  static nameToClass = new Map();
-  /** A mapping from the class to the external class name */
-  static classToName = new Map();
-
-  /** @param {typeof TreeBase} cls
-   * @param {string} externalName
-   * */
-  static register(cls, externalName) {
-    this.nameToClass.set(externalName, cls);
-    this.classToName.set(cls, externalName);
-  }
-
-  get className() {
-    return TreeBase.classToName.get(this.constructor);
-  }
-
-  /**
-   * Extract the class fields that are Props and return their values as an Object
-   * @returns {Object<string, any>}
-   */
-  get propsAsObject() {
-    return Object.fromEntries(
-      Object.entries(this)
-        .filter(([_, prop]) => prop instanceof Prop)
-        .map(([name, prop]) => [name, prop.value]),
-    );
-  }
-
-  /**
-   * Extract the values of the fields that are Props
-   * @returns {Object<string, Props.Prop>}
-   */
-  get props() {
-    return Object.fromEntries(
-      Object.entries(this).filter(([_, prop]) => prop instanceof Prop),
-    );
-  }
-
-  /**
-   * Prepare a TreeBase tree for external storage by converting to simple objects and arrays
-   * @param {Object} [options]
-   * @param {string[]} options.omittedProps - class names of props to omit
-   * @returns {Object}
-   * */
-  toObject(options = { omittedProps: [] }) {
-    const props = Object.fromEntries(
-      Object.entries(this)
-        .filter(
-          ([_, prop]) =>
-            prop instanceof Prop &&
-            !options.omittedProps.includes(prop.constructor.name),
-        )
-        .map(([name, prop]) => [name, prop.text]),
-    );
-    const children = this.children.map((child) => child.toObject(options));
-    const result = {
-      className: this.className,
-      props,
-      children,
-    };
-    return result;
-  }
-
-  /**
-   * An opportunity for the component to initialize itself. This is
-   * called in fromObject after the children have been added. If you
-   * call create directly you should call init afterward.
-   */
-  init() {
-    /** Make sure OnOfGroup is enforced */
-    for (const child of this.children) {
-      const props = child.props;
-      for (const instance of Object.values(props)) {
-        if (instance instanceof OneOfGroup && instance._value) {
-          instance.clearPeers();
-          break;
-        }
-      }
-    }
-  }
-
-  /**
-   *   Create a TreeBase object
-   *   @template {TreeBase} TB
-   *   @param {string|(new()=>TB)} constructorOrName
-   *   @param {TreeBase | null} parent
-   *   @param {Object<string,string|number|boolean>} props
-   *   @returns {TB}
-   *   */
-  static create(constructorOrName, parent = null, props = {}) {
-    const constructor =
-      typeof constructorOrName == "string"
-        ? TreeBase.nameToClass.get(constructorOrName)
-        : constructorOrName;
-    /** @type {TB} */
-    const result = new constructor();
-
-    // initialize the props
-    for (const [name, prop] of Object.entries(result.props)) {
-      prop.initialize(name, props[name], result);
-    }
-
-    // link it to its parent
-    if (parent) {
-      result.parent = parent;
-      parent.children.push(result);
-    }
-
-    // remember the relationship between id and component
-    TreeBase.idMap.set(result.id, result);
-
-    return result;
-  }
-
-  /**
-   * Instantiate a TreeBase tree from its external representation
-   * @param {Object} obj
-   * @param {TreeBase | null} parent
-   * @returns {TreeBase} - should be {this} but that isn't supported for some reason
-   * */
-  static fromObject(obj, parent = null) {
-    // Get the constructor from the class map
-    if (!obj) console.trace("fromObject", obj);
-    const className = obj.className;
-    const constructor = this.nameToClass.get(className);
-    if (!constructor) {
-      console.trace("className not found", className, obj);
-      throw new Error("className not found");
-    }
-
-    // Create the object and link it to its parent
-    const result = this.create(constructor, parent, obj.props);
-
-    // Link in the children
-    for (const childObj of obj.children) {
-      if (childObj instanceof TreeBase) {
-        childObj.parent = result;
-        result.children.push(childObj);
-      } else {
-        TreeBase.fromObject(childObj, result);
-      }
-    }
-
-    // allow the component to initialize itself
-    result.init();
-
-    // Validate the type is what was expected
-    if (result instanceof this) return result;
-
-    // Die if not
-    console.error("expected", this);
-    console.error("got", result);
-    throw new Error(`fromObject failed`);
-  }
-
-  /**
-   * Signal nodes above that something has been updated
-   */
-  update() {
-    let start = this;
-    /** @type {TreeBase | null} */
-    let p = start;
-    while (p) {
-      p.onUpdate(start);
-      p = p.parent;
-    }
-  }
-
-  /**
-   * Called when something below is updated
-   * @param {TreeBase} _start
-   */
-  onUpdate(_start) {}
-
-  /**
-   * Render the designer interface and return the resulting Hole
-   * @returns {Hole}
-   */
-  settings() {
-    const detailsId = this.id + "-details";
-    const settingsId = this.id + "-settings";
-    return html`<div class="settings">
-      <details
-        class=${this.className}
-        id=${detailsId}
-        ?open=${this.persisted.settingsDetailsOpen}
-        @toggle=${({ target }) =>
-          (this.persisted.settingsDetailsOpen = target.open)}
-      >
-        <summary id=${settingsId}>${this.settingsSummary()}</summary>
-        ${this.settingsDetails()}
-      </details>
-      ${this.settingsChildren()}
-    </div>`;
-  }
-
-  /**
-   * Render the summary of a components settings
-   * @returns {Hole}
-   */
-  settingsSummary() {
-    const name = Object.hasOwn(this, "name") ? this["name"].value : "";
-    return html`<h3>${friendlyName(this.className)} ${name}</h3>`;
-  }
-
-  /**
-   * Render the details of a components settings
-   * @returns {Hole[]}
-   */
-  settingsDetails() {
-    const props = this.props;
-    const inputs = Object.values(props).map((prop) => prop.input());
-    return inputs;
-  }
-
-  /**
-   * @returns {Hole}
-   */
-  settingsChildren() {
-    return this.orderedChildren();
-  }
-
-  /**
-   * Render the user interface and return the resulting Hole
-   * @returns {Hole}
-   */
-  template() {
-    return html`<div />`;
-  }
-
-  /**
-   * Render the user interface catching errors and return the resulting Hole
-   * @returns {Hole}
-   */
-  safeTemplate() {
-    try {
-      return this.template();
-    } catch (error) {
-      errorHandler(error, ` safeTemplate ${this.className}`);
-      let classes = [this.className.toLowerCase()];
-      classes.push("error");
-      return html`<div class=${classes.join(" ")} id=${this.id}>ERROR</div>`;
-    }
-  }
-
-  /** @typedef {Object} ComponentAttrs
-   * @property {string[]} [classes]
-   * @property {Object} [style]
-   */
-
-  /**
-   * Wrap the body of a component
-   *
-   * @param {ComponentAttrs} attrs
-   * @param {Hole} body
-   * @returns {Hole}
-   */
-  component(attrs, body) {
-    attrs = { style: {}, ...attrs };
-    let classes = [this.className.toLowerCase()];
-    if ("classes" in attrs) {
-      classes = classes.concat(attrs.classes);
-    }
-    return html`<div
-      class=${classes.join(" ")}
-      id=${this.id}
-      style=${styleString(attrs.style)}
-    >
-      ${body}
-    </div>`;
-  }
-
-  /**
-   * Swap two of my children
-   * @param {number} i
-   * @param {number} j
-   */
-  swap(i, j) {
-    const A = this.children;
-    [A[i], A[j]] = [A[j], A[i]];
-  }
-
-  /**
-   * Move me to given position in my parent
-   * @param {number} i
-   */
-  moveTo(i) {
-    const peers = this.parent?.children || [];
-    peers.splice(this.index, 1);
-    peers.splice(i, 0, this);
-  }
-
-  /**
-   * Move me up or down by 1 position if possible
-   * @param {boolean} up
-   */
-  moveUpDown(up) {
-    const parent = this.parent;
-    if (!parent) return;
-    const peers = parent.children;
-    if (peers.length > 1) {
-      const index = this.index;
-      const step = up ? -1 : 1;
-      if ((up && index > 0) || (!up && index < peers.length - 1)) {
-        parent.swap(index, index + step);
-      }
-    }
-  }
-
-  /**
-   * Get the index of this component in its parent
-   * @returns {number}
-   */
-  get index() {
-    return (this.parent && this.parent.children.indexOf(this)) || 0;
-  }
-
-  /**
-   *  * Remove this child from their parent and return the id of the child to receive focus
-   *  @returns {string}
-   *  */
-  remove() {
-    if (!this.parent) return "";
-    const peers = this.parent.children;
-    const index = peers.indexOf(this);
-    const parent = this.parent;
-    this.parent = null;
-    peers.splice(index, 1);
-    if (peers.length > index) {
-      return peers[index].id;
-    } else if (peers.length > 0) {
-      return peers[peers.length - 1].id;
-    } else {
-      return parent.id;
-    }
-  }
-
-  /**
-   * Create HTML LI nodes from the children
-   */
-  listChildren(children = this.children) {
-    return children.map((child) => html`<li>${child.settings()}</li>`);
-  }
-
-  /**
-   * Create an HTML ordered list from the children
-   */
-  orderedChildren(children = this.children) {
-    return html`<ol>
-      ${this.listChildren(children)}
-    </ol>`;
-  }
-
-  /**
-   * Create an HTML unordered list from the children
-   * */
-  unorderedChildren(children = this.children) {
-    return html`<ul>
-      ${this.listChildren(children)}
-    </ul>`;
-  }
-
-  /**
-   * Return the nearest parent of the given type
-   * @template T
-   * @param {new() => T} type
-   * @returns {T}
-   * */
-  nearestParent(type) {
-    let p = this.parent;
-    while (p) {
-      if (p instanceof type) {
-        return p;
-      }
-      p = p.parent;
-    }
-    throw new Error("No such parent");
-  }
-
-  /**
-   * Filter children by their type
-   * @template T
-   * @param {new() => T} type
-   * @returns {T[]}
-   */
-  filterChildren(type) {
-    /** @type {T[]} */
-    const result = [];
-    for (const child of this.children) {
-      if (child instanceof type) {
-        result.push(child);
-      }
-    }
-    return result;
-  }
-
-  /** @param {string[]} classes
-   * @returns {string}
-   */
-  CSSClasses(...classes) {
-    return classes.join(" ");
-  }
-}
-
-/**
- * A variant of TreeBase that allows replacing a node with one of a similar type
- */
-class TreeBaseSwitchable extends TreeBase {
-  init() {
-    super.init();
-    // find the TypeSelect property and set its value
-    for (const prop of Object.values(this.props)) {
-      if (prop instanceof TypeSelect) {
-        if (!prop.value) {
-          prop.set(this.className);
-        }
-      }
-    }
-  }
-
-  /** Replace this node with one of a compatible type
-   * @param {string} className */
-  replace(className) {
-    if (!this.parent) return;
-    if (this.className == className) return;
-    // extract the values of the old props
-    const props = Object.fromEntries(
-      Object.entries(this)
-        .filter(([_, prop]) => prop instanceof Prop)
-        .map(([name, prop]) => [name, prop.value]),
-    );
-    const replacement = TreeBase.create(className, null, props);
-    replacement.init();
-    const index = this.parent.children.indexOf(this);
-    this.parent.children[index] = replacement;
-    replacement.parent = this.parent;
-    this.update();
-  }
-}
-
-class Messages extends TreeBase {
-  /** @type {string[]} */
-  messages = [];
-
-  template() {
-    if (this.messages.length) {
-      const result = html`<div id="messages">
-        ${this.messages.map((message) => html`<p>${message}</p>`)}
-      </div> `;
-      this.messages = [];
-      return result;
-    } else {
-      return html`<div />`;
-    }
-  }
-
-  report(message = "") {
-    console.log({ message });
-    this.messages.push(message);
-  }
-}
-
-/** Display an error message for user feedback
- * @param {string} msg - the error message
- * @param {string[]} trace - stack trace
- */
-function reportInternalError(msg, trace) {
-  const result = document.createElement("div");
-  result.id = "ErrorReport";
-  render(
-    result,
-    html`<div id="ErrorReport">
-      <h1>Internal Error</h1>
-      <p>
-        Your browser has detected an internal error in OS-DPI. It was very
-        likely caused by our program bug. We hope you will help us by sending a
-        report of the information below. Simply click this button
-        <button
-          @click=${() => {
-            const html =
-              document.getElementById("ErrorReportBody")?.innerHTML || "";
-            const blob = new Blob([html], { type: "text/html" });
-            const data = [new ClipboardItem({ "text/html": blob })];
-            navigator.clipboard.write(data);
-          }}
-        >
-          Copy report to clipboard
-        </button>
-        and then paste into an email to
-        <a
-          href="mailto:gb@cs.unc.edu?subject=OS-DPI Error Report"
-          target="email"
-          >gb@cs.unc.edu</a
-        >.
-        <button
-          @click=${() => {
-            document.getElementById("ErrorReport")?.remove();
-          }}
-        >
-          Dismiss this dialog
-        </button>
-      </p>
-      <div id="ErrorReportBody">
-        <h2>Error Report</h2>
-        <p>${msg}</p>
-        <h2>Stack Trace</h2>
-        <ul>
-          ${trace.map((s) => html`<li>${s}</li>`)}
-        </ul>
-      </div>
-    </div>`,
-  );
-  document.body.prepend(result);
-}
-
-/** @param {string} msg
- * @param {string} _file
- * @param {number} _line
- * @param {number} _col
- * @param {Error} error
- */
-window.onerror = async function (msg, _file, _line, _col, error) {
-  console.error("onerror", msg, error);
-  if (error instanceof Error) {
-    try {
-      const frames = await stacktraceExports.fromError(error);
-      const trace = frames.map((frame) => `${frame.toString()}`);
-      reportInternalError(msg.toString(), trace);
-    } catch (e) {
-      const msg2 = `Caught an error trying to report an error.
-        The original message was "${msg.toString()}".
-        With file=${_file} line=${_line} column=${_col}
-        error=${error.toString()}`;
-      reportInternalError(msg2, []);
-    }
-  }
-};
-
-/** @param {Error} error */
-function errorHandler(error, extra = "") {
-  let stack = [];
-  let cause = `${error.name}${extra}`;
-  if (error.stack) {
-    const errorLines = error.stack.split("\n");
-    stack = errorLines.slice(1);
-    cause = errorLines[0] + extra;
-  }
-  reportInternalError(cause, stack);
-}
-/** @param {PromiseRejectionEvent} error */
-window.onunhandledrejection = function (error) {
-  console.error("onunhandlederror", error);
-  error.preventDefault();
-  reportInternalError(
-    error.reason.message,
-    error.reason.stack?.split("\n") || ["no stack"],
-  );
-};
-
-const gridfilter = '';
-
-class GridFilter extends TreeBase {
-  field = new Field({ hiddenLabel: true });
-  operator = new Select(Object.keys(comparators), { hiddenLabel: true });
-  value = new Expression("", { hiddenLabel: true });
-
-  /** move my parent instead of me.
-   * @param {boolean} up
-   */
-  moveUpDown(up) {
-    this.parent?.moveUpDown(up);
-  }
-
-  /** Format the settings
-   * @param {GridFilter[]} filters
-   * @return {Hole}
-   */
-  static FilterSettings(filters) {
-    /** @type {Hole} */
-    let table;
-    if (filters.length > 0) {
-      table = html`
-        <table class="GridFilter">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Field</th>
-              <th>Operator</th>
-              <th>Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filters.map(
-              (filter, index) => html`
-                <tr id=${filter.id + "-settings"}>
-                  <td>${index + 1}</td>
-                  <td>${filter.field.input()}</td>
-                  <td>${filter.operator.input()}</td>
-                  <td>${filter.value.input()}</td>
-                </tr>
-              `,
-            )}
-          </tbody>
-        </table>
-      `;
-    } else {
-      table = html`<div />`;
-    }
-    return html`<fieldset>
-      <legend>Filters</legend>
-      ${table}
-    </fieldset>`;
-  }
-
-  /** Convert from Props to values for data module
-   * @param {GridFilter[]} filters
-   */
-  static toContentFilters(filters) {
-    return filters.map((child) => ({
-      field: child.field.value,
-      operator: child.operator.value,
-      value: child.value.value,
-    }));
-  }
-}
-TreeBase.register(GridFilter, "GridFilter");
-
-const collator = new Intl.Collator("en", { sensitivity: "base" });
-const collatorNumber = new Intl.Collator("en", { numeric: true });
-
-/** Implement comparison operators
- * @typedef {function(string, string): boolean} Comparator
- *
- * @type {Object<string, Comparator>}
- */
-const comparators = {
-  equals: (f, v) => collator.compare(f, v) === 0 || f === "*" || v === "*",
-  "starts with": (f, v) => f.toUpperCase().startsWith(v.toUpperCase()),
-  empty: (f) => !f,
-  "not empty": (f) => !!f,
-  "less than": (f, v) => collatorNumber.compare(f, v) < 0,
-  "greater than": (f, v) => collatorNumber.compare(f, v) > 0,
-  "less or equal": (f, v) => collatorNumber.compare(f, v) <= 0,
-  "greater or equal": (f, v) => collatorNumber.compare(f, v) >= 0,
-};
-
-/** Test a row with a filter
- * @param {ContentFilter} filter
- * @param {Row} row
- * @returns {boolean}
- */
-function match(filter, row) {
-  const field = row[filter.field.slice(1)] || "";
-  let value = filter.value || "";
-  const comparator = comparators[filter.operator];
-  if (!comparator) return true;
-  let r = comparator(field.toString(), value.toString());
-  return r;
-}
-
-class Data {
-  /** @param {Rows} rows - rows coming from the spreadsheet */
-  constructor(rows) {
-    this.contentRows = (Array.isArray(rows) && rows) || [];
-    this.allrows = this.contentRows;
-    /** @type {Set<string>} */
-    this.allFields = new Set();
-    this.updateAllFields();
-    this.loadTime = new Date();
-  }
-
-  updateAllFields() {
-    this.allFields = this.contentRows.reduce((previous, current) => {
-      for (const field of Object.keys(current)) {
-        previous.add("#" + field);
-      }
-      return previous;
-    }, new Set());
-    this.clearFields = {};
-    for (const field of this.allFields) {
-      this.clearFields[field.slice(1)] = null;
-    }
-  }
-
-  /**
-   * Extract rows with the given filters
-   *
-   * @param {GridFilter[]} filters - each filter must return true
-   * @param {boolean} [clearFields] - return null for undefined fields
-   * @return {Rows} Rows that pass the filters
-   */
-  getMatchingRows(filters, clearFields = true) {
-    // all the filters must match the row
-    const boundFilters = filters.map((filter) => ({
-      field: filter.field.value,
-      operator: filter.operator.value,
-      value: filter.value.value,
-    }));
-    let result = this.allrows.filter((row) =>
-      boundFilters.every((filter) => match(filter, row)),
-    );
-    if (clearFields)
-      result = result.map((row) => ({ ...this.clearFields, ...row }));
-    return result;
-  }
-
-  /**
-   * Test if any rows exist after filtering
-   *
-   * @param {GridFilter[]} filters
-   * @param {EvalContext} context
-   * @return {Boolean} true if tag combination occurs
-   */
-  hasMatchingRows(filters, context) {
-    const boundFilters = filters.map((filter) => ({
-      field: filter.field.value,
-      operator: filter.operator.value,
-      value: filter.value.valueInContext(context),
-    }));
-    const result = this.allrows.some((row) =>
-      boundFilters.every((filter) => match(filter, row)),
-    );
-    return result;
-  }
-
-  /**
-   * Add rows from the socket interface
-   * @param {Rows} rows
-   */
-  setDynamicRows(rows) {
-    if (!Array.isArray(rows)) return;
-    this.allrows = rows.concat(this.contentRows);
-    this.updateAllFields();
-    this.loadTime = new Date();
-  }
-}
-
-const e$1=Object.assign||((e,t)=>(t&&Object.keys(t).forEach(o=>e[o]=t[o]),e)),t$1=(e,r,s)=>{const c=typeof s;if(s&&"object"===c)if(Array.isArray(s))for(const o of s)r=t$1(e,r,o);else for(const c of Object.keys(s)){const f=s[c];"function"==typeof f?r[c]=f(r[c],o$1):void 0===f?e&&!isNaN(c)?r.splice(c,1):delete r[c]:null===f||"object"!=typeof f||Array.isArray(f)?r[c]=f:"object"==typeof r[c]?r[c]=f===r[c]?f:o$1(r[c],f):r[c]=t$1(!1,{},f);}else "function"===c&&(r=s(r,o$1));return r},o$1=(o,...r)=>{const s=Array.isArray(o);return t$1(s,s?o.slice():e$1({},o),r)};
-
-let State$1 = class State {
-  constructor(persistKey = "") {
-    this.persistKey = persistKey;
-    /** @type {Set<function>} */
-    this.listeners = new Set();
-    /** @type {Object} */
-    this.values = {};
-    /** @type {Set<string>} */
-    this.updated = new Set();
-    if (this.persistKey) {
-      /* persistence */
-      const persist = window.sessionStorage.getItem(this.persistKey);
-      if (persist) {
-        this.values = JSON.parse(persist);
-      }
-    }
-  }
-
-  /** unified interface to state
-   * @param {string} [name] - possibly dotted path to a value
-   * @param {any} defaultValue
-   * @returns {any}
-   */
-  get(name, defaultValue = "") {
-    if (name && name.length) {
-      return name
-        .split(".")
-        .reduce((o, p) => (o ? o[p] : defaultValue), this.values);
-    } else {
-      return undefined;
-    }
-  }
-
-  /**
-   * update the state with a patch and invoke any listeners
-   *
-   * @param {Object} patch - the changes to make to the state
-   * @return {void}
-   */
-  update(patch = {}) {
-    for (const key in patch) {
-      this.updated.add(key);
-    }
-    this.values = o$1(this.values, patch);
-    for (const callback of this.listeners) {
-      callback();
-    }
-
-    if (this.persistKey) {
-      const persist = JSON.stringify(this.values);
-      window.sessionStorage.setItem(this.persistKey, persist);
-      // console.trace("persist $tabControl", this.values["$tabControl"]);
-    }
-  }
-
-  /**
-   * return a new state with the patch applied
-   * @param {Object} patch - changes to apply
-   * @return {State} - new independent state
-   */
-  clone(patch = {}) {
-    const result = new State();
-    result.values = o$1(this.values, patch);
-    return result;
-  }
-
-  /** clear - reset the state
-   */
-  clear() {
-    const userState = Object.keys(this.values).filter((name) =>
-      name.startsWith("$"),
-    );
-    const patch = Object.fromEntries(
-      userState.map((name) => [name, undefined]),
-    );
-    this.update(patch);
-  }
-
-  /** observe - call this function when the state updates
-   * @param {Function} callback
-   */
-  observe(callback) {
-    this.listeners.add(callback);
-  }
-
-  /** return true if the given state has been upated on this cycle
-   * @param {string} stateName
-   * @returns boolean
-   */
-  hasBeenUpdated(stateName) {
-    return this.updated.has(stateName);
-  }
-
-  /** clear updated for the next cycle
-   */
-  clearUpdated() {
-    this.updated.clear();
-  }
-
-  /** define - add a named state to the global system state
-   * @param {String} name - name of the state
-   * @param {any} defaultValue - value if not already defined
-   */
-  define(name, defaultValue) {
-    if (typeof this.values[name] === "undefined") {
-      this.values[name] = defaultValue;
-    }
-  }
-  /** interpolate
-   * @param {string} input
-   * @returns {string} input with $name replaced by values from the state
-   */
-  interpolate(input) {
-    let result = input.replace(/(\$[a-zA-Z0-9_.]+)/g, (_, name) =>
-      this.get(name),
-    );
-    result = result.replace(/\$\{([a-zA-Z0-9_.]+)}/g, (_, name) =>
-      this.get("$" + name),
-    );
-    return result;
-  }
-};
-
-const stack = '';
-
-class Stack extends TreeBase {
-  direction = new Select(["row", "column"], { defaultValue: "column" });
-  background = new Color("");
-  scale = new Float(1);
-
-  allowedChildren = [
-    "Stack",
-    "Gap",
-    "Grid",
-    "Display",
-    "Radio",
-    "TabControl",
-    "VSD",
-    "Button",
-  ];
-
-  /** @returns {Hole} */
-  template() {
-    /** return the scale of the child making sure it isn't zero or undefined.
-     * @param {TreeBase } child
-     * @returns {number}
-     */
-    function getScale(child) {
-      const SCALE_MIN = 0.0;
-      let scale = +child["scale"]?.value;
-      if (!scale || scale < SCALE_MIN) {
-        scale = SCALE_MIN;
-      }
-      return scale;
-    }
-    const scaleSum = this.children.reduce(
-      (sum, child) => sum + getScale(child),
-      0,
-    );
-    const empty = this.children.length && scaleSum ? "" : "empty";
-    const direction = this.direction.value;
-    const dimension = direction == "row" ? "width" : "height";
-
-    return this.component(
-      {
-        classes: [this.CSSClasses(direction, empty)],
-        style: {
-          backgroundColor: this.background.value,
-        },
-      },
-      html`${this.children.map(
-        (child) =>
-          html`<div
-            style=${styleString({
-              [dimension]: `${(100 * getScale(child)) / scaleSum}%`,
-            })}
-          >
-            ${child.safeTemplate()}
-          </div>`,
-      )}`,
-    );
-  }
-}
-TreeBase.register(Stack, "Stack");
-
-class Page extends Stack {
-  // you can't delete the page
-  allowDelete = false;
-
-  constructor() {
-    super();
-    this.allowedChildren = this.allowedChildren.concat(
-      "Speech",
-      "Audio",
-      "Logger",
-      "ModalDialog",
-      "Customize",
-      "HeadMouse"
-    );
-  }
-}
-Stack.register(Page, "Page");
-
-/** Gather Slots code into one module
- *
- * Slots are coded in strings like $$ kind = value $$ where kind is used
- * to access the Content for choices and value is the initial and default value.
- *
- */
-
-
-/** Slot descriptor
- * @typedef {Object} Slot
- * @property {string} name - the name of the slot list
- * @property {string} value - the current value
- */
-
-/** Editor state
- * @typedef {Object} Editor
- * @property {"editor"} type
- * @property {string} message - the message text
- * @property {Slot[]} slots - slots if any
- * @property {number} slotIndex - slot being edited
- * @property {string} slotName - current slot type
- * @property {string} value - value stripped of any markup
- */
-
-/**
- * Edit slots markup to replace with highlighed values
- * @param {string|Editor} msg - the string possibly containing $$ kind = value $$ markup
- * @returns {Hole[]} - formatted string
- */
-function formatSlottedString(msg) {
-  if (typeof msg === "string") {
-    return msg.split(/(\$\$.*?\$\$)/).map((part) => {
-      const m = part.match(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/);
-      if (m) {
-        return html`<b>${m.groups?.value || ""}</b>`;
-      } else {
-        return html`${part}`;
-      }
-    });
-  } else if (typeof msg === "object" && msg.type === "editor") {
-    let editor = msg;
-    // otherwise it is an editor object
-    // highlight the current slot
-    let i = 0;
-    return editor.message.split(/(\$\$.*?\$\$)/).map((part) => {
-      const m = part.match(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/);
-      if (m) {
-        if (i === editor.slotIndex) {
-          // highlight the current slot
-          return html`<b>${editor.slots[i++].value}</b>`;
-        } else {
-          return html`${editor.slots[i++].value.replace(/^\*/, "")}`;
-        }
-      }
-      return html`${part}`;
-    });
-  } else {
-    return [];
-  }
-}
-
-/** Edit slots markup to replace with values
- * @param {string|Editor} value
- * @returns {string}
- */
-function toString(value) {
-  value ??= "";
-  if (typeof value === "string") {
-    // strip any slot markup
-    value = value.replaceAll(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/g, "$2");
-    return value;
-  } else if (typeof value === "object" && value.type === "editor") {
-    let editor = value;
-    // otherwise it is an editor object
-    let i = 0;
-    const parts = editor.message.split(/(\$\$.*?\$\$)/).map((part) => {
-      const m = part.match(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/);
-      if (m) {
-        return editor.slots[i++].value.replace(/^\*/, "");
-      }
-      return part;
-    });
-    return parts.join("");
-  }
-  return value.toString();
-}
-
-/** We need to keep some additional state around to enable editing slotted messages.
- *
- * These functions are used in Updates to manipulate the state.
- */
-
-/** Test if this message has slots
- * @param {string|Editor} message
- * @returns {boolean}
- */
-function hasSlots(message) {
-  if (message instanceof Object && message.type === "editor") {
-    return message.slots.length > 0;
-  } else if (typeof message == "string") return message.indexOf("$$") >= 0;
-  return false;
-}
-
-/** initialize the editor
- * @param {String} message
- * @returns Editor
- */
-function init(message) {
-  message = message || "";
-  const slots = Array.from(
-    message.matchAll(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/g),
-  ).map((m) => m.groups);
-  let result = {
-    type: "editor",
-    message,
-    slots,
-    slotIndex: 0,
-    slotName: (slots[0] && slots[0].name) || "",
-  };
-  return result;
-}
-
-/** cancel slot editing
- * @returns Editor
- */
-function cancel() {
-  return {
-    type: "editor",
-    message: "",
-    slots: [],
-    slotIndex: 0,
-    slotName: "",
-  };
-}
-
-/** update the value of the current slot
- * @param {String} message
- */
-function update(message) {
-  message ??= "";
-  /** @param {Editor} old
-   * @returns {Editor|string}
-   */
-  return (old) => {
-    // copy the slots from the old value
-    if (!old || !old.slots) {
-      return "";
-    }
-    const slots = [...old.slots];
-    let slotIndex = old.slotIndex;
-    // replace the current one
-    if (message.startsWith("*")) {
-      slots[slotIndex].value = message;
-    } else {
-      if (slots[slotIndex].value.startsWith("*")) {
-        slots[slotIndex].value = `${slots[slotIndex].value} ${message}`;
-      } else {
-        slots[slotIndex].value = message;
-      }
-      slotIndex++;
-      if (slotIndex >= slots.length) {
-        Globals.actions.queueEvent("okSlot", "press");
-      }
-    }
-    return o$1(old, {
-      slots,
-      slotIndex,
-      slotName: slots[slotIndex]?.name,
-    });
-  };
-}
-
-/** advance to the next slot
- */
-function nextSlot() {
-  /** @param {Editor} old
-   */
-  return (old) => {
-    if (!old || !old.slots) return;
-    const slotIndex = old.slotIndex + 1;
-    if (slotIndex >= old.slots.length) {
-      Globals.actions.queueEvent("okSlot", "press");
-    }
-    return o$1(old, { slotIndex, slotName: old.slots[slotIndex]?.name });
-  };
-}
-
-/** duplicate the current slot
- */
-function duplicate() {
-  /** @param {Editor} old
-   */
-  return (old) => {
-    if (!old || !old.slots) return;
-    const matches = Array.from(
-      old.message.matchAll(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/g),
-    );
-    const current = matches[old.slotIndex];
-    if (current !== undefined && current.index !== undefined) {
-      const message =
-        old.message.slice(0, current.index) +
-        current[0] +
-        " and " +
-        current[0] +
-        old.message.slice(current.index + current[0].length);
-      const slots = [
-        ...old.slots.slice(0, old.slotIndex + 1),
-        { ...old.slots[old.slotIndex] }, // copy it
-        ...old.slots.slice(old.slotIndex + 1),
-      ];
-      return o$1(old, {
-        message,
-        slots,
-      });
-    } else {
-      return old;
-    }
-  };
-}
-
-/** Get the slot name
- * @param {string|Editor} message
- * @returns string;
- */
-function slotName(message) {
-  if (typeof message === "object" && message.type === "editor") {
-    return message.slotName;
-  }
-  return "";
-}
-{
-  Functions["slots"] = {
-    init,
-    cancel,
-    update,
-    hasSlots,
-    duplicate,
-    nextSlot,
-    slotName,
-    toString,
-  };
-}
-
-const grid = '';
-
-/**
- * Return an image or video element given the name + parameters
- * like "foo.mp4 autoplay loop".
- * @param {string} src
- * @param {string} title
- * @param {null|function():void} onload
- * @returns {Hole}
- */
-function imageOrVideo(src, title, onload = null) {
-  const match = /(?<src>.*\.(?:mp4|webm))(?<options>.*$)/.exec(src);
-
-  if (match && match.groups) {
-    // video
-    const options = match.groups.options;
-    const vsrc = match.groups.src;
-    return html`<video
-      is="video-db"
-      dbsrc=${vsrc}
-      title=${title}
-      ?loop=${options.indexOf("loop") >= 0}
-      ?autoplay=${options.indexOf("autoplay") >= 0}
-      ?muted=${options.indexOf("muted") >= 0}
-      @load=${onload}
-    />`;
-  } else {
-    // image
-    return html`<img
-      is="img-db"
-      dbsrc=${src}
-      title=${title}
-      @load=${onload}
-    />`;
-  }
-}
-
-class Grid extends TreeBase {
-  fillItems = new Boolean$1(false);
-  rows = new Integer(3);
-  columns = new Integer(3);
-  scale = new Float(1);
-  name = new String$1("grid");
-  background = new Color("white");
-
-  allowedChildren = ["GridFilter"];
-
-  /** @type {GridFilter[]} */
-  children = [];
-
-  page = 1;
-  pageBoundaries = { 0: 0 }; //track starting indices of pages
-
-  /** @param {Row} item */
-  gridCell(item) {
-    const name = this.name.value;
-    /** @type {Hole[]} */
-    let content;
-    let msg = formatSlottedString(item.label || "");
-    if (item.symbol) {
-      content = [
-        html`<div>
-          <figure>
-            ${imageOrVideo(item.symbol, item.label || "")}
-            <figcaption>${msg}</figcaption>
-          </figure>
-        </div>`,
-      ];
-    } else {
-      content = msg;
-    }
-    return html`<button
-      tabindex="-1"
-      data=${{
-        ...item,
-        ComponentName: name,
-        ComponentType: this.className,
-      }}
-      ?disabled=${!item.label && !item.symbol}
-    >
-      ${content}
-    </button>`;
-  }
-
-  emptyCell() {
-    return html`<button tabindex="-1" disabled></button>`;
-  }
-
-  /**
-   * Allow selecting pages in the grid
-   *
-   * @param {Number} pages
-   * @param {Row} info
-   */
-  pageSelector(pages, info) {
-    const { state } = Globals;
-    const background = this.background.value;
-    const name = this.name.value;
-
-    return html`<div class="page-control">
-      <div class="text">Page ${this.page} of ${pages}</div>
-      <div class="back-next">
-        <button
-          style=${styleString({ backgroundColor: background })}
-          .disabled=${this.page == 1}
-          data=${{
-            ...info,
-            ComponentName: name,
-            ComponentType: this.className,
-          }}
-          click
-          @Activate=${() => {
-            this.page = ((((this.page - 2) % pages) + pages) % pages) + 1;
-            state.update(); // trigger redraw
-          }}
-          tabindex="-1"
-        >
-          &#9754;</button
-        ><button
-          .disabled=${this.page == pages}
-          data=${{
-            ...info,
-            ComponentName: name,
-            ComponentType: this.className,
-          }}
-          click
-          @Activate=${() => {
-            this.page = (this.page % pages) + 1;
-            state.update(); // trigger redraw
-          }}
-          tabindex="-1"
-        >
-          &#9755;
-        </button>
-      </div>
-    </div>`;
-  }
-
-  template() {
-    /** @type {Partial<CSSStyleDeclaration>} */
-    const style = { backgroundColor: this.background.value };
-    const { data } = Globals;
-    let rows = this.rows.value;
-    let columns = this.columns.value;
-    let fillItems = this.fillItems.value;
-    /** @type {Rows} */
-    let items = data.getMatchingRows(this.children);
-    let maxPage = 1;
-    const result = [];
-    if (!fillItems) {
-      // collect the items for the current page
-      // and get the dimensions
-      let maxRow = 0,
-        maxColumn = 0;
-      const itemMap = new Map();
-      /**
-       * @param {number} row
-       * @param {number} column
-       */
-      const itemKey = (row, column) => row * 1000 + column;
-
-      for (const item of items) {
-        // ignore items without row and column
-        if (!item.row || !item.column) continue;
-        // get the max page value if any
-        maxPage = Math.max(maxPage, item.page || 1);
-        // collect the items on this page
-        if (this.page == (item.page || 1)) {
-          maxRow = Math.max(maxRow, item.row);
-          maxColumn = Math.max(maxColumn, item.column);
-          const key = itemKey(item.row, item.column);
-          // only use the first one
-          if (!itemMap.has(key)) itemMap.set(key, item);
-        }
-      }
-      rows = maxRow;
-      columns = maxColumn;
-      for (let row = 1; row <= rows; row++) {
-        for (let column = 1; column <= columns; column++) {
-          if (maxPage > 1 && row == rows && column == columns) {
-            // draw the page selector in the last cell
-            result.push(this.pageSelector(maxPage, { row, column }));
-          } else {
-            const key = itemKey(row, column);
-            if (itemMap.has(key)) {
-              result.push(this.gridCell(itemMap.get(key)));
-            } else {
-              result.push(this.emptyCell());
-            }
-          }
-        }
-      }
-    } else {
-      // fill items sequentially
-      let perPage = rows * columns;
-      if (items.length > perPage) {
-        perPage = perPage - 1;
-      }
-      maxPage = Math.ceil(items.length / perPage);
-      // get the items on this page
-      items = items.slice((this.page - 1) * perPage, this.page * perPage);
-      // render them into the result
-      for (let i = 0; i < items.length; i++) {
-        const row = Math.floor(i / columns) + 1;
-        const column = (i % columns) + 1;
-        const item = { ...items[i], row, column };
-        result.push(this.gridCell({ ...item, row: row, column: column }));
-      }
-      // fill any spaces that remain
-      for (let i = items.length; i < perPage; i++) {
-        result.push(this.emptyCell());
-      }
-      // draw the page selector if needed
-      if (maxPage > 1) {
-        result.push(this.pageSelector(maxPage, { row: rows, column: columns }));
-      }
-    }
-
-    // empty result provokes a crash from uhtmlV4
-    if (!result.length) {
-      rows = columns = 1;
-      result.push(this.emptyCell());
-    }
-
-    style.gridTemplate = `repeat(${rows}, calc(100% / ${rows})) / repeat(${columns}, 1fr)`;
-
-    const body = html`<div style=${styleString(style)}>${result}</div>`;
-
-    return this.component({}, body);
-  }
-
-  settingsDetails() {
-    const props = this.props;
-    const inputs = Object.values(props).map((prop) => prop.input());
-    const filters = GridFilter.FilterSettings(this.children);
-    return [html`<div>${filters}${inputs}</div>`];
-  }
-
-  settingsChildren() {
-    return html`<div />`;
-  }
-}
-TreeBase.register(Grid, "Grid");
-
-const display = '';
-
-class Display extends TreeBase {
-  stateName = new String$1("$Display");
-  Name = new String$1("");
-  background = new Color("white");
-  fontSize = new Float(2);
-  scale = new Float(1);
-
-  /** @type {HTMLDivElement | null} */
-  current = null;
-
-  static functionsInitialized = false;
-
-  template() {
-    const { state } = Globals;
-    let value = state.get(this.stateName.value) || "";
-    const content = formatSlottedString(value);
-    return this.component(
-      {
-        style: {
-          backgroundColor: this.background.value,
-          fontSize: this.fontSize.value + "rem",
-        },
-      },
-      html`<button
-        ref=${this}
-        @pointerup=${this.click}
-        tabindex="-1"
-        ?disabled=${!this.Name.value}
-        data=${{
-          name: this.Name.value,
-          ComponentName: this.Name.value,
-          ComponentType: this.className,
-        }}
-      >
-        ${content}
-      </button>`,
-    );
-  }
-
-  /** Attempt to locate the word the user is touching
-   */
-  click = () => {
-    const s = window.getSelection();
-    if (!s) return;
-    let word = "";
-    if (s.isCollapsed) {
-      s.modify("move", "forward", "character");
-      s.modify("move", "backward", "word");
-      s.modify("extend", "forward", "word");
-      word = s.toString();
-      s.modify("move", "forward", "character");
-    } else {
-      word = s.toString();
-    }
-    this.current?.setAttribute("data--clicked-word", word);
-  };
-}
-TreeBase.register(Display, "Display");
-
-const radio = '';
-
-let Option$1 = class Option extends TreeBase {
-  name = new String$1("", { hiddenLabel: true });
-  value = new String$1("", { hiddenLabel: true });
-  cache = {};
-};
-TreeBase.register(Option$1, "Option");
-
-class Radio extends TreeBase {
-  scale = new Float(1);
-  label = new String$1("");
-  stateName = new String$1("$radio");
-  unselected = new Color("lightgray");
-  selected = new Color("pink");
-
-  allowedChildren = ["Option", "GridFilter"];
-
-  /** @type {(Option | GridFilter)[]} */
-  children = [];
-
-  get options() {
-    return this.filterChildren(Option$1);
-  }
-
-  /**
-   * true if there exist rows with the this.filters and the value
-   * @arg {Option} option
-   * @returns {boolean}
-   */
-  valid(option) {
-    const { data } = Globals;
-    const filters = this.filterChildren(GridFilter);
-    return (
-      !filters.length ||
-      data.hasMatchingRows(filters, {
-        states: {
-          [this.stateName.value]: option.value.value,
-        },
-      })
-    );
-  }
-
-  /**
-   * handle clicks on the chooser
-   * @param {MouseEvent} event
-   */
-  handleClick({ target }) {
-    if (target instanceof HTMLButtonElement) {
-      const value = target.value;
-      const name = this.stateName.value;
-      Globals.state.update({ [name]: value });
-    }
-  }
-
-  template() {
-    const { state } = Globals;
-    const stateName = this.stateName.value;
-    const selected = this.selected.value;
-    const unselected = this.unselected.value;
-    const radioLabel = this.label.value;
-    let currentValue = state.get(stateName);
-    const choices = this.options.map((choice, index) => {
-      const choiceDisabled = !this.valid(choice);
-      const choiceValue = choice.value.value;
-      const choiceName = choice.name.value;
-      if (stateName && !currentValue && !choiceDisabled && choiceValue) {
-        currentValue = choiceValue;
-        state.define(stateName, choiceValue);
-      }
-      const color =
-        choiceValue == currentValue || (!currentValue && index == 0)
-          ? selected
-          : unselected;
-      return html`<button
-        style=${styleString({ backgroundColor: color })}
-        value=${choiceValue}
-        ?disabled=${choiceDisabled}
-        data=${{
-          ComponentType: this.className,
-          ComponentName: radioLabel || stateName,
-          label: choiceName,
-        }}
-        click
-        @Activate=${() => state.update({ [stateName]: choice.value.value })}
-      >
-        ${choiceName}
-      </button>`;
-    });
-
-    return this.component(
-      {},
-      html`<fieldset class="flex">
-        ${(radioLabel && [html`<legend>${radioLabel}</legend>`]) || []}
-        ${choices}
-      </fieldset>`,
-    );
-  }
-
-  settingsDetails() {
-    const props = this.props;
-    const inputs = Object.values(props).map((prop) => prop.input());
-    const filters = this.filterChildren(GridFilter);
-    const editFilters = !filters.length
-      ? []
-      : [GridFilter.FilterSettings(filters)];
-    const options = this.filterChildren(Option$1);
-    const editOptions = html`<fieldset>
-      <legend>Options</legend>
-      <table class="RadioOptions">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${options.map(
-            (option, index) => html`
-              <tr>
-                <td>${index + 1}</td>
-                <td>${option.name.input()}</td>
-                <td>${option.value.input()}</td>
-              </tr>
-            `,
-          )}
-        </tbody>
-      </table>
-    </fieldset>`;
-    return [html`<div>${editFilters}${editOptions}${inputs}</div>`];
-  }
-
-  settingsChildren() {
-    return html`<div />`;
-  }
-}
-TreeBase.register(Radio, "Radio");
-
-const gap = '';
-
-class Gap extends TreeBase {
-  scale = new Float(1);
-  background = new Color("");
-
-  template() {
-    return this.component(
-      {
-        style: styleString({
-          backgroundColor: this.background.value,
-        }),
-      },
-      html`<div />`,
-    );
-  }
-}
-TreeBase.register(Gap, "Gap");
-
-const tabcontrol = '';
-
-/** @type {Function[]} */
-const PostRenderFunctions = [];
-/** @param {Function} f */
-function callAfterRender(f) {
-  PostRenderFunctions.push(f);
-}
-function postRender() {
-  while (PostRenderFunctions.length > 0) {
-    const PRF = PostRenderFunctions.pop();
-    if (PRF) PRF();
-  }
-}
-
-/** @param {string} id
- * @param {TreeBase} component
- */
-function safeRender(id, component) {
-  const where = document.getElementById(id);
-  if (!where) {
-    console.error({ id, where });
-    return;
-  }
-  let r;
-  {
-    try {
-      let what = component.safeTemplate();
-      if (Array.isArray(what)) what = html`${what}`;
-      r = render(where, what);
-    } catch (error) {
-      if (error instanceof Error) {
-        errorHandler(error, ` rendering ${component.className} ${id}`);
-      } else {
-        console.error("crash", error);
-      }
-      return;
-    }
-  }
-  return r;
-}
-
-class TabControl extends TreeBase {
-  stateName = new String$1("$tabControl");
-  background = new Color("");
-  scale = new Float(6);
-  tabEdge = new Select(["bottom", "top", "left", "right", "none"], {
-    defaultValue: "top",
-  });
-  name = new String$1("tabs");
-
-  allowedChildren = ["TabPanel"];
-
-  /** @type {TabPanel[]} */
-  children = [];
-
-  /** @type {TabPanel | undefined} */
-  currentPanel = undefined;
-
-  template() {
-    const { state } = Globals;
-    const panels = this.children;
-    let activeTabName = state.get(this.stateName.value);
-    // collect panel info
-    panels.forEach((panel, index) => {
-      panel.tabName = state.interpolate(panel.name.value); // internal name
-      panel.tabLabel = state.interpolate(panel.label.value || panel.name.value); // display name
-      if (index == 0 && !activeTabName) {
-        activeTabName = panel.tabName;
-        state.define(this.stateName.value, panel.tabName);
-      }
-      panel.active = activeTabName == panel.tabName || panels.length === 1;
-    });
-    let buttons = [];
-    if (this.tabEdge.value != "none") {
-      buttons = panels
-        .filter((panel) => panel.label.value != "UNLABELED")
-        .map((panel) => {
-          const color = panel.background.value;
-          const buttonStyle = {
-            backgroundColor: color,
-          };
-          return html`<li>
-            <button
-              ?active=${panel.active}
-              style=${styleString(buttonStyle)}
-              data=${{
-                name: this.name.value,
-                label: panel.tabLabel,
-                component: this.constructor.name,
-                id: panel.id,
-              }}
-              click
-              @Activate=${() => {
-                this.switchTab(panel.tabName);
-              }}
-              tabindex="-1"
-            >
-              ${panel.tabLabel}
-            </button>
-          </li>`;
-        });
-    }
-    return this.component(
-      { classes: [this.tabEdge.value] },
-      html`
-        <ul class="buttons">
-          ${buttons}
-        </ul>
-        <div class="panels flex">
-          ${panels.map((panel) => panel.safeTemplate())}
-        </div>
-      `,
-    );
-  }
-
-  /**
-   * @param {string} tabName
-   */
-  switchTab(tabName) {
-    Globals.state.update({ [this.stateName.value]: tabName });
-  }
-}
-TreeBase.register(TabControl, "TabControl");
-
-class TabPanel extends Stack {
-  name = new String$1("");
-  label = new String$1("");
-
-  /** @type {TabControl | null} */
-  parent = null;
-
-  active = false;
-  tabName = "";
-  tabLabel = "";
-  lastFocused = "";
-
-  /**
-   * Render the details of a components settings
-   */
-  settingsDetails() {
-    const caption = this.active ? "Active" : "Activate";
-    let details = super.settingsDetails();
-    if (!Array.isArray(details)) details = [details];
-    return [
-      ...details,
-      html`<button
-        id=${this.id + "-activate"}
-        ?active=${this.active}
-        @click=${() => {
-          if (this.parent) {
-            const parent = this.parent;
-            callAfterRender(() => {
-              Globals.layout.highlight();
-            });
-            parent.switchTab(this.name.value);
-          }
-        }}
-      >
-        ${caption}
-      </button>`,
-    ];
-  }
-
-  /** @param {string[]} classes
-   * @returns {string}
-   */
-  CSSClasses(...classes) {
-    if (this.active) {
-      classes.push("ActivePanel");
-    }
-    return super.CSSClasses(...classes);
-  }
-
-  highlight() {}
-}
-TreeBase.register(TabPanel, "TabPanel");
-
-const modalDialog = '';
-
-class ModalDialog extends TreeBase {
-  stateName = new String$1("$modalOpen");
-  open = new Boolean$1(false);
-
-  allowedChildren = ["Stack"];
-
-  template() {
-    const state = Globals.state;
-    const open =
-      !!state.get(this.stateName.value) || this.open.value ? "open" : "";
-    return this.component(
-      { classes: [open] },
-      html`<div>${this.children.map((child) => child.safeTemplate())}</div>`,
-    );
-  }
-}
-TreeBase.register(ModalDialog, "ModalDialog");
-
-const vsd = '';
-
-/** Allow await'ing for a short time
- * @param {number} ms */
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-/** Wait for a condition to be satisfied
- * @param {() => boolean} test
- * @param {number} delay */
-async function waitFor(test, delay = 100) {
-  while (!test()) await sleep(delay);
-}
-
-/**
- * Calculate the actual image size undoing the effects of object-fit
- * This is async so it can wait for the image to be loaded initially.
- *
- * @param {HTMLImageElement} img
- * */
-async function getActualImageSize(img) {
-  let left = 0,
-    top = 0,
-    width = 1,
-    height = 1;
-  if (img) {
-    // wait for the image to load
-    await waitFor(() => img.complete && img.naturalWidth != 0);
-    const vsd = /** @type {HTMLDivElement} */ (img.closest("div.vsd"));
-    const cw = img.width,
-      ch = img.height,
-      iw = img.naturalWidth,
-      ih = img.naturalHeight,
-      pw = vsd.clientWidth,
-      ph = vsd.clientHeight,
-      iratio = iw / ih,
-      cratio = cw / ch;
-    if (iratio > cratio) {
-      width = cw;
-      height = cw / iratio;
-    } else {
-      width = ch * iratio;
-      height = ch;
-    }
-    left = (pw - width) / 2;
-    top = (ph - height) / 2;
-  }
-  return { left, top, width, height };
-}
-
-/** @param {number} v */
-function px(v) {
-  return `${v}px`;
-}
-/** @param {number} v */
-function pct(v) {
-  return `${v}%`;
-}
-
-/** @typedef {Object} vsdData
- * @property {number} x
- * @property {number} y
- * @property {number} w
- * @property {number} h
- * @property {string} image
- * @property {boolean} invisible
- */
-/** @typedef {Row & vsdData} VRow */
-class VSD extends TreeBase {
-  name = new String$1("vsd");
-  scale = new Float(1);
-
-  /** @type {GridFilter[]} */
-  children = [];
-
-  allowedChildren = ["GridFilter"];
-
-  /** @type {HTMLDivElement} */
-  markers;
-
-  template() {
-    const { data, state, actions } = Globals;
-    const editing = state.get("editing");
-    const items = /** @type {VRow[]} */ (data.getMatchingRows(this.children));
-    const src = items.find((item) => item.image)?.image || "";
-    let dragging = 0;
-    const coords = [
-      [0, 0], // start x and y
-      [0, 0], // end x and y
-    ];
-    let clip = "";
-
-    return this.component(
-      { classes: ["show"] },
-      html`<div>
-        ${imageOrVideo(src, "", () => {
-          this.sizeMarkers(this.markers);
-        })}
-        <div
-          class="markers"
-          ref=${(/** @type {HTMLDivElement & { observer: any }} */ node) => {
-            this.sizeMarkers(node);
-          }}
-          @pointermove=${editing &&
-          ((/** @type {PointerEvent} */ event) => {
-            const rect = this.markers.getBoundingClientRect();
-            const div = document.querySelector("#UI span.coords");
-            if (!div) return;
-            coords[dragging][0] = Math.round(
-              (100 * (event.pageX - rect.left)) / rect.width,
-            );
-            coords[dragging][1] = Math.round(
-              (100 * (event.pageY - rect.top)) / rect.height,
-            );
-            clip = `${coords[0][0]}\t${coords[0][1]}`;
-            if (dragging) {
-              clip =
-                clip +
-                `\t${coords[1][0] - coords[0][0]}\t${
-                  coords[1][1] - coords[0][1]
-                }`;
-            }
-            div.innerHTML = clip;
-          })}
-          @pointerdown=${editing &&
-          (() => {
-            dragging = 1;
-          })}
-          @pointerup=${editing &&
-          (() => {
-            dragging = 0;
-            navigator.clipboard.writeText(clip);
-          })}
-        >
-          ${items
-            .filter((item) => item.w)
-            .map(
-              (item) =>
-                html`<button
-                  style=${styleString({
-                    left: pct(item.x),
-                    top: pct(item.y),
-                    width: pct(item.w),
-                    height: pct(item.h),
-                    position: "absolute",
-                  })}
-                  ?invisible=${!!item.invisible}
-                  data=${{
-                    ComponentName: this.name.value,
-                    ComponentType: this.constructor.name,
-                    ...item,
-                  }}
-                  click
-                  @Activate=${actions.handler(this.name.value, item, "press")}
-                >
-                  <span>${item.label || ""}</span>
-                </button>`,
-            )}
-          <span class="coords" style="background-color: white"></span>
-        </div>
-      </div>`,
-    );
-  }
-
-  /** @param {HTMLDivElement} node */
-  async sizeMarkers(node) {
-    this.markers = node;
-    const img = /** @type {HTMLImageElement} */ (node.previousElementSibling);
-    const rect = await getActualImageSize(img);
-    node.style.position = "absolute";
-    node.style.left = px(rect.left);
-    node.style.top = px(rect.top);
-    node.style.width = px(rect.width);
-    node.style.height = px(rect.height);
-  }
-
-  settingsDetails() {
-    const props = this.props;
-    const inputs = Object.values(props).map((prop) => prop.input());
-    const filters = GridFilter.FilterSettings(this.children);
-    return [html`<div>${filters}${inputs}</div>`];
-  }
-
-  settingsChildren() {
-    return html`<div />`;
-  }
-}
-TreeBase.register(VSD, "VSD");
-
-const button = '';
-
-class Button extends TreeBase {
-  label = new String$1("click me");
-  name = new String$1("button");
-  background = new Color("");
-  scale = new Float(1);
-
-  template() {
-    const style = styleString({ backgroundColor: this.background.value });
-    const name = this.name.value;
-    const label = this.label.value;
-    return this.component(
-      {},
-      html`<button
-        class="button"
-        name=${name}
-        style=${style}
-        data=${{
-          name: name,
-          label: label,
-          ComponentName: name,
-          ComponentType: this.constructor.name,
-        }}
-      >
-        ${label}
-      </button>`,
-    );
-  }
-
-  getChildren() {
-    return [];
-  }
-}
-TreeBase.register(Button, "Button");
-
-const monitor = '';
-
-class Monitor extends TreeBase {
-  template() {
-    const { state, actions: rules } = Globals;
-    const stateKeys = [
-      ...new Set([...Object.keys(state.values), ...accessed.keys()]),
-    ].sort();
-    const s = html`<table class="state">
-      <thead>
-        <tr>
-          <th>State</th>
-          <th>Value</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${stateKeys
-          .filter((key) => key.startsWith("$"))
-          .map((key) => {
-            let value = state.get(key);
-            value = toString(value);
-            let clamped = value.slice(0, 30);
-            if (value.length > clamped.length) {
-              clamped += "...";
-            }
-            return html`<tr
-              ?updated=${state.hasBeenUpdated(key)}
-              ?undefined=${accessed.get(key) === false}
-            >
-              <td>${key}</td>
-              <td>${clamped}</td>
-            </tr>`;
-          })}
-      </tbody>
-    </table>`;
-
-    const row = rules.last.data || {};
-    const rowAccessedKeys = [...accessed.keys()]
-      .filter((key) => key.startsWith("_"))
-      .map((key) => key.slice(1));
-    const rowKeys = [
-      ...new Set([...Object.keys(row), ...rowAccessedKeys]),
-    ].sort();
-    const f = html`<table class="fields">
-      <thead>
-        <tr>
-          <th>Field</th>
-          <th>Value</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rowKeys.map((key) => {
-          const value = row[key];
-          return html`<tr
-            ?undefined=${accessed.get(`_${key}`) === false}
-            ?accessed=${accessed.has(`_${key}`)}
-          >
-            <td>#${key}</td>
-            <td>${value}</td>
-          </tr>`;
-        })}
-      </tbody>
-    </table>`;
-
-    return html`<button
-        @click=${() => {
-          state.clear();
-          rules.configure();
-        }}
-      >
-        Clear state
-      </button>
-      <div>${s}${f}</div>`;
-  }
-}
-TreeBase.register(Monitor, "Monitor");
-
-class Speech extends TreeBase {
-  stateName = new String$1("$Speak");
-  voiceURI = new Voice("", { label: "Voice" });
-  pitch = new Float(1);
-  rate = new Float(1);
-  volume = new Float(1);
-
-  async speak() {
-    const { state } = Globals;
-    const voiceURI = this.voiceURI.value;
-    const message = toString(state.get(this.stateName.value));
-    const voices = await getVoices();
-    const voice =
-      voiceURI && voices.find((voice) => voice.voiceURI == voiceURI);
-    const utterance = new SpeechSynthesisUtterance(message);
-    if (voice) {
-      utterance.voice = voice;
-      utterance.lang = voice.lang;
-    }
-    utterance.pitch = this.pitch.value;
-    utterance.rate = this.rate.value;
-    utterance.volume = this.volume.value;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
-  }
-
-  template() {
-    const { state } = Globals;
-    if (state.hasBeenUpdated(this.stateName.value)) {
-      this.speak();
-    }
-    return html`<div />`;
-  }
-}
-TreeBase.register(Speech, "Speech");
-
-/** @type{SpeechSynthesisVoice[]} */
-let voices = [];
-
-/**
- * Promise to return voices
- *
- * @return {Promise<SpeechSynthesisVoice[]>} Available voices
- */
-function getVoices() {
-  return new Promise(function (resolve) {
-    // iOS won't fire the voiceschanged event so we have to poll for them
-    function f() {
-      voices = (voices.length && voices) || speechSynthesis.getVoices();
-      if (voices.length) resolve(voices);
-      else setTimeout(f, 100);
-    }
-    f();
-  });
-}
-
-class VoiceSelect extends HTMLSelectElement {
-  constructor() {
-    super();
-  }
-  connectedCallback() {
-    this.addVoices();
-  }
-
-  async addVoices() {
-    const voices = await getVoices();
-    const current = this.getAttribute("value");
-    for (const voice of voices) {
-      const item = document.createElement("option");
-      item.value = voice.voiceURI;
-      if (voice.voiceURI == current) item.setAttribute("selected", "");
-      item.innerText = voice.name;
-      this.add(item);
-    }
-  }
-}
-customElements.define("select-voice", VoiceSelect, { extends: "select" });
 
 const instanceOfAny = (object, constructors) => constructors.some((c) => object instanceof c);
 
@@ -11236,9 +7541,7 @@ function getCursorAdvanceMethods() {
             IDBCursor.prototype.continuePrimaryKey,
         ]));
 }
-const cursorRequestMap = new WeakMap();
 const transactionDoneMap = new WeakMap();
-const transactionStoreNamesMap = new WeakMap();
 const transformCache = new WeakMap();
 const reverseTransformCache = new WeakMap();
 function promisifyRequest(request) {
@@ -11258,16 +7561,6 @@ function promisifyRequest(request) {
         request.addEventListener('success', success);
         request.addEventListener('error', error);
     });
-    promise
-        .then((value) => {
-        // Since cursoring reuses the IDBRequest (*sigh*), we cache it for later retrieval
-        // (see wrapFunction).
-        if (value instanceof IDBCursor) {
-            cursorRequestMap.set(value, request);
-        }
-        // Catching to avoid "Uncaught Promise exceptions"
-    })
-        .catch(() => { });
     // This mapping exists in reverseTransformCache but doesn't doesn't exist in transformCache. This
     // is because we create many promises from a single IDBRequest.
     reverseTransformCache.set(promise, request);
@@ -11304,10 +7597,6 @@ let idbProxyTraps = {
             // Special handling for transaction.done.
             if (prop === 'done')
                 return transactionDoneMap.get(target);
-            // Polyfill for objectStoreNames because of Edge.
-            if (prop === 'objectStoreNames') {
-                return target.objectStoreNames || transactionStoreNamesMap.get(target);
-            }
             // Make tx.store return the only store in the transaction, or undefined if there are many.
             if (prop === 'store') {
                 return receiver.objectStoreNames[1]
@@ -11336,15 +7625,6 @@ function replaceTraps(callback) {
 function wrapFunction(func) {
     // Due to expected object equality (which is enforced by the caching in `wrap`), we
     // only create one new func per func.
-    // Edge doesn't support objectStoreNames (booo), so we polyfill it here.
-    if (func === IDBDatabase.prototype.transaction &&
-        !('objectStoreNames' in IDBTransaction.prototype)) {
-        return function (storeNames, ...args) {
-            const tx = func.call(unwrap(this), storeNames, ...args);
-            transactionStoreNamesMap.set(tx, storeNames.sort ? storeNames.sort() : [storeNames]);
-            return wrap(tx);
-        };
-    }
     // Cursor methods are special, as the behaviour is a little more different to standard IDB. In
     // IDB, you advance the cursor and wait for a new 'success' on the IDBRequest that gave you the
     // cursor. It's kinda like a promise that can resolve with many values. That doesn't make sense
@@ -11355,7 +7635,7 @@ function wrapFunction(func) {
             // Calling the original function with the proxy as 'this' causes ILLEGAL INVOCATION, so we use
             // the original object.
             func.apply(unwrap(this), args);
-            return wrap(cursorRequestMap.get(this));
+            return wrap(this.request);
         };
     }
     return function (...args) {
@@ -12594,48 +8874,48 @@ function unzipSync(data, opts) {
     return files;
 }
 
-const e=(()=>{if("undefined"==typeof self)return !1;if("top"in self&&self!==top)try{top;}catch(e){return !1}return "showOpenFilePicker"in self})(),t=e?Promise.resolve().then(function(){return l}):Promise.resolve().then(function(){return v});async function n(...e){return (await t).default(...e)}e?Promise.resolve().then(function(){return y}):Promise.resolve().then(function(){return b});const a=e?Promise.resolve().then(function(){return m}):Promise.resolve().then(function(){return k});async function o(...e){return (await a).default(...e)}const s=async e=>{const t=await e.getFile();return t.handle=e,t};var c=async(e=[{}])=>{Array.isArray(e)||(e=[e]);const t=[];e.forEach((e,n)=>{t[n]={description:e.description||"Files",accept:{}},e.mimeTypes?e.mimeTypes.map(r=>{t[n].accept[r]=e.extensions||[];}):t[n].accept["*/*"]=e.extensions||[];});const n=await window.showOpenFilePicker({id:e[0].id,startIn:e[0].startIn,types:t,multiple:e[0].multiple||!1,excludeAcceptAllOption:e[0].excludeAcceptAllOption||!1}),r=await Promise.all(n.map(s));return e[0].multiple?r:r[0]},l={__proto__:null,default:c};function u(e){function t(e){if(Object(e)!==e)return Promise.reject(new TypeError(e+" is not an object."));var t=e.done;return Promise.resolve(e.value).then(function(e){return {value:e,done:t}})}return u=function(e){this.s=e,this.n=e.next;},u.prototype={s:null,n:null,next:function(){return t(this.n.apply(this.s,arguments))},return:function(e){var n=this.s.return;return void 0===n?Promise.resolve({value:e,done:!0}):t(n.apply(this.s,arguments))},throw:function(e){var n=this.s.return;return void 0===n?Promise.reject(e):t(n.apply(this.s,arguments))}},new u(e)}const p=async(e,t,n=e.name,r)=>{const i=[],a=[];var o,s=!1,c=!1;try{for(var l,d=function(e){var t,n,r,i=2;for("undefined"!=typeof Symbol&&(n=Symbol.asyncIterator,r=Symbol.iterator);i--;){if(n&&null!=(t=e[n]))return t.call(e);if(r&&null!=(t=e[r]))return new u(t.call(e));n="@@asyncIterator",r="@@iterator";}throw new TypeError("Object is not async iterable")}(e.values());s=!(l=await d.next()).done;s=!1){const o=l.value,s=`${n}/${o.name}`;"file"===o.kind?a.push(o.getFile().then(t=>(t.directoryHandle=e,t.handle=o,Object.defineProperty(t,"webkitRelativePath",{configurable:!0,enumerable:!0,get:()=>s})))):"directory"!==o.kind||!t||r&&r(o)||i.push(p(o,t,s,r));}}catch(e){c=!0,o=e;}finally{try{s&&null!=d.return&&await d.return();}finally{if(c)throw o}}return [...(await Promise.all(i)).flat(),...await Promise.all(a)]};var d=async(e={})=>{e.recursive=e.recursive||!1,e.mode=e.mode||"read";const t=await window.showDirectoryPicker({id:e.id,startIn:e.startIn,mode:e.mode});return (await(await t.values()).next()).done?[t]:p(t,e.recursive,void 0,e.skipDirectory)},y={__proto__:null,default:d},f=async(e,t=[{}],n=null,r=!1,i=null)=>{Array.isArray(t)||(t=[t]),t[0].fileName=t[0].fileName||"Untitled";const a=[];let o=null;if(e instanceof Blob&&e.type?o=e.type:e.headers&&e.headers.get("content-type")&&(o=e.headers.get("content-type")),t.forEach((e,t)=>{a[t]={description:e.description||"Files",accept:{}},e.mimeTypes?(0===t&&o&&e.mimeTypes.push(o),e.mimeTypes.map(n=>{a[t].accept[n]=e.extensions||[];})):o?a[t].accept[o]=e.extensions||[]:a[t].accept["*/*"]=e.extensions||[];}),n)try{await n.getFile();}catch(e){if(n=null,r)throw e}const s=n||await window.showSaveFilePicker({suggestedName:t[0].fileName,id:t[0].id,startIn:t[0].startIn,types:a,excludeAcceptAllOption:t[0].excludeAcceptAllOption||!1});!n&&i&&i(s);const c=await s.createWritable();if("stream"in e){const t=e.stream();return await t.pipeTo(c),s}return "body"in e?(await e.body.pipeTo(c),s):(await c.write(await e),await c.close(),s)},m={__proto__:null,default:f},w=async(e=[{}])=>(Array.isArray(e)||(e=[e]),new Promise((t,n)=>{const r=document.createElement("input");r.type="file";const i=[...e.map(e=>e.mimeTypes||[]),...e.map(e=>e.extensions||[])].join();r.multiple=e[0].multiple||!1,r.accept=i||"",r.style.display="none",document.body.append(r);const a=e=>{"function"==typeof o&&o(),t(e);},o=e[0].legacySetup&&e[0].legacySetup(a,()=>o(n),r),s=()=>{window.removeEventListener("focus",s),r.remove();};r.addEventListener("click",()=>{window.addEventListener("focus",s);}),r.addEventListener("change",()=>{window.removeEventListener("focus",s),r.remove(),a(r.multiple?Array.from(r.files):r.files[0]);}),"showPicker"in HTMLInputElement.prototype?r.showPicker():r.click();})),v={__proto__:null,default:w},h=async(e=[{}])=>(Array.isArray(e)||(e=[e]),e[0].recursive=e[0].recursive||!1,new Promise((t,n)=>{const r=document.createElement("input");r.type="file",r.webkitdirectory=!0;const i=e=>{"function"==typeof a&&a(),t(e);},a=e[0].legacySetup&&e[0].legacySetup(i,()=>a(n),r);r.addEventListener("change",()=>{let t=Array.from(r.files);e[0].recursive?e[0].recursive&&e[0].skipDirectory&&(t=t.filter(t=>t.webkitRelativePath.split("/").every(t=>!e[0].skipDirectory({name:t,kind:"directory"})))):t=t.filter(e=>2===e.webkitRelativePath.split("/").length),i(t);}),"showPicker"in HTMLInputElement.prototype?r.showPicker():r.click();})),b={__proto__:null,default:h},P=async(e,t={})=>{Array.isArray(t)&&(t=t[0]);const n=document.createElement("a");let r=e;"body"in e&&(r=await async function(e,t){const n=e.getReader(),r=new ReadableStream({start:e=>async function t(){return n.read().then(({done:n,value:r})=>{if(!n)return e.enqueue(r),t();e.close();})}()}),i=new Response(r),a=await i.blob();return n.releaseLock(),new Blob([a],{type:t})}(e.body,e.headers.get("content-type"))),n.download=t.fileName||"Untitled",n.href=URL.createObjectURL(await r);const i=()=>{"function"==typeof a&&a();},a=t.legacySetup&&t.legacySetup(i,()=>a(),n);return n.addEventListener("click",()=>{setTimeout(()=>URL.revokeObjectURL(n.href),3e4),i();}),n.click(),null},k={__proto__:null,default:P};
-
-const N_RECORDS_SAVE = 10;
-const N_RECORDS_MAX = 20;
+const e$1=(()=>{if("undefined"==typeof self)return !1;if("top"in self&&self!==top)try{top.window.document._=0;}catch(e){return !1}return "showOpenFilePicker"in self})(),t$1=e$1?Promise.resolve().then(function(){return l}):Promise.resolve().then(function(){return v});async function n(...e){return (await t$1).default(...e)}e$1?Promise.resolve().then(function(){return y}):Promise.resolve().then(function(){return b});const a=e$1?Promise.resolve().then(function(){return m}):Promise.resolve().then(function(){return k});async function o$1(...e){return (await a).default(...e)}const s=async e=>{const t=await e.getFile();return t.handle=e,t};var c=async(e=[{}])=>{Array.isArray(e)||(e=[e]);const t=[];e.forEach((e,n)=>{t[n]={description:e.description||"Files",accept:{}},e.mimeTypes?e.mimeTypes.map(r=>{t[n].accept[r]=e.extensions||[];}):t[n].accept["*/*"]=e.extensions||[];});const n=await window.showOpenFilePicker({id:e[0].id,startIn:e[0].startIn,types:t,multiple:e[0].multiple||!1,excludeAcceptAllOption:e[0].excludeAcceptAllOption||!1}),r=await Promise.all(n.map(s));return e[0].multiple?r:r[0]},l={__proto__:null,default:c};function u(e){function t(e){if(Object(e)!==e)return Promise.reject(new TypeError(e+" is not an object."));var t=e.done;return Promise.resolve(e.value).then(function(e){return {value:e,done:t}})}return u=function(e){this.s=e,this.n=e.next;},u.prototype={s:null,n:null,next:function(){return t(this.n.apply(this.s,arguments))},return:function(e){var n=this.s.return;return void 0===n?Promise.resolve({value:e,done:!0}):t(n.apply(this.s,arguments))},throw:function(e){var n=this.s.return;return void 0===n?Promise.reject(e):t(n.apply(this.s,arguments))}},new u(e)}const p=async(e,t,n=e.name,r)=>{const i=[],a=[];var o,s=!1,c=!1;try{for(var l,d=function(e){var t,n,r,i=2;for("undefined"!=typeof Symbol&&(n=Symbol.asyncIterator,r=Symbol.iterator);i--;){if(n&&null!=(t=e[n]))return t.call(e);if(r&&null!=(t=e[r]))return new u(t.call(e));n="@@asyncIterator",r="@@iterator";}throw new TypeError("Object is not async iterable")}(e.values());s=!(l=await d.next()).done;s=!1){const o=l.value,s=`${n}/${o.name}`;"file"===o.kind?a.push(o.getFile().then(t=>(t.directoryHandle=e,t.handle=o,Object.defineProperty(t,"webkitRelativePath",{configurable:!0,enumerable:!0,get:()=>s})))):"directory"!==o.kind||!t||r&&r(o)||i.push(p(o,t,s,r));}}catch(e){c=!0,o=e;}finally{try{s&&null!=d.return&&await d.return();}finally{if(c)throw o}}return [...(await Promise.all(i)).flat(),...await Promise.all(a)]};var d=async(e={})=>{e.recursive=e.recursive||!1,e.mode=e.mode||"read";const t=await window.showDirectoryPicker({id:e.id,startIn:e.startIn,mode:e.mode});return (await(await t.values()).next()).done?[t]:p(t,e.recursive,void 0,e.skipDirectory)},y={__proto__:null,default:d},f=async(e,t=[{}],n=null,r=!1,i=null)=>{Array.isArray(t)||(t=[t]),t[0].fileName=t[0].fileName||"Untitled";const a=[];let o=null;if(e instanceof Blob&&e.type?o=e.type:e.headers&&e.headers.get("content-type")&&(o=e.headers.get("content-type")),t.forEach((e,t)=>{a[t]={description:e.description||"Files",accept:{}},e.mimeTypes?(0===t&&o&&e.mimeTypes.push(o),e.mimeTypes.map(n=>{a[t].accept[n]=e.extensions||[];})):o?a[t].accept[o]=e.extensions||[]:a[t].accept["*/*"]=e.extensions||[];}),n)try{await n.getFile();}catch(e){if(n=null,r)throw e}const s=n||await window.showSaveFilePicker({suggestedName:t[0].fileName,id:t[0].id,startIn:t[0].startIn,types:a,excludeAcceptAllOption:t[0].excludeAcceptAllOption||!1});!n&&i&&i(s);const c=await s.createWritable();if("stream"in e){const t=e.stream();return await t.pipeTo(c),s}return "body"in e?(await e.body.pipeTo(c),s):(await c.write(await e),await c.close(),s)},m={__proto__:null,default:f},w=async(e=[{}])=>(Array.isArray(e)||(e=[e]),new Promise((t,n)=>{const r=document.createElement("input");r.type="file";const i=[...e.map(e=>e.mimeTypes||[]),...e.map(e=>e.extensions||[])].join();r.multiple=e[0].multiple||!1,r.accept=i||"",r.style.display="none",document.body.append(r);const a=e=>{"function"==typeof o&&o(),t(e);},o=e[0].legacySetup&&e[0].legacySetup(a,()=>o(n),r),s=()=>{window.removeEventListener("focus",s),r.remove();};r.addEventListener("click",()=>{window.addEventListener("focus",s);}),r.addEventListener("change",()=>{window.removeEventListener("focus",s),r.remove(),a(r.multiple?Array.from(r.files):r.files[0]);}),"showPicker"in HTMLInputElement.prototype?r.showPicker():r.click();})),v={__proto__:null,default:w},h=async(e=[{}])=>(Array.isArray(e)||(e=[e]),e[0].recursive=e[0].recursive||!1,new Promise((t,n)=>{const r=document.createElement("input");r.type="file",r.webkitdirectory=!0;const i=e=>{"function"==typeof a&&a(),t(e);},a=e[0].legacySetup&&e[0].legacySetup(i,()=>a(n),r);r.addEventListener("change",()=>{let t=Array.from(r.files);e[0].recursive?e[0].recursive&&e[0].skipDirectory&&(t=t.filter(t=>t.webkitRelativePath.split("/").every(t=>!e[0].skipDirectory({name:t,kind:"directory"})))):t=t.filter(e=>2===e.webkitRelativePath.split("/").length),i(t);}),"showPicker"in HTMLInputElement.prototype?r.showPicker():r.click();})),b={__proto__:null,default:h},P=async(e,t={})=>{Array.isArray(t)&&(t=t[0]);const n=document.createElement("a");let r=e;"body"in e&&(r=await async function(e,t){const n=e.getReader(),r=new ReadableStream({start:e=>async function t(){return n.read().then(({done:n,value:r})=>{if(!n)return e.enqueue(r),t();e.close();})}()}),i=new Response(r),a=await i.blob();return n.releaseLock(),new Blob([a],{type:t})}(e.body,e.headers.get("content-type"))),n.download=t.fileName||"Untitled",n.href=URL.createObjectURL(await r);const i=()=>{"function"==typeof a&&a();},a=t.legacySetup&&t.legacySetup(i,()=>a(),n);return n.addEventListener("click",()=>{setTimeout(()=>URL.revokeObjectURL(n.href),3e4),i();}),n.click(),null},k={__proto__:null,default:P};
 
 class DB {
   constructor() {
-    this.dbPromise = openDB("os-dpi", 4, {
-      upgrade(db, oldVersion, newVersion) {
-        if (oldVersion && oldVersion < 3) {
-          for (const name of ["store", "media", "saved", "url"]) {
-            try {
-              db.deleteObjectStore(name);
-            } catch (e) {
-              // ignore the error
-            }
+    this.dbPromise = openDB("os-dpi", 5, {
+      async upgrade(db, oldVersion, _newVersion, transaction) {
+        let store5 = db.createObjectStore("store5", {
+          keyPath: ["name", "type"],
+        });
+        store5.createIndex("by-name", "name");
+        if (oldVersion == 4) {
+          // copy data from old store to new
+          const store4 = transaction.objectStore("store");
+          for await (const cursor of store4) {
+            const record4 = cursor.value;
+            store5.put(record4);
           }
-        } else if (oldVersion == 3) {
-          db.deleteObjectStore("images");
-        }
-        if (oldVersion < 3) {
-          let objectStore = db.createObjectStore("store", {
-            keyPath: "id",
-            autoIncrement: true,
-          });
-          objectStore.createIndex("by-name", "name");
-          objectStore.createIndex("by-name-type", ["name", "type"]);
-        }
-        if (newVersion && newVersion >= 4) {
+          db.deleteObjectStore("store");
+          // add an etag index to url store
+          transaction.objectStore("url").createIndex("by-etag", "etag");
+        } else if (oldVersion < 4) {
           db.createObjectStore("media");
-        }
-        if (oldVersion < 3) {
-          // keep track of the name and ETag (if any) of designs that have been saved
           let savedStore = db.createObjectStore("saved", {
             keyPath: "name",
           });
           savedStore.createIndex("by-etag", "etag");
           // track etags for urls
-          db.createObjectStore("url", {
+          const urlStore = db.createObjectStore("url", {
             keyPath: "url",
           });
+          // add an etag index to the url store
+          urlStore.createIndex("by-etag", "etag");
         }
+      },
+      blocked(currentVersion, blockedVersion, event) {
+        console.log("blocked", { currentVersion, blockedVersion, event });
+      },
+      blocking(_currentVersion, _blockedVersion, _event) {
+        window.location.reload();
+      },
+      terminated() {
+        console.log("terminated");
       },
     });
     this.updateListeners = [];
@@ -12660,12 +8940,12 @@ class DB {
   async renameDesign(newName) {
     const db = await this.dbPromise;
     newName = await this.uniqueName(newName);
-    const tx = db.transaction(["store", "media", "saved"], "readwrite");
-    const index = tx.objectStore("store").index("by-name");
+    const tx = db.transaction(["store5", "media", "saved"], "readwrite");
+    const index = tx.objectStore("store5").index("by-name");
     for await (const cursor of index.iterate(this.designName)) {
-      const record = { ...cursor.value };
-      record.name = newName;
-      cursor.update(record);
+      const record = { ...cursor.value, name: newName };
+      cursor.delete();
+      tx.objectStore("store5").put(record);
     }
     const mst = tx.objectStore("media");
     for await (const cursor of mst.iterate()) {
@@ -12695,11 +8975,8 @@ class DB {
    */
   async names() {
     const db = await this.dbPromise;
-    const index = db.transaction("store", "readonly").store.index("by-name");
-    const result = [];
-    for await (const cursor of index.iterate(null, "nextunique")) {
-      result.push(/** @type {string} */ (cursor.key));
-    }
+    const keys = await db.getAllKeysFromIndex("store5", "by-name");
+    const result = [...new Set(keys.map((key) => key.valueOf()[0]))];
     return result;
   }
 
@@ -12752,21 +9029,9 @@ class DB {
    */
   async read(type, defaultValue = {}) {
     const db = await this.dbPromise;
-    const index = db
-      .transaction("store", "readonly")
-      .store.index("by-name-type");
-    const cursor = await index.openCursor([this.designName, type], "prev");
-    if (cursor) {
-      const data = cursor.value.data;
-      if (
-        (Array.isArray(defaultValue) && !Array.isArray(data)) ||
-        typeof data != typeof defaultValue
-      ) {
-        return defaultValue;
-      }
-      return data;
-    }
-    return defaultValue;
+    const record = await db.get("store5", [this.designName, type]);
+    const data = record ? record.data : defaultValue;
+    return data;
   }
 
   /**
@@ -12776,17 +9041,7 @@ class DB {
    * @returns {Promise<Object[]>}
    */
   async readAll(type) {
-    const db = await this.dbPromise;
-    const index = db
-      .transaction("store", "readonly")
-      .store.index("by-name-type");
-    const key = [this.designName, type];
-    const result = [];
-    for await (const cursor of index.iterate(key)) {
-      const data = cursor.value.data;
-      result.push(data);
-    }
-    return result;
+    return [this.read(type)];
   }
 
   /** Add a new record
@@ -12796,37 +9051,12 @@ class DB {
   async write(type, data) {
     const db = await this.dbPromise;
     // do all this in a transaction
-    const tx = db.transaction(["store", "saved"], "readwrite");
+    const tx = db.transaction(["store5", "saved"], "readwrite");
     // note that this design has been updated
     await tx.objectStore("saved").delete(this.designName);
     // add the record to the store
-    const store = tx.objectStore("store");
+    const store = tx.objectStore("store5");
     await store.put({ name: this.designName, type, data });
-
-    let n_max = N_RECORDS_MAX; // zero to prevent limiting
-    let n_save = N_RECORDS_SAVE;
-    if (type == "content") {
-      n_max = n_save = 1; // only save 1 content record
-    } else if (type == "log") {
-      n_max = n_save = 0; // don't limit log records
-    }
-
-    /* Only keep the last few records per type */
-    const index = store.index("by-name-type");
-    const key = [this.designName, type];
-    if (n_max > 0) {
-      // count how many we have
-      let count = await index.count(key);
-      if (count > n_max) {
-        // get the number to delete
-        let toDelete = count - n_save;
-        // we're getting them in order so this will delete the oldest ones
-        for await (const cursor of index.iterate(key)) {
-          if (--toDelete <= 0) break;
-          cursor.delete();
-        }
-      }
-    }
     await tx.done;
 
     this.notify({ action: "update", name: this.designName });
@@ -12840,12 +9070,7 @@ class DB {
    */
   async clear(type) {
     const db = await this.dbPromise;
-    const tx = db.transaction("store", "readwrite");
-    const index = tx.store.index("by-name-type");
-    for await (const cursor of index.iterate([this.designName, type])) {
-      cursor.delete();
-    }
-    await tx.done;
+    return db.delete("store5", [this.designName, type]);
   }
 
   /** Undo by deleting the most recent record
@@ -12855,7 +9080,7 @@ class DB {
     if (type == "content") return;
     const db = await this.dbPromise;
     const index = db
-      .transaction("store", "readwrite")
+      .transaction("store5", "readwrite")
       .store.index("by-name-type");
     const cursor = await index.openCursor([this.designName, type], "prev");
     if (cursor) await cursor.delete();
@@ -12874,61 +9099,139 @@ class DB {
 
   /** Read a design from a URL
    * @param {string} url
+   * @param {string} [name]
+   * @returns {Promise<boolean>}
    */
-  async readDesignFromURL(url) {
+  async readDesignFromURL(url, name = "") {
+    if (!url) return false;
+    let design_url = url;
+    /** @type {Response} */
+    let response;
     const db = await this.dbPromise;
-    // have we seen this url before?
-    const urlRecord = await db.get("url", url);
-    /** @type {HeadersInit} */
-    const headers = {}; // for the fetch
-    let name = "";
-    if (urlRecord) {
-      /** @type {string} */
-      const etag = urlRecord.etag;
-      // do we have any saved designs with this etag?
-      const savedKey = await db.getKeyFromIndex("saved", "by-etag", etag);
-      if (savedKey) {
-        // yes we have a previously saved design from this url
-        // set the headers to check if it has changed
-        headers["If-None-Match"] = etag;
-        name = savedKey.toString();
-      }
-    }
 
-    const response = await fetch(url, { headers });
+    // a local URL
+    if (!url.startsWith("http")) {
+      response = await fetch(url);
+    } else {
+      // allow for the url to point to HTML that contains the link
+      if (!url.match(/.*\.(osdpi|zip)$/)) {
+        response = await fetch("https://gb.cs.unc.edu/cors/", {
+          headers: { "Target-URL": url },
+        });
+        if (!response.ok) {
+          throw new Error(
+            `Fetching the URL (${url}) failed: ${response.status}`,
+          );
+        }
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        // find the first link that matches the name
+        const link =
+          doc.querySelector(`a[href$="${name}.zip"]`) ||
+          doc.querySelector(`a[href$="${name}.osdpi"]`);
+        if (link instanceof HTMLAnchorElement) {
+          design_url = link.href;
+        } else {
+          throw new Error(`Invalid URL ${url}`);
+        }
+      }
+      // have we seen this url before?
+      const urlRecord = await db.get("url", design_url);
+      /** @type {HeadersInit} */
+      const headers = {}; // for the fetch
+      if (urlRecord) {
+        /** @type {string} */
+        const etag = urlRecord.etag;
+        // do we have any saved designs with this etag?
+        const savedKey = await db.getKeyFromIndex("saved", "by-etag", etag);
+        if (savedKey) {
+          // yes we have a previously saved design from this url
+          // set the headers to check if it has changed
+          headers["If-None-Match"] = etag;
+          name = savedKey.toString();
+        }
+      }
+      headers["Target-URL"] = design_url;
+
+      response = await fetch("https://gb.cs.unc.edu/cors/", { headers });
+    }
     if (response.status == 304) {
       // we already have it
       this.designName = name;
-      return;
+      return false;
     }
     if (!response.ok) {
       throw new Error(`Fetching the URL (${url}) failed: ${response.status}`);
     }
-    const etag = response.headers.get("ETag") || "";
-    await db.put("url", { url, etag });
 
-    const urlParts = new URL(url, window.location.origin);
-    const pathParts = urlParts.pathname.split("/");
-    if (
-      pathParts.length > 0 &&
-      pathParts[pathParts.length - 1].endsWith(".osdpi")
-    ) {
-      name = pathParts[pathParts.length - 1];
-    } else {
-      throw new Error(`Design files should have .osdpi suffix`);
+    const etag = response.headers.get("ETag") || "";
+    await db.put("url", { url: design_url, page_url: url, etag });
+
+    if (!name) {
+      const urlParts = new URL(design_url, window.location.origin);
+      const pathParts = urlParts.pathname.split("/");
+      if (
+        pathParts.length > 0 &&
+        (pathParts[pathParts.length - 1].endsWith(".osdpi") ||
+          pathParts[pathParts.length - 1].endsWith(".zip"))
+      ) {
+        name = pathParts[pathParts.length - 1];
+      } else {
+        throw new Error(`Design files should have .osdpi suffix`);
+      }
     }
 
     const blob = await response.blob();
+
     // parse the URL
     return this.readDesignFromBlob(blob, name, etag);
+  }
+
+  /** Return the URL (if any) this design was imported from
+   * @returns {Promise<string>}
+   */
+  async getDesignURL() {
+    const db = await this.dbPromise;
+
+    const name = this.designName;
+
+    // check saved
+    const savedRecord = await db.get("saved", name);
+    if (savedRecord && savedRecord.etag && savedRecord.etag != "none") {
+      // lookup the URL
+      const etag = savedRecord.etag;
+      const urlRecord = await db.getFromIndex("url", "by-etag", etag);
+      if (urlRecord) {
+        const url = urlRecord.page_url;
+        return url;
+      }
+    }
+    return "";
+  }
+
+  /**
+   * Reload the design from a URL if and only if:
+   * 1. It was loaded from a URL
+   * 2. It has not been edited
+   * 3. The ETag has changed
+   */
+  async reloadDesignFromOriginalURL() {
+    const url = await this.getDesignURL();
+    if (url) {
+      if (await this.readDesignFromURL(url)) {
+        Globals.restart();
+      }
+    }
   }
 
   /** Read a design from a zip file
    * @param {Blob} blob
    * @param {string} filename
    * @param {string} etag
+   * @returns {Promise<boolean>}
    */
-  async readDesignFromBlob(blob, filename, etag = "none") {
+  async readDesignFromBlob(blob, filename, etag = "") {
     const db = await this.dbPromise;
     this.fileName = filename;
 
@@ -12939,7 +9242,11 @@ class DB {
     // normalize the fileName to make the design name
     let name = this.fileName;
     // make sure it is unique
-    name = await this.uniqueName(name);
+    if (!etag) {
+      name = await this.uniqueName(name);
+    } else {
+      name = name.replace(/\.(zip|osdpi)$/, "");
+    }
 
     this.designName = name;
 
@@ -12976,14 +9283,14 @@ class DB {
     }
     await db.put("saved", { name: this.designName, etag });
     this.notify({ action: "update", name: this.designName });
-    return;
+    return true;
   }
 
   // do this part async to avoid file picker timeout
   async convertDesignToBlob() {
     const db = await this.dbPromise;
     // collect the parts of the design
-    const layout = Globals.tree.toObject();
+    const layout = Globals.layout.toObject();
     const actions = Globals.actions.toObject();
     const content = await this.read("content");
     const method = Globals.method.toObject();
@@ -13031,7 +9338,7 @@ class DB {
       id: "osdpi",
     };
     try {
-      await o(this.convertDesignToBlob(), options, this.fileHandle);
+      await o$1(this.convertDesignToBlob(), options, this.fileHandle);
       await db.put("saved", { name: this.designName });
     } catch (error) {
       console.error("Export failed");
@@ -13044,7 +9351,7 @@ class DB {
    */
   async unload(name) {
     const db = await this.dbPromise;
-    const tx = db.transaction("store", "readwrite");
+    const tx = db.transaction("store5", "readwrite");
     const index = tx.store.index("by-name");
     for await (const cursor of index.iterate(name)) {
       cursor.delete();
@@ -13218,6 +9525,4249 @@ function mime(fname) {
   return mimetypes[extension] || false;
 }
 
+/** @param {function(string, string): string} f */
+function updateString(f) {
+  /** @param {string} value */
+  return function (value) {
+    /** @param {string | undefined} old */
+    return function (old) {
+      return f(old || "", value);
+    };
+  };
+}
+/** @param {function(number, number): number} f */
+function updateNumber(f) {
+  /** @param {number} value */
+  return function (value) {
+    /** @param {number | undefined} old */
+    return function (old) {
+      return f(old || 0, value);
+    };
+  };
+}
+const Functions = {
+  increment: updateNumber((old, value) => old + value),
+  add_word: updateString((old, value) => old + value + " "),
+  add_letter: updateString((old, value) => old + value),
+  complete: updateString((old, value) => {
+    if (old.length == 0 || old.endsWith(" ")) {
+      return old + value;
+    } else {
+      return old.replace(/\w+$/, value);
+    }
+  }),
+  replace_last: updateString((old, value) => old.replace(/\w*\s*$/, value)),
+  replace_last_letter: updateString((old, value) => old.slice(0, -1) + value),
+  random: (/** @type {string} */ arg) => {
+    let args = arg.split(",");
+    return args[Math.floor(Math.random() * args.length)];
+  },
+  max: Math.max,
+  min: Math.min,
+  if: (/** @type {boolean} */ c, /** @type {any} */ t, /** @type {any} */ f) =>
+    c ? t : f,
+  abs: (/** @type {number} */ v) => Math.abs(v),
+  load_design: (url = "") => {
+    if (!url) db.reloadDesignFromOriginalURL();
+    else db.readDesignFromURL(url);
+    return "loaded";
+  },
+  open_editor: () => {
+    Globals.state.update({ editing: !Globals.state.get("editing") });
+  },
+};
+
+/**
+ * Translate an expression from Excel-like to Javascript
+ *
+ * @param {string} expression
+ * @returns {string}
+ */
+function translate(expression) {
+  /* translate the expression from the excel like form to javascript */
+  // remove any initial = sign
+  let exp = expression.replace(/^=/, "");
+  // translate single = to ==
+  exp = exp.replaceAll(/(?<![=<>!])=/g, "==");
+  // translate words
+  exp = exp.replaceAll(/(?<!['"])[#](\w+)/g, "_$1");
+  return exp;
+}
+
+/**
+ * Cleanup access to state and data
+ *
+ * @param {State} state
+ * @param {Row} data
+ * @returns {function(string): any}
+ */
+function access(state, data) {
+  return function (name) {
+    if (!name) return "";
+    if (state && name.startsWith("$")) {
+      return state.get(name);
+    }
+    if (data && name.startsWith("#")) {
+      const r = data[name.slice(1)];
+      if (r == null) return "";
+      return r;
+    }
+    return "";
+  };
+}
+
+/** Track access to states and fields, true if the value was undefined
+ * @type {Map<string, boolean>}
+ */
+const accessed = new Map();
+
+/* intercept access to variables so I can track access to undefined state and field values
+ * and map them to empty strings.
+ */
+const variableHandler = {
+  /** @param {Object} target
+   * @param {string} prop
+   */
+  get(target, prop) {
+    let result = undefined;
+    if (prop.startsWith("$")) {
+      result = target.states[prop];
+      accessed.set(prop, prop in target.states);
+    } else if (prop.startsWith("_")) {
+      let ps = prop.slice(1);
+      result = target.data[ps];
+      accessed.set(prop, Globals.data.allFields.has("#" + ps));
+    } else if (prop in Functions) {
+      result = Functions[prop];
+    } else {
+      console.error("undefined", prop);
+    }
+    if (result === undefined || result === null) {
+      result = "";
+    }
+    return result;
+  },
+
+  /** The expressions library is testing for own properties for safety.
+   * I need to defeat that for the renaming I want to do.
+   * @param {Object} target;
+   * @param {string} prop;
+   */
+  getOwnPropertyDescriptor(target, prop) {
+    if (prop.startsWith("$")) {
+      return Object.getOwnPropertyDescriptor(target.states, prop);
+    } else if (prop.startsWith("_")) {
+      return Object.getOwnPropertyDescriptor(target.data, prop.slice(1));
+    } else {
+      return Object.getOwnPropertyDescriptor(Functions, prop);
+    }
+  },
+};
+
+/**
+ * Compile an expression returning the function or an error
+ * @param {string} expression
+ * @returns {[ ((context?:Object)=>any ) | undefined, Error | undefined ]}
+ *
+ * */
+function compileExpression(expression) {
+  const te = translate(expression);
+  try {
+    const exp = main.compile(te);
+    /** @param {EvalContext} context */
+    return [
+      (context = {}) => {
+        let states =
+          "states" in context
+            ? { ...Globals.state.values, ...context.states }
+            : Globals.state.values;
+        let data = context.data ?? [];
+        const r = exp(
+          new Proxy(
+            {
+              Functions,
+              states,
+              data,
+            },
+            variableHandler,
+          ),
+        );
+        return r;
+      },
+      undefined,
+    ];
+  } catch (e) {
+    return [undefined, e];
+  }
+}
+
+/*
+ * Bang color names from http://www.procato.com/rgb+index/?csv
+ */
+const ColorNames = {
+  white: "#ffffff",
+  red: "#ff0000",
+  green: "#00ff00",
+  blue: "#0000ff",
+  yellow: "#ffff00",
+  magenta: "#ff00ff",
+  cyan: "#00ffff",
+  black: "#000000",
+  "pinkish white": "#fff6f6",
+  "very pale pink": "#ffe2e2",
+  "pale pink": "#ffc2c2",
+  "light pink": "#ff9e9e",
+  "light brilliant red": "#ff6565",
+  "luminous vivid red": "#ff0000",
+  "pinkish gray": "#e7dada",
+  "pale grayish pink": "#e7b8b8",
+  pink: "#e78b8b",
+  "brilliant red": "#e75151",
+  "vivid red": "#e70000",
+  "reddish gray": "#a89c9c",
+  "grayish red": "#a87d7d",
+  "moderate red": "#a84a4a",
+  "strong red": "#a80000",
+  "reddish brownish gray": "#595353",
+  "dark grayish reddish brown": "#594242",
+  "reddish brown": "#592727",
+  "deep reddish brown": "#590000",
+  "reddish brownish black": "#1d1a1a",
+  "very reddish brown": "#1d1111",
+  "very deep reddish brown": "#1d0000",
+  "pale scarlet": "#ffc9c2",
+  "very light scarlet": "#ffaa9e",
+  "light brilliant scarlet": "#ff7865",
+  "luminous vivid scarlet": "#ff2000",
+  "light scarlet": "#e7968b",
+  "brilliant scarlet": "#e76451",
+  "vivid scarlet": "#e71d00",
+  "moderate scarlet": "#a8554a",
+  "strong scarlet": "#a81500",
+  "dark scarlet": "#592d27",
+  "deep scarlet": "#590b00",
+  "very pale vermilion": "#ffe9e2",
+  "pale vermilion": "#ffd1c2",
+  "very light vermilion": "#ffb69e",
+  "light brilliant vermilion": "#ff8b65",
+  "luminous vivid vermilion": "#ff4000",
+  "pale, light grayish vermilion": "#e7c4b8",
+  "light vermilion": "#e7a28b",
+  "brilliant vermilion": "#e77751",
+  "vivid vermilion": "#e73a00",
+  "grayish vermilion": "#a8887d",
+  "moderate vermilion": "#a8614a",
+  "strong vermilion": "#a82a00",
+  "dark grayish vermilion": "#594842",
+  "dark vermilion": "#593427",
+  "deep vermilion": "#591600",
+  "pale tangelo": "#ffd9c2",
+  "very light tangelo": "#ffc29e",
+  "light brilliant tangelo": "#ff9f65",
+  "luminous vivid tangelo": "#ff6000",
+  "light tangelo": "#e7ae8b",
+  "brilliant tangelo": "#e78951",
+  "vivid tangelo": "#e75700",
+  "moderate tangelo": "#a86d4a",
+  "strong tangelo": "#a83f00",
+  "dark tangelo": "#593a27",
+  "deep tangelo": "#592100",
+  "very pale orange": "#fff0e2",
+  "pale orange": "#ffe0c2",
+  "very light orange": "#ffcf9e",
+  "light brilliant orange": "#ffb265",
+  "luminous vivid orange": "#ff8000",
+  "pale, light grayish brown": "#e7d0b8",
+  "light orange": "#e7b98b",
+  "brilliant orange": "#e79c51",
+  "vivid orange": "#e77400",
+  "grayish brown": "#a8937d",
+  "moderate orange": "#a8794a",
+  "strong orange": "#a85400",
+  "dark grayish brown": "#594e42",
+  brown: "#594027",
+  "deep brown": "#592d00",
+  "very brown": "#1d1711",
+  "very deep brown": "#1d0e00",
+  "pale gamboge": "#ffe8c2",
+  "very light gamboge": "#ffdb9e",
+  "light brilliant gamboge": "#ffc565",
+  "luminous vivid gamboge": "#ff9f00",
+  "light gamboge": "#e7c58b",
+  "brilliant gamboge": "#e7af51",
+  "vivid gamboge": "#e79100",
+  "moderate gamboge": "#a8854a",
+  "strong gamboge": "#a86900",
+  "dark gamboge": "#594627",
+  "deep gamboge": "#593800",
+  "very pale amber": "#fff8e2",
+  "pale amber": "#fff0c2",
+  "very light amber": "#ffe79e",
+  "light brilliant amber": "#ffd865",
+  "luminous vivid amber": "#ffbf00",
+  "pale, light grayish amber": "#e7dcb8",
+  "light amber": "#e7d08b",
+  "brilliant amber": "#e7c251",
+  "vivid amber": "#e7ae00",
+  "grayish amber": "#a89e7d",
+  "moderate amber": "#a8914a",
+  "strong amber": "#a87e00",
+  "dark grayish amber": "#595442",
+  "dark amber": "#594d27",
+  "deep amber": "#594300",
+  "pale gold": "#fff7c2",
+  "very light gold": "#fff39e",
+  "light brilliant gold": "#ffec65",
+  "luminous vivid gold": "#ffdf00",
+  "light gold": "#e7dc8b",
+  "brilliant gold": "#e7d551",
+  "vivid gold": "#e7ca00",
+  "moderate gold": "#a89c4a",
+  "strong gold": "#a89300",
+  "dark gold": "#595327",
+  "deep gold": "#594e00",
+  "yellowish white": "#fffff6",
+  "very pale yellow": "#ffffe2",
+  "pale yellow": "#ffffc2",
+  "very light yellow": "#ffff9e",
+  "light brilliant yellow": "#ffff65",
+  "luminous vivid yellow": "#ffff00",
+  "light yellowish gray": "#e7e7da",
+  "pale, light grayish olive": "#e7e7b8",
+  "light yellow": "#e7e78b",
+  "brilliant yellow": "#e7e751",
+  "vivid yellow": "#e7e700",
+  "yellowish gray": "#a8a89c",
+  "grayish olive": "#a8a87d",
+  "moderate olive": "#a8a84a",
+  "strong olive": "#a8a800",
+  "dark olivish gray": "#595953",
+  "dark grayish olive": "#595942",
+  "dark olive": "#595927",
+  "deep olive": "#595900",
+  "yellowish black": "#1d1d1a",
+  "very dark olive": "#1d1d11",
+  "very deep olive": "#1d1d00",
+  "pale apple green": "#f7ffc2",
+  "very light apple green": "#f3ff9e",
+  "light brilliant apple green": "#ecff65",
+  "luminous vivid apple green": "#dfff00",
+  "light apple green": "#dce78b",
+  "brilliant apple green": "#d5e751",
+  "vivid apple green": "#cae700",
+  "moderate apple green": "#9ca84a",
+  "strong apple green": "#93a800",
+  "dark apple green": "#535927",
+  "deep apple green": "#4e5900",
+  "very pale lime green": "#f8ffe2",
+  "pale lime green": "#f0ffc2",
+  "very light lime green": "#e7ff9e",
+  "light brilliant lime green": "#d8ff65",
+  "luminous vivid lime green": "#bfff00",
+  "pale, light grayish lime green": "#dce7b8",
+  "light lime green": "#d0e78b",
+  "brilliant lime green": "#c2e751",
+  "vivid lime green": "#aee700",
+  "grayish lime green": "#9ea87d",
+  "moderate lime green": "#91a84a",
+  "strong lime green": "#7ea800",
+  "dark grayish lime green": "#545942",
+  "dark lime green": "#4d5927",
+  "deep lime green": "#435900",
+  "pale spring bud": "#e8ffc2",
+  "very light spring bud": "#dbff9e",
+  "light brilliant spring bud": "#c5ff65",
+  "luminous vivid spring bud": "#9fff00",
+  "light spring bud": "#c5e78b",
+  "brilliant spring bud": "#afe751",
+  "vivid spring bud": "#91e700",
+  "moderate spring bud": "#85a84a",
+  "strong spring bud": "#69a800",
+  "dark spring bud": "#465927",
+  "deep spring bud": "#385900",
+  "very pale chartreuse green": "#f0ffe2",
+  "pale chartreuse green": "#e0ffc2",
+  "very light chartreuse green": "#cfff9e",
+  "light brilliant chartreuse green": "#b2ff65",
+  "luminous vivid chartreuse green": "#80ff00",
+  "pale, light grayish chartreuse green": "#d0e7b8",
+  "light chartreuse green": "#b9e78b",
+  "brilliant chartreuse green": "#9ce751",
+  "vivid chartreuse green": "#74e700",
+  "grayish chartreuse green": "#93a87d",
+  "moderate chartreuse green": "#79a84a",
+  "strong chartreuse green": "#54a800",
+  "dark grayish chartreuse green": "#4e5942",
+  "dark chartreuse green": "#405927",
+  "deep chartreuse green": "#2d5900",
+  "very dark chartreuse green": "#171d11",
+  "very deep chartreuse green": "#0e1d00",
+  "pale pistachio": "#d9ffc2",
+  "very light pistachio": "#c2ff9e",
+  "light brilliant pistachio": "#9fff65",
+  "luminous vivid pistachio": "#60ff00",
+  "light pistachio": "#aee78b",
+  "brilliant pistachio": "#89e751",
+  "vivid pistachio": "#57e700",
+  "moderate pistachio": "#6da84a",
+  "strong pistachio": "#3fa800",
+  "dark pistachio": "#3a5927",
+  "deep pistachio": "#215900",
+  "very pale harlequin": "#e9ffe2",
+  "pale harlequin": "#d1ffc2",
+  "very light harlequin": "#b6ff9e",
+  "light brilliant harlequin": "#8bff65",
+  "luminous vivid harlequin": "#40ff00",
+  "pale, light grayish harlequin": "#c4e7b8",
+  "light harlequin": "#a2e78b",
+  "brilliant harlequin": "#77e751",
+  "vivid harlequin": "#3ae700",
+  "grayish harlequin": "#88a87d",
+  "moderate harlequin": "#61a84a",
+  "strong harlequin": "#2aa800",
+  "dark grayish harlequin": "#485942",
+  "dark harlequin": "#345927",
+  "deep harlequin": "#165900",
+  "pale sap green": "#c9ffc2",
+  "very light sap green": "#aaff9e",
+  "light brilliant sap green": "#78ff65",
+  "luminous vivid sap green": "#20ff00",
+  "light sap green": "#96e78b",
+  "brilliant sap green": "#64e751",
+  "vivid sap green": "#1de700",
+  "moderate sap green": "#55a84a",
+  "strong sap green": "#15a800",
+  "dark sap green": "#2d5927",
+  "deep sap green": "#0b5900",
+  "greenish white": "#f6fff6",
+  "very pale green": "#e2ffe2",
+  "pale green": "#c2ffc2",
+  "very light green": "#9eff9e",
+  "light brilliant green": "#65ff65",
+  "luminous vivid green": "#00ff00",
+  "light greenish gray": "#dae7da",
+  "pale, light grayish green": "#b8e7b8",
+  "light green": "#8be78b",
+  "brilliant green": "#51e751",
+  "vivid green": "#00e700",
+  "greenish gray": "#9ca89c",
+  "grayish green": "#7da87d",
+  "moderate green": "#4aa84a",
+  "strong green": "#00a800",
+  "dark greenish gray": "#535953",
+  "dark grayish green": "#425942",
+  "dark green": "#275927",
+  "deep green": "#005900",
+  "greenish black": "#1a1d1a",
+  "very dark green": "#111d11",
+  "very deep green": "#001d00",
+  "pale emerald green": "#c2ffc9",
+  "very light emerald green": "#9effaa",
+  "light brilliant emerald green": "#65ff78",
+  "luminous vivid emerald green": "#00ff20",
+  "light emerald green": "#8be796",
+  "brilliant emerald green": "#51e764",
+  "vivid emerald green": "#00e71d",
+  "moderate emerald green": "#4aa855",
+  "strong emerald green": "#00a815",
+  "dark emerald green": "#27592d",
+  "deep emerald green": "#00590b",
+  "very pale malachite green": "#e2ffe9",
+  "pale malachite green": "#c2ffd1",
+  "very light malachite green": "#9effb6",
+  "light brilliant malachite green": "#65ff8b",
+  "luminous vivid malachite green": "#00ff40",
+  "pale, light grayish malachite green": "#b8e7c4",
+  "light malachite green": "#8be7a2",
+  "brilliant malachite green": "#51e777",
+  "vivid malachite green": "#00e73a",
+  "grayish malachite green": "#7da888",
+  "moderate malachite green": "#4aa861",
+  "strong malachite green": "#00a82a",
+  "dark grayish malachite green": "#425948",
+  "dark malachite green": "#275934",
+  "deep malachite green": "#005916",
+  "pale sea green": "#c2ffd9",
+  "very light sea green": "#9effc2",
+  "light brilliant sea green": "#65ff9f",
+  "luminous vivid sea green": "#00ff60",
+  "light sea green": "#8be7ae",
+  "brilliant sea green": "#51e789",
+  "vivid sea green": "#00e757",
+  "moderate sea green": "#4aa86d",
+  "strong sea green": "#00a83f",
+  "dark sea green": "#27593a",
+  "deep sea green": "#005921",
+  "very pale spring green": "#e2fff0",
+  "pale spring green": "#c2ffe0",
+  "very light spring green": "#9effcf",
+  "light brilliant spring green": "#65ffb2",
+  "luminous vivid spring green": "#00ff80",
+  "pale, light grayish spring green": "#b8e7d0",
+  "light spring green": "#8be7b9",
+  "brilliant spring green": "#51e79c",
+  "vivid spring green": "#00e774",
+  "grayish spring green": "#7da893",
+  "moderate spring green": "#4aa879",
+  "strong spring green": "#00a854",
+  "dark grayish spring green": "#42594e",
+  "dark spring green": "#275940",
+  "deep spring green": "#00592d",
+  "very dark spring green": "#111d17",
+  "very deep spring green": "#001d0e",
+  "pale aquamarine": "#c2ffe8",
+  "very light aquamarine": "#9effdb",
+  "light brilliant aquamarine": "#65ffc5",
+  "luminous vivid aquamarine": "#00ff9f",
+  "light aquamarine": "#8be7c5",
+  "brilliant aquamarine": "#51e7af",
+  "vivid aquamarine": "#00e791",
+  "moderate aquamarine": "#4aa885",
+  "strong aquamarine": "#00a869",
+  "dark aquamarine": "#275946",
+  "deep aquamarine": "#005938",
+  "very pale turquoise": "#e2fff8",
+  "pale turquoise": "#c2fff0",
+  "very light turquoise": "#9effe7",
+  "light brilliant turquoise": "#65ffd8",
+  "luminous vivid turquoise": "#00ffbf",
+  "pale, light grayish turquoise": "#b8e7dc",
+  "light turquoise": "#8be7d0",
+  "brilliant turquoise": "#51e7c2",
+  "vivid turquoise": "#00e7ae",
+  "grayish turquoise": "#7da89e",
+  "moderate turquoise": "#4aa891",
+  "strong turquoise": "#00a87e",
+  "dark grayish turquoise": "#425954",
+  "dark turquoise": "#27594d",
+  "deep turquoise": "#005943",
+  "pale opal": "#c2fff7",
+  "very light opal": "#9efff3",
+  "light brilliant opal": "#65ffec",
+  "luminous vivid opal": "#00ffdf",
+  "light opal": "#8be7dc",
+  "brilliant opal": "#51e7d5",
+  "vivid opal": "#00e7ca",
+  "moderate opal": "#4aa89c",
+  "strong opal": "#00a893",
+  "dark opal": "#275953",
+  "deep opal": "#00594e",
+  "cyanish white": "#f6ffff",
+  "very pale cyan": "#e2ffff",
+  "pale cyan": "#c2ffff",
+  "very light cyan": "#9effff",
+  "light brilliant cyan": "#65ffff",
+  "luminous vivid cyan": "#00ffff",
+  "light cyanish gray": "#dae7e7",
+  "pale, light grayish cyan": "#b8e7e7",
+  "light cyan": "#8be7e7",
+  "brilliant cyan": "#51e7e7",
+  "vivid cyan": "#00e7e7",
+  "cyanish gray": "#9ca8a8",
+  "grayish cyan": "#7da8a8",
+  "moderate cyan": "#4aa8a8",
+  "strong cyan": "#00a8a8",
+  "dark cyanish gray": "#535959",
+  "dark grayish cyan": "#425959",
+  "dark cyan": "#275959",
+  "deep cyan": "#005959",
+  "cyanish black": "#1a1d1d",
+  "very dark cyan": "#111d1d",
+  "very deep cyan": "#001d1d",
+  "pale arctic blue": "#c2f7ff",
+  "very light arctic blue": "#9ef3ff",
+  "light brilliant arctic blue": "#65ecff",
+  "luminous vivid arctic blue": "#00dfff",
+  "light arctic blue": "#8bdce7",
+  "brilliant arctic blue": "#51d5e7",
+  "vivid arctic blue": "#00cae7",
+  "moderate arctic blue": "#4a9ca8",
+  "strong arctic blue": "#0093a8",
+  "dark arctic blue": "#275359",
+  "deep arctic blue": "#004e59",
+  "very pale cerulean": "#e2f8ff",
+  "pale cerulean": "#c2f0ff",
+  "very light cerulean": "#9ee7ff",
+  "light brilliant cerulean": "#65d8ff",
+  "luminous vivid cerulean": "#00bfff",
+  "pale, light grayish cerulean": "#b8dce7",
+  "light cerulean": "#8bd0e7",
+  "brilliant cerulean": "#51c2e7",
+  "vivid cerulean": "#00aee7",
+  "grayish cerulean": "#7d9ea8",
+  "moderate cerulean": "#4a91a8",
+  "strong cerulean": "#007ea8",
+  "dark grayish cerulean": "#425459",
+  "dark cerulean": "#274d59",
+  "deep cerulean": "#004359",
+  "pale cornflower blue": "#c2e8ff",
+  "very light cornflower blue": "#9edbff",
+  "light brilliant cornflower blue": "#65c5ff",
+  "luminous vivid cornflower blue": "#009fff",
+  "light cornflower blue": "#8bc5e7",
+  "brilliant cornflower blue": "#51afe7",
+  "vivid cornflower blue": "#0091e7",
+  "moderate cornflower blue": "#4a85a8",
+  "strong cornflower blue": "#0069a8",
+  "dark cornflower blue": "#274659",
+  "deep cornflower blue": "#003859",
+  "very pale azure": "#e2f0ff",
+  "pale azure": "#c2e0ff",
+  "very light azure": "#9ecfff",
+  "light brilliant azure": "#65b2ff",
+  "luminous vivid azure": "#0080ff",
+  "pale, light grayish azure": "#b8d0e7",
+  "light azure": "#8bb9e7",
+  "brilliant azure": "#519ce7",
+  "vivid azure": "#0074e7",
+  "grayish azure": "#7d93a8",
+  "moderate azure": "#4a79a8",
+  "strong azure": "#0054a8",
+  "dark grayish azure": "#424e59",
+  "dark azure": "#274059",
+  "deep azure": "#002d59",
+  "very dark azure": "#11171d",
+  "very deep azure": "#000e1d",
+  "pale cobalt blue": "#c2d9ff",
+  "very light cobalt blue": "#9ec2ff",
+  "light brilliant cobalt blue": "#659fff",
+  "luminous vivid cobalt blue": "#0060ff",
+  "light cobalt blue": "#8baee7",
+  "brilliant cobalt blue": "#5189e7",
+  "vivid cobalt blue": "#0057e7",
+  "moderate cobalt blue": "#4a6da8",
+  "strong cobalt blue": "#003fa8",
+  "dark cobalt blue": "#273a59",
+  "deep cobalt blue": "#002159",
+  "very pale sapphire blue": "#e2e9ff",
+  "pale sapphire blue": "#c2d1ff",
+  "very light sapphire blue": "#9eb6ff",
+  "light brilliant sapphire blue": "#658bff",
+  "luminous vivid sapphire blue": "#0040ff",
+  "pale, light grayish sapphire blue": "#b8c4e7",
+  "light sapphire blue": "#8ba2e7",
+  "brilliant sapphire blue": "#5177e7",
+  "vivid sapphire blue": "#003ae7",
+  "grayish sapphire blue": "#7d88a8",
+  "moderate sapphire blue": "#4a61a8",
+  "strong sapphire blue": "#002aa8",
+  "dark grayish sapphire blue": "#424859",
+  "dark sapphire blue": "#273459",
+  "deep sapphire blue": "#001659",
+  "pale phthalo blue": "#c2c9ff",
+  "very light phthalo blue": "#9eaaff",
+  "light brilliant phthalo blue": "#6578ff",
+  "luminous vivid phthalo blue": "#0020ff",
+  "light phthalo blue": "#8b96e7",
+  "brilliant phthalo blue": "#5164e7",
+  "vivid phthalo blue": "#001de7",
+  "moderate phthalo blue": "#4a55a8",
+  "strong phthalo blue": "#0015a8",
+  "dark phthalo blue": "#272d59",
+  "deep phthalo blue": "#000b59",
+  "bluish white": "#f6f6ff",
+  "very pale blue": "#e2e2ff",
+  "pale blue": "#c2c2ff",
+  "very light blue": "#9e9eff",
+  "light brilliant blue": "#6565ff",
+  "luminous vivid blue": "#0000ff",
+  "light bluish gray": "#dadae7",
+  "pale, light grayish blue": "#b8b8e7",
+  "light blue": "#8b8be7",
+  "brilliant blue": "#5151e7",
+  "vivid blue": "#0000e7",
+  "bluish gray": "#9c9ca8",
+  "grayish blue": "#7d7da8",
+  "moderate blue": "#4a4aa8",
+  "strong blue": "#0000a8",
+  "dark bluish gray": "#535359",
+  "dark grayish blue": "#424259",
+  "dark blue": "#272759",
+  "deep blue": "#000059",
+  "bluish black": "#1a1a1d",
+  "very dark blue": "#11111d",
+  "very deep blue": "#00001d",
+  "pale persian blue": "#c9c2ff",
+  "very light persian blue": "#aa9eff",
+  "light brilliant persian blue": "#7865ff",
+  "luminous vivid persian blue": "#2000ff",
+  "light persian blue": "#968be7",
+  "brilliant persian blue": "#6451e7",
+  "vivid persian blue": "#1d00e7",
+  "moderate persian blue": "#554aa8",
+  "strong persian blue": "#1500a8",
+  "dark persian blue": "#2d2759",
+  "deep persian blue": "#0b0059",
+  "very pale indigo": "#e9e2ff",
+  "pale indigo": "#d1c2ff",
+  "very light indigo": "#b69eff",
+  "light brilliant indigo": "#8b65ff",
+  "luminous vivid indigo": "#4000ff",
+  "pale, light grayish indigo": "#c4b8e7",
+  "light indigo": "#a28be7",
+  "brilliant indigo": "#7751e7",
+  "vivid indigo": "#3a00e7",
+  "grayish indigo": "#887da8",
+  "moderate indigo": "#614aa8",
+  "strong indigo": "#2a00a8",
+  "dark grayish indigo": "#484259",
+  "dark indigo": "#342759",
+  "deep indigo": "#160059",
+  "pale blue violet": "#d9c2ff",
+  "very light blue violet": "#c29eff",
+  "light brilliant blue violet": "#9f65ff",
+  "luminous vivid blue violet": "#6000ff",
+  "light blue violet": "#ae8be7",
+  "brilliant blue violet": "#8951e7",
+  "vivid blue violet": "#5700e7",
+  "moderate blue violet": "#6d4aa8",
+  "strong blue violet": "#3f00a8",
+  "dark blue violet": "#3a2759",
+  "deep blue violet": "#210059",
+  "very pale violet": "#f0e2ff",
+  "pale violet": "#e0c2ff",
+  "very light violet": "#cf9eff",
+  "light brilliant violet": "#b265ff",
+  "luminous vivid violet": "#8000ff",
+  "pale, light grayish violet": "#d0b8e7",
+  "light violet": "#b98be7",
+  "brilliant violet": "#9c51e7",
+  "vivid violet": "#7400e7",
+  "grayish violet": "#937da8",
+  "moderate violet": "#794aa8",
+  "strong violet": "#5400a8",
+  "dark grayish violet": "#4e4259",
+  "dark violet": "#402759",
+  "deep violet": "#2d0059",
+  "very dark violet": "#17111d",
+  "very deep violet": "#0e001d",
+  "pale purple": "#e8c2ff",
+  "very light purple": "#db9eff",
+  "light brilliant purple": "#c565ff",
+  "luminous vivid purple": "#9f00ff",
+  "light purple": "#c58be7",
+  "brilliant purple": "#af51e7",
+  "vivid purple": "#9100e7",
+  "moderate purple": "#854aa8",
+  "strong purple": "#6900a8",
+  "dark purple": "#462759",
+  "deep purple": "#380059",
+  "very pale mulberry": "#f8e2ff",
+  "pale mulberry": "#f0c2ff",
+  "very light mulberry": "#e79eff",
+  "light brilliant mulberry": "#d865ff",
+  "luminous vivid mulberry": "#bf00ff",
+  "pale, light grayish mulberry": "#dcb8e7",
+  "light mulberry": "#d08be7",
+  "brilliant mulberry": "#c251e7",
+  "vivid mulberry": "#ae00e7",
+  "grayish mulberry": "#9e7da8",
+  "moderate mulberry": "#914aa8",
+  "strong mulberry": "#7e00a8",
+  "dark grayish mulberry": "#544259",
+  "dark mulberry": "#4d2759",
+  "deep mulberry": "#430059",
+  "pale heliotrope": "#f7c2ff",
+  "very light heliotrope": "#f39eff",
+  "light brilliant heliotrope": "#ec65ff",
+  "luminous vivid heliotrope": "#df00ff",
+  "light heliotrope": "#dc8be7",
+  "brilliant heliotrope": "#d551e7",
+  "vivid heliotrope": "#ca00e7",
+  "moderate heliotrope": "#9c4aa8",
+  "strong heliotrope": "#9300a8",
+  "dark heliotrope": "#532759",
+  "deep heliotrope": "#4e0059",
+  "magentaish white": "#fff6ff",
+  "very pale magenta": "#ffe2ff",
+  "pale magenta": "#ffc2ff",
+  "very light magenta": "#ff9eff",
+  "light brilliant magenta": "#ff65ff",
+  "luminous vivid magenta": "#ff00ff",
+  "light magentaish gray": "#e7dae7",
+  "pale, light grayish magenta": "#e7b8e7",
+  "light magenta": "#e78be7",
+  "brilliant magenta": "#e751e7",
+  "vivid magenta": "#e700e7",
+  "magentaish gray": "#a89ca8",
+  "grayish magenta": "#a87da8",
+  "moderate magenta": "#a84aa8",
+  "strong magenta": "#a800a8",
+  "dark magentaish gray": "#595359",
+  "dark grayish magenta": "#594259",
+  "dark magenta": "#592759",
+  "deep magenta": "#590059",
+  "magentaish black": "#1d1a1d",
+  "very dark magenta": "#1d111d",
+  "very deep magenta": "#1d001d",
+  "pale orchid": "#ffc2f7",
+  "very light orchid": "#ff9ef3",
+  "light brilliant orchid": "#ff65ec",
+  "luminous vivid orchid": "#ff00df",
+  "light orchid": "#e78bdc",
+  "brilliant orchid": "#e751d5",
+  "vivid orchid": "#e700ca",
+  "moderate orchid": "#a84a9c",
+  "strong orchid": "#a80093",
+  "dark orchid": "#592753",
+  "deep orchid": "#59004e",
+  "very pale fuchsia": "#ffe2f8",
+  "pale fuchsia": "#ffc2f0",
+  "very light fuchsia": "#ff9ee7",
+  "light brilliant fuchsia": "#ff65d8",
+  "luminous vivid fuchsia": "#ff00bf",
+  "pale, light grayish fuchsia": "#e7b8dc",
+  "light fuchsia": "#e78bd0",
+  "brilliant fuchsia": "#e751c2",
+  "vivid fuchsia": "#e700ae",
+  "grayish fuchsia": "#a87d9e",
+  "moderate fuchsia": "#a84a91",
+  "strong fuchsia": "#a8007e",
+  "dark grayish fuchsia": "#594254",
+  "dark fuchsia": "#59274d",
+  "deep fuchsia": "#590043",
+  "pale cerise": "#ffc2e8",
+  "very light cerise": "#ff9edb",
+  "light brilliant cerise": "#ff65c5",
+  "luminous vivid cerise": "#ff009f",
+  "light cerise": "#e78bc5",
+  "brilliant cerise": "#e751af",
+  "vivid cerise": "#e70091",
+  "moderate cerise": "#a84a85",
+  "strong cerise": "#a80069",
+  "dark cerise": "#592746",
+  "deep cerise": "#590038",
+  "very pale rose": "#ffe2f0",
+  "pale rose": "#ffc2e0",
+  "very light rose": "#ff9ecf",
+  "light brilliant rose": "#ff65b2",
+  "luminous vivid rose": "#ff0080",
+  "pale, light grayish rose": "#e7b8d0",
+  "light rose": "#e78bb9",
+  "brilliant rose": "#e7519c",
+  "vivid rose": "#e70074",
+  "grayish rose": "#a87d93",
+  "moderate rose": "#a84a79",
+  "strong rose": "#a80054",
+  "dark grayish rose": "#59424e",
+  "dark rose": "#592740",
+  "deep rose": "#59002d",
+  "very dark rose": "#1d1117",
+  "very deep rose": "#1d000e",
+  "pale raspberry": "#ffc2d9",
+  "very light raspberry": "#ff9ec2",
+  "light brilliant raspberry": "#ff659f",
+  "luminous vivid raspberry": "#ff0060",
+  "light raspberry": "#e78bae",
+  "brilliant raspberry": "#e75189",
+  "vivid raspberry": "#e70057",
+  "moderate raspberry": "#a84a6d",
+  "strong raspberry": "#a8003f",
+  "dark raspberry": "#59273a",
+  "deep raspberry": "#590021",
+  "very pale crimson": "#ffe2e9",
+  "pale crimson": "#ffc2d1",
+  "very light crimson": "#ff9eb6",
+  "light brilliant crimson": "#ff658b",
+  "luminous vivid crimson": "#ff0040",
+  "pale, light grayish crimson": "#e7b8c4",
+  "light crimson": "#e78ba2",
+  "brilliant crimson": "#e75177",
+  "vivid crimson": "#e7003a",
+  "grayish crimson": "#a87d88",
+  "moderate crimson": "#a84a61",
+  "strong crimson": "#a8002a",
+  "dark grayish crimson": "#594248",
+  "dark crimson": "#592734",
+  "deep crimson": "#590016",
+  "pale amaranth": "#ffc2c9",
+  "very light amaranth": "#ff9eaa",
+  "light brilliant amaranth": "#ff6578",
+  "luminous vivid amaranth": "#ff0020",
+  "light amaranth": "#e78b96",
+  "brilliant amaranth": "#e75164",
+  "vivid amaranth": "#e7001d",
+  "moderate amaranth": "#a84a55",
+  "strong amaranth": "#a80015",
+  "dark amaranth": "#59272d",
+  "deep amaranth": "#59000b",
+};
+
+/** @param {string} strColor */
+function isValidColor(strColor) {
+  if (strColor.length == 0 || strColor in ColorNames) {
+    return true;
+  }
+  var s = new Option().style;
+  s.color = strColor;
+
+  // return 'false' if color wasn't assigned
+  return s.color !== "";
+}
+
+/** @param {string} name */
+function getColor(name) {
+  return ColorNames[name] || name;
+}
+
+/** @param {Partial<CSSStyleDeclaration>} style */
+function normalizeStyle(style) {
+  return Object.fromEntries(
+    Object.entries(style)
+      .filter(([_, value]) => value && value.toString().length)
+      .map(([key, value]) =>
+        key.toLowerCase().indexOf("color") >= 0
+          ? [key, getColor(/** @type {string} */ (value))]
+          : [key, value && value.toString()],
+      ),
+  );
+}
+
+/** @param {Partial<CSSStyleDeclaration>} styles */
+function styleString(styles) {
+  return Object.entries(normalizeStyle(styles)).reduce(
+    (acc, [key, value]) =>
+      acc +
+      key
+        .split(/(?=[A-Z])/)
+        .join("-")
+        .toLowerCase() +
+      ":" +
+      value +
+      ";",
+    "",
+  );
+}
+
+function colorNamesDataList() {
+  return html`<datalist id="ColorNames">
+    ${Object.keys(ColorNames).map((name) => html`<option value="${name}" />`)}
+  </datalist>`;
+}
+
+/* Thinking about better properties */
+
+
+/**
+ * @typedef {Object} PropOptions
+ * @property {boolean} [hiddenLabel]
+ * @property {string} [placeholder]
+ * @property {string} [title]
+ * @property {string} [label]
+ * @property {string} [defaultValue]
+ * @property {string} [group]
+ * @property {string} [language]
+ * @property {any} [valueWhenEmpty]
+ * @property {string} [pattern]
+ * @property {function(string):string} [validate]
+ * @property {string} [inputmode]
+ * @property {string} [datalist]
+ * @property {number} [min]
+ * @property {number} [max]
+ */
+
+/**
+ * @template {number|boolean|string} T
+ */
+class Prop {
+  label = "";
+  /** @type {T} */
+  _value;
+
+  /** true if this is a formula without leading = */
+  isFormulaByDefault = false;
+
+  /** If the entered value starts with = treat it as an expression and store it here */
+  formula = "";
+
+  /** @type {((context?:EvalContext)=>any) | undefined} compiled expression if any */
+  compiled = undefined;
+
+  // Each prop gets a unique id based on the id of its container
+  id = "";
+
+  /** @type {TreeBase} */
+  container;
+
+  /** attach the prop to its containing TreeBase component
+   * @param {string} name
+   * @param {any} value
+   * @param {TreeBase} container
+   * */
+  initialize(name, value, container) {
+    // create id from the container id
+    this.id = `${container.id}-${name}`;
+    // link to the container
+    this.container = container;
+    // set the value if provided
+    if (value != undefined) {
+      this.set(value);
+    }
+    // create a label if it has none
+    this.label =
+      this.label ||
+      name // convert from camelCase to Camel Case
+        .replace(/(?!^)([A-Z])/g, " $1")
+        .replace(/^./, (s) => s.toUpperCase());
+  }
+
+  /** @type {PropOptions} */
+  options = {};
+
+  /**
+   * @param {T} value
+   * @param {PropOptions} options */
+  constructor(value, options = {}) {
+    this._value = value;
+    this.options = options;
+    if (options.label) {
+      this.label = options.label;
+    }
+  }
+  validate = debounce(
+    (/** @type {string} */ value, /** @type {HTMLInputElement} */ input) => {
+      input.setCustomValidity("");
+      if (this.isFormulaByDefault || value.startsWith("=")) {
+        const [compiled, error] = compileExpression(value);
+        if (error) {
+          let message = error.message.replace(/^\[.*?\]/, "");
+          message = message.split("\n")[0];
+          input.setCustomValidity(message);
+        } else if (compiled && this.options.validate)
+          input.setCustomValidity(this.options.validate("" + compiled({})));
+      } else if (this.options.validate) {
+        input.setCustomValidity(this.options.validate(value));
+      }
+      input.reportValidity();
+    },
+    100,
+  );
+
+  input() {
+    const text = this.text;
+    return this.labeled(
+      html`<input
+          type="text"
+          inputmode=${this.options.inputmode}
+          .value=${text}
+          id=${this.id}
+          style=${`width: min(${text.length + 3}ch, 100%)`}
+          list=${this.options.datalist}
+          title=${this.options.title}
+          placeholder=${this.options.placeholder}
+          @keydown=${this.onkeydown}
+          @input=${this.oninput}
+          @change=${this.onchange}
+          @focus=${this.onfocus}
+        />${this.showValue()}`,
+    );
+  }
+  onkeydown = (/** @type {KeyboardEvent} */ event) => {
+    // restore the input on Escape
+    const { key, target } = event;
+    if (key == "Escape" && target instanceof HTMLInputElement) {
+      const text = this.text;
+      this.validate(text, target);
+      event.preventDefault();
+      target.value = text;
+    }
+  };
+  oninput = (/** @type {InputEvent} */ event) => {
+    // validate on each character
+    if (event.target instanceof HTMLInputElement) {
+      this.validate(event.target.value, event.target);
+      event.target.style.width = `${event.target.value.length + 1}ch`;
+    }
+  };
+  onchange = (/** @type {InputEvent} */ event) => {
+    if (
+      event.target instanceof HTMLInputElement &&
+      event.target.checkValidity()
+    ) {
+      this.set(event.target.value);
+      this.update();
+    }
+  };
+  onfocus = (/** @type {FocusEvent}*/ event) => {
+    if (this.formula && event.target instanceof HTMLInputElement) {
+      const span = event.target.nextElementSibling;
+      if (span instanceof HTMLSpanElement) {
+        const value = this.value;
+        const type = typeof value;
+        let text = "";
+        if (type === "string" || type === "number" || type === "boolean") {
+          text = "" + value;
+        }
+        span.innerText = text;
+      }
+    }
+  };
+
+  showValue() {
+    return this.formula ? [html`<span class="propValue"></span>`] : [];
+  }
+
+  /** @param {Hole} body */
+  labeled(body) {
+    return html`
+      <label class="labeledInput" ?hiddenLabel=${!!this.options.hiddenLabel}
+        ><span class="labelText">${this.label}</span> ${body}</label
+      >
+    `;
+  }
+
+  /** @param {HTMLInputElement} inputElement */
+  setValidity(inputElement) {
+    if (inputElement instanceof HTMLInputElement) {
+      if (this.error) {
+        console.log("scv", this.error.message);
+        inputElement.setCustomValidity(this.error.message);
+        inputElement.reportValidity();
+      } else {
+        console.log("csv");
+        inputElement.setCustomValidity("");
+        inputElement.reportValidity();
+      }
+    } else {
+      console.log("not found", inputElement);
+    }
+  }
+
+  /** @param {any} value
+   * @returns {T}
+   * */
+  cast(value) {
+    return value;
+  }
+
+  /**
+   * @param {any} value
+   */
+  set(value) {
+    this.compiled = undefined;
+    this.formula = "";
+    if (
+      typeof value == "string" &&
+      (this.isFormulaByDefault || value.startsWith("="))
+    ) {
+      // compile it here
+      let error;
+      [this.compiled, error] = compileExpression(value);
+      if (error) {
+        console.error("set error", this.label, value, error.message);
+      } else {
+        this.formula = value;
+      }
+    } else {
+      this._value = this.cast(value);
+    }
+  }
+
+  /**
+   * extract the value to save
+   * returns {string}
+   */
+  get text() {
+    if (this.formula || this.isFormulaByDefault) return this.formula;
+    return "" + this._value;
+  }
+
+  /** @returns {T} */
+  get value() {
+    if (this.compiled) {
+      if (!this.formula) {
+        this._value = this.options.valueWhenEmpty ?? "";
+      } else {
+        const v = this.compiled();
+        this._value = this.cast(v);
+      }
+    }
+    return this._value;
+  }
+
+  /** @param {EvalContext} context - The context
+   * @returns {T} */
+  valueInContext(context = {}) {
+    if (this.compiled) {
+      if (!this.formula) {
+        this._value = this.options.valueWhenEmpty ?? "";
+      } else {
+        const v = this.compiled(context);
+        this._value = this.cast(v);
+      }
+    } else if (this.isFormulaByDefault) {
+      this._value = this.options.valueWhenEmpty ?? "";
+    }
+    return this._value;
+  }
+
+  update() {
+    this.container.update();
+  }
+
+  /** @param {Error} [error] */
+  setError(error = undefined) {
+    this.error = error;
+  }
+}
+
+/** @param {string[] | Map<string,string> | function():Map<string,string>} arrayOrMap
+ * @returns Map<string, string>
+ */
+function toMap(arrayOrMap) {
+  if (arrayOrMap instanceof Function) {
+    return arrayOrMap();
+  }
+  if (Array.isArray(arrayOrMap)) {
+    return new Map(arrayOrMap.map((item) => [item, item]));
+  }
+  return arrayOrMap;
+}
+
+/** @extends {Prop<string>} */
+class Select extends Prop {
+  /**
+   * @param {string[] | Map<string, string> | function():Map<string,string>} choices
+   * @param {PropOptions} options
+   */
+  constructor(choices = [], options = {}) {
+    super("", options);
+    this.choices = choices;
+    this._value = options.defaultValue || "";
+  }
+
+  /** @param {Map<string,string> | null} choices */
+  input(choices = null) {
+    if (!choices) {
+      choices = toMap(this.choices);
+    }
+    this._value = this._value || this.options.defaultValue || "";
+    return this.labeled(
+      html`<select
+        id=${this.id}
+        required
+        title=${this.options.title}
+        @change=${({ target }) => {
+          this._value = target.value;
+          this.update();
+        }}
+      >
+        <option value="" disabled ?selected=${!choices.has(this._value)}>
+          ${this.options.placeholder || "Choose one..."}
+        </option>
+        ${[...choices.entries()].map(
+          ([key, value]) =>
+            html`<option value=${key} ?selected=${this._value == key}>
+              ${value}
+            </option>`,
+        )}
+      </select>`,
+    );
+  }
+
+  /** @param {any} value */
+  set(value) {
+    this._value = value;
+  }
+}
+
+class Field extends Select {
+  /**
+   * @param {PropOptions} options
+   */
+  constructor(options = {}) {
+    super(
+      () => toMap([...Globals.data.allFields, "#ComponentName"].sort()),
+      options,
+    );
+  }
+}
+
+let Cue$1 = class Cue extends Select {
+  /**
+   * @param {PropOptions} options
+   */
+  constructor(options = {}) {
+    super(() => Globals.cues.cueMap, options);
+  }
+};
+
+class Pattern extends Select {
+  /**
+   * @param {PropOptions} options
+   */
+  constructor(options = {}) {
+    super(() => Globals.patterns.patternMap, options);
+  }
+}
+
+class TypeSelect extends Select {
+  update() {
+    /* Magic happens here! The replace method on a TreeBaseSwitchable replaces the
+     * node with a new one to allow type switching in place
+     * */
+    if (this.container instanceof TreeBaseSwitchable && this._value) {
+      this.container.replace(this._value);
+    }
+  }
+}
+
+/** @extends {Prop<string>} */
+let String$1 = class String extends Prop {};
+
+/* Allow entering a key name by first pressing Enter than pressing a single key
+ */
+/** @extends {Prop<string>} */
+class KeyName extends Prop {
+  /**
+   * @param {string} value
+   * @param {PropOptions} options
+   */
+  constructor(value = "", options = {}) {
+    super(value, options);
+  }
+
+  input() {
+    /** @param {string} key */
+    function mapKey(key) {
+      if (key == " ") return "Space";
+      return key;
+    }
+    return this.labeled(
+      html`<input
+        type="text"
+        .value=${mapKey(this._value)}
+        id=${this.id}
+        readonly
+        @keydown=${(/** @type {KeyboardEvent} */ event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLInputElement)) return;
+          if (target.hasAttribute("readonly") && event.key == "Enter") {
+            target.removeAttribute("readonly");
+            target.select();
+          } else if (!target.hasAttribute("readonly")) {
+            event.stopPropagation();
+            event.preventDefault();
+            this._value = event.key;
+            target.value = mapKey(event.key);
+            target.setAttribute("readonly", "");
+          }
+        }}
+        title="Press Enter to change then press a single key to set"
+        placeholder=${this.options.placeholder}
+      />`,
+    );
+  }
+}
+
+/** @extends {Prop<string>} */
+class TextArea extends Prop {
+  /**
+   * @param {string} value
+   * @param {PropOptions} options
+   */
+  constructor(value = "", options = {}) {
+    super(value, options);
+    this.validate = this.options.validate || ((_) => "");
+  }
+
+  input() {
+    return this.labeled(
+      html`<textarea
+        .value=${this._value}
+        id=${this.id}
+        ?invalid=${!!this.validate(this._value)}
+        @input=${({ target }) => {
+          const errorMsg = this.validate(target.value);
+          target.setCustomValidity(errorMsg);
+        }}
+        @change=${({ target }) => {
+          if (target.checkValidity()) {
+            this._value = target.value;
+            this.update();
+          }
+        }}
+        title=${this.options.title}
+        placeholder=${this.options.placeholder}
+      />`,
+    );
+  }
+}
+
+/** @extends {Prop<number>} */
+class Integer extends Prop {
+  /** @param {number} value
+   * @param {PropOptions} options
+   */
+  constructor(value = 0, options = {}) {
+    /** @param {string} value
+     * @returns {string}
+     */
+    function validate(value) {
+      if (!/^[0-9]+$/.test(value)) return "Please enter a whole number";
+      if (typeof options.min === "number" && parseInt(value) < options.min) {
+        return `Please enter a whole number at least ${options.min}`;
+      }
+      if (typeof options.max === "number" && parseInt(value) > options.max) {
+        return `Please enter a whole number at most ${options.max}`;
+      }
+      return "";
+    }
+    options = {
+      validate,
+      inputmode: "numeric",
+      ...options,
+    };
+    super(value, options);
+  }
+
+  /**
+   * Convert the input into an integer
+   * @param {any} value
+   * @returns {number}
+   */
+  cast(value) {
+    return Math.trunc(+value);
+  }
+}
+
+/** @extends {Prop<number>} */
+class Float extends Prop {
+  /** @param {number} value
+   * @param {PropOptions} options
+   */
+  constructor(value = 0, options = {}) {
+    /** @param {string} value
+     * @returns {string}
+     */
+    const validate = (value) => {
+      if (!/^[0-9]*([,.][0-9]*)?$/.test(value)) return "Please enter a number";
+      if (typeof options.min === "number" && parseFloat(value) < options.min) {
+        return `Please enter a number at least ${options.min}`;
+      }
+      if (typeof options.max === "number" && parseFloat(value) > options.max) {
+        return `Please enter a number at most ${this.options.max}`;
+      }
+      return "";
+    };
+    options = {
+      validate,
+      inputmode: "decimal",
+      ...options,
+    };
+    super(value, options);
+  }
+
+  /** @param {any} value */
+  cast(value) {
+    return +value;
+  }
+}
+
+/** @extends {Prop<boolean>} */
+let Boolean$1 = class Boolean extends Prop {
+  /** @param {boolean} value
+   * @param {PropOptions} options
+   */
+  constructor(value = false, options = {}) {
+    super(value, options);
+  }
+
+  /**
+   * @param {PropOptions} options
+   */
+  input(options = {}) {
+    options = { ...this.options, ...options };
+    return this.labeled(
+      html`<input
+        type="checkbox"
+        ?checked=${this._value}
+        id=${this.id}
+        @change=${({ target }) => {
+          this._value = target.checked;
+          this.update();
+        }}
+        title=${options.title}
+      />`,
+    );
+  }
+
+  /** @param {any} value */
+  set(value) {
+    if (typeof value === "boolean") {
+      this._value = value;
+    } else if (typeof value === "string") {
+      this._value = value === "true";
+    }
+  }
+};
+
+/** @extends {Prop<boolean>} */
+class OneOfGroup extends Prop {
+  /** @param {boolean} value
+   * @param {PropOptions} options
+   */
+  constructor(value = false, options = {}) {
+    options = { group: "AGroup", ...options };
+    super(value, options);
+  }
+
+  /**
+   * @param {PropOptions} options
+   */
+  input(options = {}) {
+    options = { ...this.options, ...options };
+    return this.labeled(
+      html`<input
+        type="checkbox"
+        .checked=${!!this._value}
+        id=${this.id}
+        name=${options.group}
+        @click=${() => {
+          this._value = true;
+          this.clearPeers();
+          this.update();
+        }}
+        title=${this.options.title}
+      />`,
+    );
+  }
+
+  /** @param {any} value */
+  set(value) {
+    if (typeof value === "boolean") {
+      this._value = value;
+    } else if (typeof value === "string") {
+      this._value = value === "true";
+    }
+    if (this._value) {
+      this.clearPeers();
+    }
+  }
+
+  /**
+   * Clear the value of peer radio buttons with the same name
+   */
+  clearPeers() {
+    const name = this.options.group;
+    const peers = this.container?.parent?.children || [];
+    for (const peer of peers) {
+      const props = peer.props;
+      for (const propName in props) {
+        const prop = props[propName];
+        if (
+          prop instanceof OneOfGroup &&
+          prop.options.group == name &&
+          prop != this
+        ) {
+          prop.set(false);
+        }
+      }
+    }
+  }
+}
+
+/** @extends {Prop<string>} */
+class UID extends Prop {
+  constructor() {
+    super("", {});
+    this._value =
+      "id" + Date.now().toString(36) + Math.random().toString(36).slice(2);
+  }
+}
+
+/** @extends {Prop<string|number|boolean>} */
+class Expression extends Prop {
+  isFormulaByDefault = true;
+
+  /** @param {string} value
+   * @param {PropOptions} options
+   */
+  constructor(value = "", options = {}) {
+    super(value, options);
+    this.formula = value;
+  }
+}
+
+/** @extends {Prop<boolean>} */
+class Conditional extends Prop {
+  isFormulaByDefault = true;
+
+  /** @param {string} value
+   * @param {PropOptions} options
+   */
+  constructor(value = "", options = {}) {
+    super(false, options);
+    this.formula = value;
+  }
+
+  get value() {
+    return !!super.value;
+  }
+
+  valueInContext(context = {}) {
+    return !!super.valueInContext(context);
+  }
+}
+
+/** @extends {Prop<string>} */
+class Code extends Prop {
+  editedValue = "";
+
+  /** @type {string[]} */
+  errors = [];
+
+  /** @type {number[]} */
+  lineOffsets = [];
+
+  /** @param {PropOptions} options */
+  constructor(value = "", options = {}) {
+    options = {
+      language: "css",
+      ...options,
+    };
+    super(value, options);
+  }
+
+  /** @param {HTMLTextAreaElement} target */
+  addLineNumbers = (target) => {
+    const numberOfLines = target.value.split("\n").length;
+    const lineNumbers = /** @type {HTMLTextAreaElement} */ (
+      target.previousElementSibling
+    );
+    const numbers = [];
+    for (let ln = 1; ln <= numberOfLines; ln++) {
+      numbers.push(ln);
+    }
+    lineNumbers.value = numbers.join("\n");
+    const rows = Math.max(4, Math.min(10, numberOfLines));
+    target.rows = rows;
+    lineNumbers.rows = rows;
+    lineNumbers.scrollTop = target.scrollTop;
+  };
+
+  /** @param {number} offset - where the error happened
+   * @param {string} message - the error message
+   */
+  addError(offset, message) {
+    const line = this._value.slice(0, offset).match(/$/gm)?.length || "??";
+    this.errors.push(`${line}: ${message}`);
+  }
+
+  /** Edit and validate the value
+   * */
+  editCSS(props = {}, editSelector = (selector = "") => selector) {
+    // replaces props in the full text
+    let value = this._value;
+    for (const prop in props) {
+      value = value.replaceAll("$" + prop, props[prop]);
+    }
+    // clear the errors
+    this.errors = [];
+    // build the new rules here
+    const editedRules = [];
+    // match a single rule
+    const ruleRE = /([\s\S]*?)({\s*[\s\S]*?}\s*)/dg;
+    for (const ruleMatch of value.matchAll(ruleRE)) {
+      let selector = ruleMatch[1];
+      const indices = ruleMatch.indices;
+      if (!indices) continue;
+      const selectorOffset = indices[1][0];
+      const body = ruleMatch[2];
+      const bodyOffset = indices[2][0];
+      // replace field names in the selector
+      selector = selector.replace(
+        /#(\w+)/g,
+        /** @param {string} _
+         * @param {string} name */
+        (_, name) =>
+          `data-${name.replace(
+            /[A-Z]/g,
+            (/** @type {string} */ m) => `-${m.toLowerCase()}`,
+          )}`,
+      );
+      // prefix the selector so it only applies to the UI
+      selector = `#UI ${editSelector(selector)}`;
+      // reconstruct the rule
+      const rule = selector + body;
+      // add it to the result
+      editedRules.push(rule);
+      // validate the rule
+      const styleSheet = new CSSStyleSheet();
+      try {
+        // add the rule to the sheet. If the selector is bad we'll get an
+        // exception. If any properties are bad they will omitted in the
+        // result. I'm adding a bogus ;gap:0; property to the end of the body
+        // because we get an exception if there is only one invalid property.
+        let irule = (Globals.state && Globals.state.interpolate(rule)) || rule;
+        const index = styleSheet.insertRule(irule.replace("}", ";gap:0;}"));
+        // retrieve the rule
+        const newRule = styleSheet.cssRules[index].cssText;
+        // extract the body
+        const ruleRE = /([\s\S]*?)({\s*[\s\S]*?}\s*)/dg;
+        const match = ruleRE.exec(newRule);
+        if (match) {
+          const newBody = match[2];
+          const propRE = /[-\w]+:/g;
+          const newProperties = newBody.match(propRE);
+          for (const propMatch of body.matchAll(propRE)) {
+            if (!newProperties || newProperties.indexOf(propMatch[0]) < 0) {
+              // the property was invalid
+              this.addError(
+                bodyOffset + (propMatch.index || 0),
+                `property ${propMatch[0]} is invalid`,
+              );
+            }
+          }
+        } else {
+          this.addError(selectorOffset, "Rule is invalid");
+        }
+      } catch (e) {
+        this.addError(selectorOffset, "Rule is invalid");
+      }
+    }
+    this.editedValue = editedRules.join("");
+  }
+
+  input() {
+    return this.labeled(
+      html`<div class="Code">
+        <div class="numbered-textarea">
+          <textarea class="line-numbers" readonly name="numbers"></textarea>
+          <textarea
+            class="text"
+            .value=${this._value}
+            id=${this.id}
+            @change=${({ target }) => {
+              this._value = target.value;
+              this.editCSS();
+              this.update();
+            }}
+            @keyup=${(
+              /** @type {{ target: HTMLTextAreaElement; }} */ event,
+            ) => {
+              this.addLineNumbers(event.target);
+            }}
+            @scroll=${({ target }) => {
+              target.previousElementSibling.scrollTop = target.scrollTop;
+            }}
+            ref=${this.addLineNumbers}
+            title=${this.options.title}
+            placeholder=${this.options.placeholder}
+          ></textarea>
+        </div>
+        <div class="errors">${this.errors.join("\n")}</div>
+      </div>`,
+    );
+  }
+
+  /** @param {string} value */
+  set(value) {
+    this._value = value;
+    this.editCSS();
+  }
+}
+
+/** @extends {Prop<string>} */
+class Color extends Prop {
+  /**
+   * @param {string} value
+   * @param {PropOptions} options
+   */
+  constructor(value = "white", options = {}) {
+    options = {
+      /** @param {string} value */
+      validate: (value) => {
+        if (isValidColor(value)) {
+          const swatch = document.querySelector(`#${this.id}~div`);
+          if (swatch instanceof HTMLDivElement) {
+            swatch.style.backgroundColor = getColor(value);
+          }
+          return "";
+        }
+        return "invalid color";
+      },
+      datalist: "ColorNames",
+      ...options,
+    };
+    super(value, options);
+  }
+
+  showValue() {
+    return [
+      html`<div
+        class="swatch"
+        style=${styleString({ backgroundColor: getColor(this.value) })}
+      ></div>`,
+    ];
+  }
+}
+
+/** @extends {Prop<string>} */
+class Voice extends Prop {
+  /** @param {string} value
+   * @param {PropOptions} options
+   */
+  constructor(value = "", options = {}) {
+    super(value, options);
+  }
+
+  input() {
+    return this.labeled(
+      html`<select
+        is="select-voice"
+        .value=${this._value}
+        id=${this.id}
+        @change=${(/** @type {InputEventWithTarget} */ event) => {
+          this._value = event.target.value;
+          this.update();
+        }}
+      >
+        <option value="">Default</option>
+      </select>`,
+    );
+  }
+}
+/** @extends {Prop<string>} */
+class ADate extends Prop {
+  /** @param {string} value
+   * @param {PropOptions} options
+   */
+  constructor(value = "", options = {}) {
+    super(value, options);
+  }
+
+  input() {
+    return this.labeled(
+      html`<input
+        type="date"
+        .value=${this._value}
+        id=${this.id}
+        @change=${(/** @type {InputEventWithTarget} */ event) => {
+          this._value = event.target.value;
+          this.update();
+        }}
+      />`,
+    );
+  }
+}
+
+/**
+ * @template {unknown[]} T
+ * @param {(...args: T)=>void} callback
+ * @param {number} wait
+ * @returns {(...args: T)=>void}
+ * */
+const debounce = (callback, wait) => {
+  let timeoutId = null;
+  return (...args) => {
+    window.clearTimeout(timeoutId);
+    timeoutId = window.setTimeout(() => {
+      callback(...args);
+    }, wait);
+  };
+};
+
+/**
+ * Provide user friendly names for the components
+ */
+
+/**
+ * Map the classname into the Menu name and the Help Wiki page name
+ */
+const namesMap = {
+  Action: ["Action", "Actions"],
+  ActionCondition: ["Condition", "Actions#Condition"],
+  Actions: ["Actions", "Actions"],
+  ActionUpdate: ["Update", "Actions#Update"],
+  Audio: ["Audio", "Audio"],
+  Button: ["Button", "Button"],
+  Content: ["Content", "Content"],
+  CueCircle: ["Circle", "Cues"],
+  CueCss: ["CSS", "Cues#CSS"],
+  CueFill: ["Fill", "Cues#Fill"],
+  CueList: ["Cues", "Cues"],
+  CueOverlay: ["Overlay", "Cues#Overlay"],
+  Customize: ["Customize", "Customize"],
+  Designer: ["Designer", "Designer"],
+  Display: ["Display", "Display"],
+  Filter: ["Filter", "Patterns#Filter"],
+  Gap: ["Gap", "Gap"],
+  Grid: ["Grid", "Grid"],
+  GridFilter: ["Filter", "Grid#Filter"],
+  GroupBy: ["Group By", "Patterns#Group By"],
+  HandlerCondition: ["Condition", "Methods#Condition"],
+  HandlerKeyCondition: ["Key Condition", "Methods#Key Condition"],
+  HandlerResponse: ["Response", "Methods#Response"],
+  HeadMouse: ["Head Mouse", "Head Mouse"],
+  KeyHandler: ["Key Handler", "Methods#Key Handler"],
+  Layout: ["Layout", "Layout"],
+  Logger: ["Logger", "Logger"],
+  Method: ["Method", "Methods"],
+  MethodChooser: ["Methods", "Methods"],
+  ModalDialog: ["Modal Dialog", "Modal Dialog"],
+  Option: ["Option", "Radio#Option"],
+  OrderBy: ["Order By", "Patterns#Order By"],
+  Page: ["Page", "Page"],
+  PatternGroup: ["Group", "Patterns"],
+  PatternList: ["Patterns", "Patterns"],
+  PatternManager: ["Pattern", "Patterns"],
+  PatternSelector: ["Selector", "Patterns"],
+  PointerHandler: ["Pointer Handler", "Methods#Pointer Handler"],
+  Radio: ["Radio", "Radio"],
+  ResponderActivate: ["Activate", "Methods#Activate"],
+  ResponderCue: ["Cue", "Methods#Cue"],
+  ResponderClearCue: ["Clear Cue", "Methods#Clear Cue"],
+  ResponderEmit: ["Emit", "Methods#Emit"],
+  ResponderNext: ["Next", "Methods#Next"],
+  ResponderStartTimer: ["Start Timer", "Methods"],
+  SocketHandler: ["Socket Handler", "Methods#Socket Handler"],
+  Speech: ["Speech", "Speech"],
+  Stack: ["Stack", "Stack"],
+  TabControl: ["Tab Control", "Tab Control"],
+  TabPanel: ["Tab", "Tab"],
+  Timer: ["Timer", "Methods#Timer"],
+  TimerHandler: ["Timer Handler", "Methods#Timer Handler"],
+  VSD: ["VSD", "VSD"],
+};
+
+/**
+ * Get the name for a menu item from the class name
+ * @param {string} className
+ */
+function friendlyName(className) {
+  return className in namesMap ? namesMap[className][0] : className;
+}
+
+/**
+ * Get the Wiki name from the class name
+ * @param {string} className
+ */
+function wikiName(className) {
+  return namesMap[className][1].replace(" ", "-");
+}
+
+class TreeBase {
+  /** @type {TreeBase[]} */
+  children = [];
+  /** @type {TreeBase | undefined } */
+  parent = undefined;
+  /** @type {string[]} */
+  allowedChildren = [];
+  allowDelete = true;
+
+  // every component has a unique id
+  static treeBaseCounter = 0;
+  id = `TreeBase-${TreeBase.treeBaseCounter++}`;
+
+  settingsDetailsOpen = false;
+
+  // map from id to the component
+  /** @type {Map<string, TreeBase>} */
+  static idMap = new Map();
+
+  /** @param {string} id
+   * @returns {TreeBase | undefined } */
+  static componentFromId(id) {
+    // strip off any added bits of the id
+    const match = id.match(/TreeBase-\d+/);
+    if (match) {
+      return this.idMap.get(match[0]);
+    }
+    return undefined;
+  }
+
+  /** Remove this component and its children from the idMap
+   * @param {TreeBase} component
+   */
+  static removeFromIdMap(component) {
+    this.idMap.delete(component.id);
+    for (const child of component.children) {
+      this.removeFromIdMap(child);
+    }
+  }
+
+  designer = {};
+
+  /** A mapping from the external class name to the class */
+  static nameToClass = new Map();
+  /** A mapping from the class to the external class name */
+  static classToName = new Map();
+
+  /** @param {typeof TreeBase} cls
+   * @param {string} externalName
+   * */
+  static register(cls, externalName) {
+    this.nameToClass.set(externalName, cls);
+    this.classToName.set(cls, externalName);
+  }
+
+  get className() {
+    return TreeBase.classToName.get(this.constructor);
+  }
+
+  /**
+   * Extract the class fields that are Props and return their values as an Object
+   * @returns {Object<string, any>}
+   */
+  get propsAsObject() {
+    return Object.fromEntries(
+      Object.entries(this)
+        .filter(([_, prop]) => prop instanceof Prop)
+        .map(([name, prop]) => [name, prop.value]),
+    );
+  }
+
+  /**
+   * Extract the values of the fields that are Props
+   * @returns {Object<string, Props.Prop>}
+   */
+  get props() {
+    return Object.fromEntries(
+      Object.entries(this).filter(([_, prop]) => prop instanceof Prop),
+    );
+  }
+
+  /**
+   * Prepare a TreeBase tree for external storage by converting to simple objects and arrays
+   * @param {Object} [options]
+   * @param {string[]} options.omittedProps - class names of props to omit
+   * @param {boolean} [options.includeIds] - true to include the ids
+   * @returns {Object}
+   * */
+  toObject(options = { omittedProps: [] }) {
+    const props = Object.fromEntries(
+      Object.entries(this)
+        .filter(
+          ([_, prop]) =>
+            prop instanceof Prop &&
+            !options.omittedProps.includes(prop.constructor.name),
+        )
+        .map(([name, prop]) => [name, prop.text]),
+    );
+    const children = this.children.map((child) => child.toObject(options));
+    const result = {
+      className: this.className,
+      props,
+      children,
+    };
+    if (options.includeIds) {
+      result.id = this.id;
+    }
+    return result;
+  }
+
+  /**
+   * An opportunity for the component to initialize itself. This is
+   * called in fromObject after the children have been added. If you
+   * call create directly you should call init afterward.
+   */
+  init() {
+    /** Make sure OnOfGroup is enforced */
+    for (const child of this.children) {
+      const props = child.props;
+      for (const instance of Object.values(props)) {
+        if (instance instanceof OneOfGroup && instance._value) {
+          instance.clearPeers();
+          break;
+        }
+      }
+    }
+  }
+
+  /**
+   *   Create a TreeBase object
+   *   @template {TreeBase} TB
+   *   @param {string|(new()=>TB)} constructorOrName
+   *   @param {TreeBase | null} parent
+   *   @param {Object<string,string|number|boolean>} props
+   *   @param {string} [id] - set the newly created id
+   *   @returns {TB}
+   *   */
+  static create(constructorOrName, parent = null, props = {}, id = "") {
+    const constructor =
+      typeof constructorOrName == "string"
+        ? TreeBase.nameToClass.get(constructorOrName)
+        : constructorOrName;
+    /** @type {TB} */
+    const result = new constructor();
+
+    if (id) {
+      result.id = id;
+    }
+
+    // initialize the props
+    for (const [name, prop] of Object.entries(result.props)) {
+      prop.initialize(name, props[name], result);
+    }
+
+    // link it to its parent
+    if (parent) {
+      result.parent = parent;
+      parent.children.push(result);
+    }
+
+    // remember the relationship between id and component
+    TreeBase.idMap.set(result.id, result);
+
+    return result;
+  }
+
+  /**
+   * Instantiate a TreeBase tree from its external representation
+   * @param {Object} obj
+   * @param {TreeBase | null} parent
+   * @param {Object} [options]
+   * @param {boolean} [options.useId]
+   * @returns {TreeBase} - should be {this} but that isn't supported for some reason
+   * */
+  static fromObject(obj, parent = null, options = { useId: false }) {
+    // Get the constructor from the class map
+    if (!obj) console.trace("fromObject", obj);
+    const className = obj.className;
+    const constructor = this.nameToClass.get(className);
+    if (!constructor) {
+      console.trace("className not found", className, obj);
+      throw new Error("className not found");
+    }
+
+    // Create the object and link it to its parent
+    const result = this.create(
+      constructor,
+      parent,
+      obj.props,
+      options.useId ? obj.id || "" : "",
+    );
+
+    // Link in the children
+    for (const childObj of obj.children) {
+      if (childObj instanceof TreeBase) {
+        childObj.parent = result;
+        result.children.push(childObj);
+      } else {
+        TreeBase.fromObject(childObj, result, options);
+      }
+    }
+
+    // allow the component to initialize itself
+    result.init();
+
+    // Validate the type is what was expected
+    if (result instanceof this) return result;
+
+    // Die if not
+    console.error("expected", this);
+    console.error("got", result);
+    throw new Error(`fromObject failed`);
+  }
+
+  /**
+   * Signal nodes above that something has been updated
+   */
+  update() {
+    let start = this;
+    /** @type {TreeBase | undefined } */
+    let p = start;
+    while (p) {
+      p.onUpdate(start);
+      p = p.parent;
+    }
+  }
+
+  /**
+   * Called when something below is updated
+   * @param {TreeBase} _start
+   */
+  onUpdate(_start) {}
+
+  /**
+   * Render the designer interface and return the resulting Hole
+   * @returns {Hole}
+   */
+  settings() {
+    const detailsId = this.id + "-details";
+    const settingsId = this.id + "-settings";
+    let focused = false; // suppress toggle when not focused
+    return html`<div class="settings">
+      <details
+        class=${this.className}
+        id=${detailsId}
+        @click=${(/** @type {PointerEvent} */ event) => {
+          if (
+            !focused &&
+            event.target instanceof HTMLElement &&
+            event.target.parentElement instanceof HTMLDetailsElement &&
+            event.target.parentElement.open &&
+            event.pointerId >= 0 // not from the keyboard
+          ) {
+            /* When we click on the summary bar of a details element that is not focused,
+             * only focus it and prevent the toggle */
+            event.preventDefault();
+          }
+        }}
+        @toggle=${(/** @type {Event} */ event) => {
+          if (event.target instanceof HTMLDetailsElement)
+            this.settingsDetailsOpen = event.target.open;
+        }}
+      >
+        <summary
+          id=${settingsId}
+          @pointerdown=${(/** @type {PointerEvent} */ event) => {
+            /** Record if the summary was focused before we clicked */
+            focused = event.target == document.activeElement;
+          }}
+        >
+          ${this.settingsSummary()}
+        </summary>
+        ${this.settingsDetails()}
+      </details>
+      ${this.settingsChildren()}
+    </div>`;
+  }
+
+  /**
+   * Render the summary of a components settings
+   * @returns {Hole}
+   */
+  settingsSummary() {
+    const name = Object.hasOwn(this, "name") ? this["name"].value : "";
+    return html`<h3>${friendlyName(this.className)} ${name}</h3>`;
+  }
+
+  /**
+   * Render the details of a components settings
+   * @returns {Hole[]}
+   */
+  settingsDetails() {
+    const props = this.props;
+    const inputs = Object.values(props).map((prop) => prop.input());
+    return inputs;
+  }
+
+  /**
+   * @returns {Hole}
+   */
+  settingsChildren() {
+    return this.orderedChildren();
+  }
+
+  /**
+   * Render the user interface and return the resulting Hole
+   * @returns {Hole}
+   */
+  template() {
+    return html`<div />`;
+  }
+
+  /**
+   * Render the user interface catching errors and return the resulting Hole
+   * @returns {Hole}
+   */
+  safeTemplate() {
+    try {
+      return this.template();
+    } catch (error) {
+      errorHandler(error, ` safeTemplate ${this.className}`);
+      let classes = [this.className.toLowerCase()];
+      classes.push("error");
+      return html`<div class=${classes.join(" ")} id=${this.id}>ERROR</div>`;
+    }
+  }
+
+  /** @typedef {Object} ComponentAttrs
+   * @property {string[]} [classes]
+   * @property {Object} [style]
+   */
+
+  /**
+   * Wrap the body of a component
+   *
+   * @param {ComponentAttrs} attrs
+   * @param {Hole|Hole[]} body
+   * @returns {Hole}
+   */
+  component(attrs, body) {
+    attrs = { style: {}, ...attrs };
+    let classes = [this.className.toLowerCase()];
+    if ("classes" in attrs) {
+      classes = classes.concat(attrs.classes);
+    }
+    if (!Array.isArray(body)) body = [body];
+    return html`<div
+      class=${classes.join(" ")}
+      id=${this.id}
+      style=${styleString(attrs.style)}
+    >
+      ${body}
+    </div>`;
+  }
+
+  /**
+   * Swap two of my children
+   * @param {number} i
+   * @param {number} j
+   */
+  swap(i, j) {
+    const A = this.children;
+    [A[i], A[j]] = [A[j], A[i]];
+  }
+
+  /**
+   * Move me to given position in my parent
+   * @param {number} i
+   */
+  moveTo(i) {
+    const peers = this.parent?.children || [];
+    peers.splice(this.index, 1);
+    peers.splice(i, 0, this);
+  }
+
+  /**
+   * Move me up or down by 1 position if possible
+   * @param {boolean} up
+   */
+  moveUpDown(up) {
+    const parent = this.parent;
+    if (!parent) return;
+    const peers = parent.children;
+    if (peers.length > 1) {
+      const index = this.index;
+      const step = up ? -1 : 1;
+      if ((up && index > 0) || (!up && index < peers.length - 1)) {
+        parent.swap(index, index + step);
+      }
+    }
+  }
+
+  /**
+   * Get the index of this component in its parent
+   * @returns {number}
+   */
+  get index() {
+    return (this.parent && this.parent.children.indexOf(this)) || 0;
+  }
+
+  /**
+   *  * Remove this child from their parent and return the id of the child to receive focus
+   *  @returns {string}
+   *  */
+  remove() {
+    if (!this.parent) return "";
+    const peers = this.parent.children;
+    const index = peers.indexOf(this);
+    const parent = this.parent;
+    this.parent = undefined;
+    peers.splice(index, 1);
+    // remove it and its children from the idMap
+    TreeBase.removeFromIdMap(this);
+
+    if (peers.length > index) {
+      return peers[index].id;
+    } else if (peers.length > 0) {
+      return peers[peers.length - 1].id;
+    } else {
+      return parent.id;
+    }
+  }
+
+  /**
+   * Create HTML LI nodes from the children
+   */
+  listChildren(children = this.children) {
+    return children.map((child) => html`<li>${child.settings()}</li>`);
+  }
+
+  /**
+   * Create an HTML ordered list from the children
+   */
+  orderedChildren(children = this.children) {
+    return html`<ol>
+      ${this.listChildren(children)}
+    </ol>`;
+  }
+
+  /**
+   * Create an HTML unordered list from the children
+   * */
+  unorderedChildren(children = this.children) {
+    return html`<ul>
+      ${this.listChildren(children)}
+    </ul>`;
+  }
+
+  /**
+   * Return the nearest parent of the given type
+   * @template T
+   * @param {new() => T} type
+   * @returns {T}
+   * */
+  nearestParent(type) {
+    let p = this.parent;
+    while (p) {
+      if (p instanceof type) {
+        return p;
+      }
+      p = p.parent;
+    }
+    throw new Error("No such parent");
+  }
+
+  /**
+   * Filter children by their type
+   * @template T
+   * @param {new() => T} type
+   * @returns {T[]}
+   */
+  filterChildren(type) {
+    /** @type {T[]} */
+    const result = [];
+    for (const child of this.children) {
+      if (child instanceof type) {
+        result.push(child);
+      }
+    }
+    return result;
+  }
+
+  /** @param {string[]} classes
+   * @returns {string}
+   */
+  CSSClasses(...classes) {
+    return classes.join(" ");
+  }
+}
+
+/**
+ * A variant of TreeBase that allows replacing a node with one of a similar type
+ */
+class TreeBaseSwitchable extends TreeBase {
+  init() {
+    super.init();
+    // find the TypeSelect property and set its value
+    for (const prop of Object.values(this.props)) {
+      if (prop instanceof TypeSelect) {
+        if (!prop.value) {
+          prop.set(this.className);
+        }
+      }
+    }
+  }
+
+  /** Replace this node with one of a compatible type
+   * @param {string} className
+   * @param {Object} [props] - used in undo to reset the props
+   * */
+  replace(className, props) {
+    if (!this.parent) return;
+    if (this.className == className) return;
+
+    let update = true;
+    // extract the values of the old props
+    if (!props) {
+      props = Object.fromEntries(
+        Object.entries(this)
+          .filter(([_, prop]) => prop instanceof Prop)
+          .map(([name, prop]) => [name, prop.value]),
+      );
+    } else {
+      update = false;
+    }
+    const replacement = TreeBase.create(className, null, props);
+    replacement.init();
+    if (!(replacement instanceof TreeBaseSwitchable)) {
+      throw new Error(
+        `Invalid TreeBaseSwitchable replacement ${this.className} ${replacement.className}`,
+      );
+    }
+    const index = this.parent.children.indexOf(this);
+    this.parent.children[index] = replacement;
+    replacement.parent = this.parent;
+    if (update) {
+      this.update();
+    }
+  }
+}
+
+class Messages extends TreeBase {
+  /** @type {string[]} */
+  messages = [];
+
+  template() {
+    if (this.messages.length) {
+      const result = html`<div id="messages">
+        ${this.messages.map((message) => html`<p>${message}</p>`)}
+      </div> `;
+      this.messages = [];
+      return result;
+    } else {
+      return html`<div />`;
+    }
+  }
+
+  report(message = "") {
+    console.log({ message });
+    this.messages.push(message);
+  }
+}
+
+/** Display an error message for user feedback
+ * @param {string} msg - the error message
+ * @param {string[]} trace - stack trace
+ */
+function reportInternalError(msg, trace) {
+  const result = document.createElement("div");
+  result.id = "ErrorReport";
+  function copyToClipboard() {
+    const html = document.getElementById("ErrorReportBody")?.innerHTML || "";
+    const blob = new Blob([html], { type: "text/html" });
+    const data = [new ClipboardItem({ "text/html": blob })];
+    navigator.clipboard.write(data);
+  }
+  function dismiss() {
+    document.getElementById("ErrorReport")?.remove();
+  }
+  result.innerHTML = `<h1>Internal Error</h1>
+      <p>
+        Your browser has detected an internal error in OS-DPI. It was very
+        likely caused by our program bug. We hope you will help us by sending a
+        report of the information below. Simply click this button
+        <button id="errorCopy">
+          Copy report to clipboard
+        </button>
+        and then paste into an email to
+        <a
+          href="mailto:gb@cs.unc.edu?subject=OS-DPI Error Report"
+          target="email"
+          >gb@cs.unc.edu</a
+        >.
+        <button id="errorDismiss">
+          Dismiss this dialog
+        </button>
+      </p>
+      <div id="ErrorReportBody">
+        <h2>Error Report</h2>
+        <p>${msg}</p>
+        <h2>Stack Trace</h2>
+        <ul>
+          ${trace.map((s) => `<li>${s}</li>`).join("")}
+        </ul>
+      </div>
+    </div>`;
+  document.body.prepend(result);
+  document
+    .getElementById("errorCopy")
+    ?.addEventListener("click", copyToClipboard);
+  document.getElementById("errorDismiss")?.addEventListener("click", dismiss);
+  document.dispatchEvent(new Event("internalerror"));
+}
+
+/** @param {string} msg
+ * @param {string} _file
+ * @param {number} _line
+ * @param {number} _col
+ * @param {Error} error
+ */
+window.onerror = async function (msg, _file, _line, _col, error) {
+  console.error("onerror", msg, error);
+  if (error instanceof Error) {
+    try {
+      const frames = await stacktraceExports.fromError(error);
+      const trace = frames.map((frame) => `${frame.toString()}`);
+      reportInternalError(msg.toString(), trace);
+    } catch (e) {
+      const msg2 = `Caught an error trying to report an error.
+        The original message was "${msg.toString()}".
+        With file=${_file} line=${_line} column=${_col}
+        error=${error.toString()}`;
+      reportInternalError(msg2, []);
+    }
+  }
+};
+
+/** @param {Error} error */
+function errorHandler(error, extra = "") {
+  let stack = [];
+  let cause = `${error.name}${extra}`;
+  if (error.stack) {
+    const errorLines = error.stack.split("\n");
+    stack = errorLines.slice(1);
+    cause = errorLines[0] + extra;
+  }
+  reportInternalError(cause, stack);
+}
+/** @param {PromiseRejectionEvent} error */
+window.onunhandledrejection = function (error) {
+  console.error("onunhandlederror", error);
+  error.preventDefault();
+  reportInternalError(
+    error.reason.message,
+    error.reason.stack?.split("\n") || ["no stack"],
+  );
+};
+
+class GridFilter extends TreeBase {
+  field = new Field({ hiddenLabel: true });
+  operator = new Select(Object.keys(comparators), { hiddenLabel: true });
+  value = new Expression("", { hiddenLabel: true });
+
+  /** move my parent instead of me.
+   * @param {boolean} up
+   */
+  moveUpDown(up) {
+    this.parent?.moveUpDown(up);
+  }
+
+  /** Format the settings
+   * @param {GridFilter[]} filters
+   * @return {Hole}
+   */
+  static FilterSettings(filters) {
+    /** @type {Hole} */
+    let table;
+    if (filters.length > 0) {
+      table = html`
+        <table class="GridFilter">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Field</th>
+              <th>Operator</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filters.map(
+              (filter, index) => html`
+                <tr id=${filter.id + "-settings"}>
+                  <td>${index + 1}</td>
+                  <td>${filter.field.input()}</td>
+                  <td>${filter.operator.input()}</td>
+                  <td>${filter.value.input()}</td>
+                </tr>
+              `,
+            )}
+          </tbody>
+        </table>
+      `;
+    } else {
+      table = html`<div />`;
+    }
+    return html`<fieldset>
+      <legend>Filters</legend>
+      ${table}
+    </fieldset>`;
+  }
+
+  /** Convert from Props to values for data module
+   * @param {GridFilter[]} filters
+   */
+  static toContentFilters(filters) {
+    return filters.map((child) => ({
+      field: child.field.value,
+      operator: child.operator.value,
+      value: child.value.value,
+    }));
+  }
+}
+TreeBase.register(GridFilter, "GridFilter");
+
+const collator = new Intl.Collator("en", { sensitivity: "base" });
+const collatorNumber = new Intl.Collator("en", { numeric: true });
+
+/** Implement comparison operators
+ * @typedef {function(string, string): boolean} Comparator
+ *
+ * @type {Object<string, Comparator>}
+ */
+const comparators = {
+  equals: (f, v) => collator.compare(f, v) === 0 || f === "*" || v === "*",
+  "starts with": (f, v) => f.toUpperCase().startsWith(v.toUpperCase()),
+  empty: (f) => !f,
+  "not empty": (f) => !!f,
+  "less than": (f, v) => collatorNumber.compare(f, v) < 0,
+  "greater than": (f, v) => collatorNumber.compare(f, v) > 0,
+  "less or equal": (f, v) => collatorNumber.compare(f, v) <= 0,
+  "greater or equal": (f, v) => collatorNumber.compare(f, v) >= 0,
+};
+
+/** Test a row with a filter
+ * @param {ContentFilter} filter
+ * @param {Row} row
+ * @returns {boolean}
+ */
+function match(filter, row) {
+  const field = row[filter.field.slice(1)] || "";
+  let value = filter.value || "";
+  const comparator = comparators[filter.operator];
+  if (!comparator) return true;
+  let r = comparator(field.toString(), value.toString());
+  return r;
+}
+
+class Data {
+  /** @param {Rows} rows - rows coming from the spreadsheet */
+  constructor(rows) {
+    this.contentRows = (Array.isArray(rows) && rows) || [];
+    this.allrows = this.contentRows;
+    /** @type {Set<string>} */
+    this.allFields = new Set();
+    this.updateAllFields();
+    this.loadTime = new Date();
+  }
+
+  updateAllFields() {
+    this.allFields = /** @type {Set<string>} */ (
+      this.contentRows.reduce((previous, current) => {
+        for (const field of Object.keys(current)) {
+          previous.add("#" + field);
+        }
+        return previous;
+      }, new Set())
+    );
+    this.clearFields = {};
+    for (const field of this.allFields) {
+      this.clearFields[field.slice(1)] = null;
+    }
+  }
+
+  /**
+   * Extract rows with the given filters
+   *
+   * @param {GridFilter[]} filters - each filter must return true
+   * @param {boolean} [clearFields] - return null for undefined fields
+   * @return {Rows} Rows that pass the filters
+   */
+  getMatchingRows(filters, clearFields = true) {
+    // all the filters must match the row
+    const boundFilters = filters.map((filter) => ({
+      field: filter.field.value,
+      operator: filter.operator.value,
+      value: filter.value.value,
+    }));
+    let result = this.allrows.filter((row) =>
+      boundFilters.every((filter) => match(filter, row)),
+    );
+    if (clearFields)
+      result = result.map((row) => ({ ...this.clearFields, ...row }));
+    return result;
+  }
+
+  /**
+   * Test if any rows exist after filtering
+   *
+   * @param {GridFilter[]} filters
+   * @param {EvalContext} context
+   * @return {Boolean} true if tag combination occurs
+   */
+  hasMatchingRows(filters, context) {
+    const boundFilters = filters.map((filter) => ({
+      field: filter.field.value,
+      operator: filter.operator.value,
+      value: filter.value.valueInContext(context),
+    }));
+    const result = this.allrows.some((row) =>
+      boundFilters.every((filter) => match(filter, row)),
+    );
+    return result;
+  }
+
+  /**
+   * Add rows from the socket interface
+   * @param {Rows} rows
+   */
+  setDynamicRows(rows) {
+    if (!Array.isArray(rows)) return;
+    this.allrows = rows.concat(this.contentRows);
+    this.updateAllFields();
+    this.loadTime = new Date();
+  }
+}
+
+const e=Object.assign||((e,t)=>(t&&Object.keys(t).forEach(o=>e[o]=t[o]),e)),t=(e,r,s)=>{const c=typeof s;if(s&&"object"===c)if(Array.isArray(s))for(const o of s)r=t(e,r,o);else for(const c of Object.keys(s)){const f=s[c];"function"==typeof f?r[c]=f(r[c],o):void 0===f?e&&!isNaN(c)?r.splice(c,1):delete r[c]:null===f||"object"!=typeof f||Array.isArray(f)?r[c]=f:"object"==typeof r[c]?r[c]=f===r[c]?f:o(r[c],f):r[c]=t(!1,{},f);}else "function"===c&&(r=s(r,o));return r},o=(o,...r)=>{const s=Array.isArray(o);return t(s,s?o.slice():e({},o),r)};
+
+let State$1 = class State {
+  constructor(persistKey = "") {
+    this.persistKey = persistKey;
+    /** @type {Set<function>} */
+    this.listeners = new Set();
+    /** @type {Object} */
+    this.values = {};
+    /** @type {Set<string>} */
+    this.updated = new Set();
+    if (this.persistKey) {
+      /* persistence */
+      const persist = window.sessionStorage.getItem(this.persistKey);
+      if (persist) {
+        this.values = JSON.parse(persist);
+      }
+    }
+  }
+
+  /** unified interface to state
+   * @param {string} [name] - possibly dotted path to a value
+   * @param {any} defaultValue
+   * @returns {any}
+   */
+  get(name, defaultValue = "") {
+    if (name && name.length) {
+      return name
+        .split(".")
+        .reduce((o, p) => (o ? o[p] : defaultValue), this.values);
+    } else {
+      return undefined;
+    }
+  }
+
+  /**
+   * update the state with a patch and invoke any listeners
+   *
+   * @param {Object} patch - the changes to make to the state
+   * @return {void}
+   */
+  update(patch = {}) {
+    for (const key in patch) {
+      this.updated.add(key);
+    }
+    this.values = o(this.values, patch);
+    for (const callback of this.listeners) {
+      callback();
+    }
+
+    if (this.persistKey) {
+      const persist = JSON.stringify(this.values);
+      window.sessionStorage.setItem(this.persistKey, persist);
+      // console.trace("persist $tabControl", this.values["$tabControl"]);
+    }
+  }
+
+  /**
+   * return a new state with the patch applied
+   * @param {Object} patch - changes to apply
+   * @return {State} - new independent state
+   */
+  clone(patch = {}) {
+    const result = new State();
+    result.values = o(this.values, patch);
+    return result;
+  }
+
+  /** clear - reset the state
+   */
+  clear() {
+    const userState = Object.keys(this.values).filter((name) =>
+      name.startsWith("$"),
+    );
+    const patch = Object.fromEntries(
+      userState.map((name) => [name, undefined]),
+    );
+    this.update(patch);
+  }
+
+  /** observe - call this function when the state updates
+   * @param {Function} callback
+   */
+  observe(callback) {
+    this.listeners.add(callback);
+  }
+
+  /** return true if the given state has been upated on this cycle
+   * @param {string} stateName
+   * @returns boolean
+   */
+  hasBeenUpdated(stateName) {
+    return this.updated.has(stateName);
+  }
+
+  /** clear updated for the next cycle
+   */
+  clearUpdated() {
+    this.updated.clear();
+  }
+
+  /** define - add a named state to the global system state
+   * @param {String} name - name of the state
+   * @param {any} defaultValue - value if not already defined
+   */
+  define(name, defaultValue) {
+    if (typeof this.values[name] === "undefined") {
+      this.values[name] = defaultValue;
+    }
+  }
+  /** interpolate
+   * @param {string} input
+   * @returns {string} input with $name replaced by values from the state
+   */
+  interpolate(input) {
+    let result = input.replace(/(\$[a-zA-Z0-9_.]+)/g, (_, name) =>
+      this.get(name),
+    );
+    result = result.replace(/\$\{([a-zA-Z0-9_.]+)}/g, (_, name) =>
+      this.get("$" + name),
+    );
+    return result;
+  }
+};
+
+class StackContainer extends TreeBase {
+  direction = new Select(["row", "column"], { defaultValue: "column" });
+  background = new Color("");
+
+  allowedChildren = [
+    "Stack",
+    "Gap",
+    "Grid",
+    "Display",
+    "Radio",
+    "TabControl",
+    "VSD",
+    "Button",
+  ];
+
+  /** @returns {Hole} */
+  template() {
+    /** return the scale of the child making sure it isn't zero or undefined.
+     * @param {TreeBase } child
+     * @returns {number}
+     */
+    function getScale(child) {
+      const SCALE_MIN = 0.0;
+      let scale = +child["scale"]?.value;
+      if (!scale || scale < SCALE_MIN) {
+        scale = SCALE_MIN;
+      }
+      return scale;
+    }
+    const scaleSum = this.children.reduce(
+      (sum, child) => sum + getScale(child),
+      0,
+    );
+    const empty = this.children.length && scaleSum ? "" : "empty";
+    const direction = this.direction.value;
+    const dimension = direction == "row" ? "width" : "height";
+
+    return this.component(
+      {
+        classes: [this.CSSClasses(direction, empty)],
+        style: {
+          backgroundColor: this.background.value,
+        },
+      },
+      this.children.map((child) => {
+        let size = (100 * getScale(child)) / scaleSum;
+        if (Number.isNaN(size)) size = 0;
+
+        return html`<div
+          style=${styleString({
+            [dimension]: `${size}%`,
+          })}
+        >
+          ${child.safeTemplate()}
+        </div>`;
+      }),
+    );
+  }
+}
+
+class Stack extends StackContainer {
+  scale = new Float(1);
+}
+TreeBase.register(Stack, "Stack");
+
+class Page extends StackContainer {
+  // you can't delete the page
+  allowDelete = false;
+
+  constructor() {
+    super();
+    this.allowedChildren = this.allowedChildren.concat(
+      "Speech",
+      "Audio",
+      "Logger",
+      "ModalDialog",
+      "Customize",
+      "HeadMouse",
+    );
+  }
+}
+StackContainer.register(Page, "Page");
+
+/** Gather Slots code into one module
+ *
+ * Slots are coded in strings like $$ kind = value $$ where kind is used
+ * to access the Content for choices and value is the initial and default value.
+ *
+ */
+
+
+/** Slot descriptor
+ * @typedef {Object} Slot
+ * @property {string} name - the name of the slot list
+ * @property {string} value - the current value
+ */
+
+/** Editor state
+ * @typedef {Object} Editor
+ * @property {"editor"} type
+ * @property {string} message - the message text
+ * @property {Slot[]} slots - slots if any
+ * @property {number} slotIndex - slot being edited
+ * @property {string} slotName - current slot type
+ * @property {string} value - value stripped of any markup
+ */
+
+/**
+ * Edit slots markup to replace with highlighed values
+ * @param {string|Editor} msg - the string possibly containing $$ kind = value $$ markup
+ * @returns {Hole[]} - formatted string
+ */
+function formatSlottedString(msg) {
+  if (typeof msg === "string") {
+    return msg.split(/(\$\$.*?\$\$)/).map((part) => {
+      const m = part.match(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/);
+      if (m) {
+        return html`<b>${m.groups?.value || ""}</b>`;
+      } else {
+        return html`<span>${part}</span>`;
+      }
+    });
+  } else if (typeof msg === "object" && msg.type === "editor") {
+    let editor = msg;
+    // otherwise it is an editor object
+    // highlight the current slot
+    let i = 0;
+    return editor.message.split(/(\$\$.*?\$\$)/).map((part) => {
+      const m = part.match(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/);
+      if (m) {
+        if (i === editor.slotIndex) {
+          // highlight the current slot
+          return html`<b>${editor.slots[i++].value}</b>`;
+        } else {
+          return html`<span
+            >${editor.slots[i++].value.replace(/^\*/, "")}</span
+          >`;
+        }
+      }
+      return html`<span>${part}</span>`;
+    });
+  } else {
+    return [];
+  }
+}
+
+/** Edit slots markup to replace with values
+ * @param {string|Editor} value
+ * @returns {string}
+ */
+function toString(value) {
+  value ??= "";
+  if (typeof value === "string") {
+    // strip any slot markup
+    value = value.replaceAll(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/g, "$2");
+    return value;
+  } else if (typeof value === "object" && value.type === "editor") {
+    let editor = value;
+    // otherwise it is an editor object
+    let i = 0;
+    const parts = editor.message.split(/(\$\$.*?\$\$)/).map((part) => {
+      const m = part.match(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/);
+      if (m) {
+        return editor.slots[i++].value.replace(/^\*/, "");
+      }
+      return part;
+    });
+    return parts.join("");
+  }
+  return value.toString();
+}
+
+/** We need to keep some additional state around to enable editing slotted messages.
+ *
+ * These functions are used in Updates to manipulate the state.
+ */
+
+/** Test if this message has slots
+ * @param {string|Editor} message
+ * @returns {boolean}
+ */
+function hasSlots(message) {
+  if (message instanceof Object && message.type === "editor") {
+    return message.slots.length > 0;
+  } else if (typeof message == "string") return message.indexOf("$$") >= 0;
+  return false;
+}
+
+/** initialize the editor
+ * @param {String} message
+ * @returns Editor
+ */
+function init(message) {
+  message = message || "";
+  const slots = Array.from(
+    message.matchAll(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/g),
+  ).map((m) => m.groups);
+  let result = {
+    type: "editor",
+    message,
+    slots,
+    slotIndex: 0,
+    slotName: (slots[0] && slots[0].name) || "",
+  };
+  return result;
+}
+
+/** cancel slot editing
+ * @returns Editor
+ */
+function cancel() {
+  return {
+    type: "editor",
+    message: "",
+    slots: [],
+    slotIndex: 0,
+    slotName: "",
+  };
+}
+
+/** update the value of the current slot
+ * @param {String} message
+ */
+function update(message) {
+  message ??= "";
+  /** @param {Editor} old
+   * @returns {Editor|string}
+   */
+  return (old) => {
+    // copy the slots from the old value
+    if (!old || !old.slots) {
+      return "";
+    }
+    const slots = [...old.slots];
+    let slotIndex = old.slotIndex;
+    // replace the current one
+    if (message.startsWith("*")) {
+      slots[slotIndex].value = message;
+    } else {
+      if (slots[slotIndex].value.startsWith("*")) {
+        slots[slotIndex].value = `${slots[slotIndex].value} ${message}`;
+      } else {
+        slots[slotIndex].value = message;
+      }
+      slotIndex++;
+      if (slotIndex >= slots.length) {
+        Globals.actions.queueEvent("okSlot", "press");
+      }
+    }
+    return o(old, {
+      slots,
+      slotIndex,
+      slotName: slots[slotIndex]?.name,
+    });
+  };
+}
+
+/** advance to the next slot
+ */
+function nextSlot() {
+  /** @param {Editor} old
+   */
+  return (old) => {
+    if (!old || !old.slots) return;
+    const slotIndex = old.slotIndex + 1;
+    if (slotIndex >= old.slots.length) {
+      Globals.actions.queueEvent("okSlot", "press");
+    }
+    return o(old, { slotIndex, slotName: old.slots[slotIndex]?.name });
+  };
+}
+
+/** duplicate the current slot
+ */
+function duplicate() {
+  /** @param {Editor} old
+   */
+  return (old) => {
+    if (!old || !old.slots) return;
+    const matches = Array.from(
+      old.message.matchAll(/\$\$(?<name>.*?)=(?<value>.*?)\$\$/g),
+    );
+    const current = matches[old.slotIndex];
+    if (current !== undefined && current.index !== undefined) {
+      const message =
+        old.message.slice(0, current.index) +
+        current[0] +
+        " and " +
+        current[0] +
+        old.message.slice(current.index + current[0].length);
+      const slots = [
+        ...old.slots.slice(0, old.slotIndex + 1),
+        { ...old.slots[old.slotIndex] }, // copy it
+        ...old.slots.slice(old.slotIndex + 1),
+      ];
+      return o(old, {
+        message,
+        slots,
+      });
+    } else {
+      return old;
+    }
+  };
+}
+
+/** Get the slot name
+ * @param {string|Editor} message
+ * @returns string;
+ */
+function slotName(message) {
+  if (typeof message === "object" && message.type === "editor") {
+    return message.slotName;
+  }
+  return "";
+}
+{
+  Functions["slots"] = {
+    init,
+    cancel,
+    update,
+    hasSlots,
+    duplicate,
+    nextSlot,
+    slotName,
+    toString,
+  };
+}
+
+/**
+ * Return an image or video element given the name + parameters
+ * like "foo.mp4 autoplay loop".
+ * @param {string} src
+ * @param {string} title
+ * @param {null|function():void} onload
+ * @returns {Hole}
+ */
+function imageOrVideo(src, title, onload = null) {
+  const match = /(?<src>.*\.(?:mp4|webm))(?<options>.*$)/.exec(src);
+
+  if (match && match.groups) {
+    // video
+    const options = match.groups.options;
+    const vsrc = match.groups.src;
+    return html`<video
+      is="video-db"
+      dbsrc=${vsrc}
+      title=${title}
+      ?loop=${options.indexOf("loop") >= 0}
+      ?autoplay=${options.indexOf("autoplay") >= 0}
+      ?muted=${options.indexOf("muted") >= 0}
+      @load=${onload}
+    />`;
+  } else {
+    // image
+    return html`<img
+      is="img-db"
+      dbsrc=${src}
+      title=${title}
+      @load=${onload}
+    />`;
+  }
+}
+
+class Grid extends TreeBase {
+  fillItems = new Boolean$1(false);
+  rows = new Integer(3, { min: 1 });
+  columns = new Integer(3, { min: 1 });
+  scale = new Float(1);
+  name = new String$1("grid");
+  background = new Color("white");
+
+  allowedChildren = ["GridFilter"];
+
+  /** @type {GridFilter[]} */
+  children = [];
+
+  page = 1;
+  pageBoundaries = { 0: 0 }; //track starting indices of pages
+
+  /** @param {Row} item */
+  gridCell(item) {
+    const name = this.name.value;
+    /** @type {Hole[]} */
+    let content;
+    let msg = formatSlottedString(item.label || "");
+    if (item.symbol) {
+      content = [
+        html`<div>
+          <figure>
+            ${imageOrVideo(item.symbol, item.label || "")}
+            <figcaption>${msg}</figcaption>
+          </figure>
+        </div>`,
+      ];
+    } else {
+      content = msg;
+    }
+    return html`<button
+      tabindex="-1"
+      data=${{
+        ...item,
+        ComponentName: name,
+        ComponentType: this.className,
+      }}
+      ?disabled=${!item.label && !item.symbol}
+    >
+      ${content}
+    </button>`;
+  }
+
+  emptyCell() {
+    return html`<button tabindex="-1" disabled></button>`;
+  }
+
+  /**
+   * Allow selecting pages in the grid
+   *
+   * @param {Number} pages
+   * @param {Row} info
+   */
+  pageSelector(pages, info) {
+    const { state } = Globals;
+    const background = this.background.value;
+    const name = this.name.value;
+
+    return html`<div class="page-control">
+      <div class="text">Page ${this.page} of ${pages}</div>
+      <div class="back-next">
+        <button
+          style=${styleString({ backgroundColor: background })}
+          .disabled=${this.page == 1}
+          data=${{
+            ...info,
+            ComponentName: name,
+            ComponentType: this.className,
+          }}
+          click
+          @Activate=${() => {
+            this.page = ((((this.page - 2) % pages) + pages) % pages) + 1;
+            state.update(); // trigger redraw
+          }}
+          tabindex="-1"
+        >
+          &#9754;</button
+        ><button
+          .disabled=${this.page == pages}
+          data=${{
+            ...info,
+            ComponentName: name,
+            ComponentType: this.className,
+          }}
+          click
+          @Activate=${() => {
+            this.page = (this.page % pages) + 1;
+            state.update(); // trigger redraw
+          }}
+          tabindex="-1"
+        >
+          &#9755;
+        </button>
+      </div>
+    </div>`;
+  }
+
+  template() {
+    /** @type {Partial<CSSStyleDeclaration>} */
+    const style = { backgroundColor: this.background.value };
+    const { data } = Globals;
+    let rows = Math.max(1, this.rows.value);
+    let columns = Math.max(1, this.columns.value);
+    let fillItems = this.fillItems.value;
+    /** @type {Rows} */
+    let items = data.getMatchingRows(this.children);
+    let maxPage = 1;
+    const result = [];
+    if (!fillItems) {
+      // collect the items for the current page
+      // and get the dimensions
+      let maxRow = 0,
+        maxColumn = 0;
+      const itemMap = new Map();
+      /**
+       * @param {number} row
+       * @param {number} column
+       */
+      const itemKey = (row, column) => row * 1000 + column;
+
+      for (const item of items) {
+        // ignore items without row and column
+        if (!item.row || !item.column) continue;
+        // get the max page value if any
+        maxPage = Math.max(maxPage, item.page || 1);
+        // collect the items on this page
+        if (this.page == (item.page || 1)) {
+          maxRow = Math.max(maxRow, item.row);
+          maxColumn = Math.max(maxColumn, item.column);
+          const key = itemKey(item.row, item.column);
+          // only use the first one
+          if (!itemMap.has(key)) itemMap.set(key, item);
+        }
+      }
+      rows = maxRow;
+      columns = maxColumn;
+      for (let row = 1; row <= rows; row++) {
+        for (let column = 1; column <= columns; column++) {
+          if (maxPage > 1 && row == rows && column == columns) {
+            // draw the page selector in the last cell
+            result.push(this.pageSelector(maxPage, { row, column }));
+          } else {
+            const key = itemKey(row, column);
+            if (itemMap.has(key)) {
+              result.push(this.gridCell(itemMap.get(key)));
+            } else {
+              result.push(this.emptyCell());
+            }
+          }
+        }
+      }
+    } else {
+      // fill items sequentially
+      let perPage = rows * columns;
+      if (items.length > perPage) {
+        perPage = perPage - 1;
+      }
+      maxPage = Math.ceil(items.length / perPage);
+      // get the items on this page
+      items = items.slice((this.page - 1) * perPage, this.page * perPage);
+      // render them into the result
+      for (let i = 0; i < items.length; i++) {
+        const row = Math.floor(i / columns) + 1;
+        const column = (i % columns) + 1;
+        const item = { ...items[i], row, column };
+        result.push(this.gridCell({ ...item, row: row, column: column }));
+      }
+      // fill any spaces that remain
+      for (let i = items.length; i < perPage; i++) {
+        result.push(this.emptyCell());
+      }
+      // draw the page selector if needed
+      if (maxPage > 1) {
+        result.push(this.pageSelector(maxPage, { row: rows, column: columns }));
+      }
+    }
+
+    // empty result provokes a crash from uhtmlV4
+    if (!result.length) {
+      rows = columns = 1;
+      result.push(this.emptyCell());
+    }
+
+    style.gridTemplate = `repeat(${rows}, calc(100% / ${rows})) / repeat(${columns}, 1fr)`;
+
+    const body = html`<div style=${styleString(style)}>${result}</div>`;
+
+    return this.component({}, body);
+  }
+
+  settingsDetails() {
+    const props = this.props;
+    const inputs = Object.values(props).map((prop) => prop.input());
+    const filters = GridFilter.FilterSettings(this.children);
+    return [html`<div>${filters}${inputs}</div>`];
+  }
+
+  settingsChildren() {
+    return html`<div />`;
+  }
+}
+TreeBase.register(Grid, "Grid");
+
+class Display extends TreeBase {
+  stateName = new String$1("$Display");
+  Name = new String$1("");
+  background = new Color("white");
+  fontSize = new Float(2);
+  scale = new Float(1);
+
+  /** @type {HTMLDivElement | null} */
+  current = null;
+
+  static functionsInitialized = false;
+
+  template() {
+    const { state } = Globals;
+    let value = state.get(this.stateName.value) || "";
+    const content = formatSlottedString(value);
+    return this.component(
+      {
+        style: {
+          backgroundColor: this.background.value,
+          fontSize: this.fontSize.value + "rem",
+        },
+      },
+      html`<button
+        ref=${this}
+        @pointerup=${this.click}
+        tabindex="-1"
+        ?disabled=${!this.Name.value}
+        data=${{
+          name: this.Name.value,
+          ComponentName: this.Name.value,
+          ComponentType: this.className,
+        }}
+      >
+        ${content}
+      </button>`,
+    );
+  }
+
+  /** Attempt to locate the word the user is touching
+   */
+  click = () => {
+    const s = window.getSelection();
+    if (!s) return;
+    let word = "";
+    if (s.isCollapsed) {
+      s.modify("move", "forward", "character");
+      s.modify("move", "backward", "word");
+      s.modify("extend", "forward", "word");
+      word = s.toString();
+      s.modify("move", "forward", "character");
+    } else {
+      word = s.toString();
+    }
+    this.current?.setAttribute("data--clicked-word", word);
+  };
+}
+TreeBase.register(Display, "Display");
+
+let Option$1 = class Option extends TreeBase {
+  name = new String$1("", { hiddenLabel: true });
+  value = new String$1("", { hiddenLabel: true });
+};
+TreeBase.register(Option$1, "Option");
+
+class Radio extends TreeBase {
+  scale = new Float(1);
+  label = new String$1("");
+  stateName = new String$1("$radio");
+  unselected = new Color("lightgray");
+  selected = new Color("pink");
+
+  allowedChildren = ["Option", "GridFilter"];
+
+  /** @type {(Option | GridFilter)[]} */
+  children = [];
+
+  get options() {
+    return this.filterChildren(Option$1);
+  }
+
+  /**
+   * true if there exist rows with the this.filters and the value
+   * @arg {Option} option
+   * @returns {boolean}
+   */
+  valid(option) {
+    const { data } = Globals;
+    const filters = this.filterChildren(GridFilter);
+    return (
+      !filters.length ||
+      data.hasMatchingRows(filters, {
+        states: {
+          [this.stateName.value]: option.value.value,
+        },
+      })
+    );
+  }
+
+  /**
+   * handle clicks on the chooser
+   * @param {MouseEvent} event
+   */
+  handleClick({ target }) {
+    if (target instanceof HTMLButtonElement) {
+      const value = target.value;
+      const name = this.stateName.value;
+      Globals.state.update({ [name]: value });
+    }
+  }
+
+  template() {
+    const { state } = Globals;
+    const stateName = this.stateName.value;
+    const selected = this.selected.value;
+    const unselected = this.unselected.value;
+    const radioLabel = this.label.value;
+    let currentValue = state.get(stateName);
+    const choices = this.options.map((choice, index) => {
+      const choiceDisabled = !this.valid(choice);
+      const choiceValue = choice.value.value;
+      const choiceName = choice.name.value;
+      if (stateName && !currentValue && !choiceDisabled && choiceValue) {
+        currentValue = choiceValue;
+        state.define(stateName, choiceValue);
+      }
+      const color =
+        choiceValue == currentValue || (!currentValue && index == 0)
+          ? selected
+          : unselected;
+      return html`<button
+        style=${styleString({ backgroundColor: color })}
+        value=${choiceValue}
+        ?disabled=${choiceDisabled}
+        data=${{
+          ComponentType: this.className,
+          ComponentName: radioLabel || stateName,
+          label: choiceName,
+        }}
+        click
+        @Activate=${() => state.update({ [stateName]: choice.value.value })}
+      >
+        ${choiceName}
+      </button>`;
+    });
+
+    return this.component(
+      {},
+      html`<fieldset class="flex">
+        ${(radioLabel && [html`<legend>${radioLabel}</legend>`]) || []}
+        ${choices}
+      </fieldset>`,
+    );
+  }
+
+  settingsDetails() {
+    const props = this.props;
+    const inputs = Object.values(props).map((prop) => prop.input());
+    const filters = this.filterChildren(GridFilter);
+    const editFilters = !filters.length
+      ? []
+      : [GridFilter.FilterSettings(filters)];
+    const options = this.filterChildren(Option$1);
+    const editOptions = html`<fieldset>
+      <legend>Options</legend>
+      <table class="RadioOptions">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${options.map(
+            (option, index) => html`
+              <tr>
+                <td>${index + 1}</td>
+                <td>${option.name.input()}</td>
+                <td>${option.value.input()}</td>
+              </tr>
+            `,
+          )}
+        </tbody>
+      </table>
+    </fieldset>`;
+    return [html`<div>${editFilters}${editOptions}${inputs}</div>`];
+  }
+
+  settingsChildren() {
+    return html`<div />`;
+  }
+}
+TreeBase.register(Radio, "Radio");
+
+class Gap extends TreeBase {
+  scale = new Float(1);
+  background = new Color("");
+
+  template() {
+    return this.component(
+      {
+        style: styleString({
+          backgroundColor: this.background.value,
+        }),
+      },
+      html`<div />`,
+    );
+  }
+}
+TreeBase.register(Gap, "Gap");
+
+/** @type {Function[]} */
+const PostRenderFunctions = [];
+/** @param {Function} f */
+function callAfterRender(f) {
+  PostRenderFunctions.push(f);
+}
+function postRender() {
+  while (PostRenderFunctions.length > 0) {
+    const PRF = PostRenderFunctions.pop();
+    if (PRF) PRF();
+  }
+}
+
+/** @param {string} id
+ * @param {TreeBase} component
+ */
+function safeRender(id, component) {
+  const where = document.getElementById(id);
+  if (!where) {
+    console.error({ id, where });
+    return;
+  }
+  let r;
+  {
+    try {
+      let what = component.safeTemplate();
+      r = render(where, what);
+    } catch (error) {
+      if (error instanceof Error) {
+        errorHandler(error, ` rendering ${component.className} ${id}`);
+      } else {
+        console.error("crash", error);
+      }
+      return;
+    }
+  }
+  return r;
+}
+
+class TabControl extends TreeBase {
+  stateName = new String$1("$tabControl");
+  background = new Color("");
+  scale = new Float(6);
+  tabEdge = new Select(["bottom", "top", "left", "right", "none"], {
+    defaultValue: "top",
+  });
+  name = new String$1("tabs");
+
+  allowedChildren = ["TabPanel"];
+
+  /** @type {TabPanel[]} */
+  children = [];
+
+  /** @type {TabPanel | undefined} */
+  currentPanel = undefined;
+
+  template() {
+    const { state } = Globals;
+    const panels = this.children;
+    let activeTabName = state.get(this.stateName.value);
+    // collect panel info
+    panels.forEach((panel, index) => {
+      panel.tabName = state.interpolate(panel.name.value); // internal name
+      panel.tabLabel = state.interpolate(panel.label.value || panel.name.value); // display name
+      if (index == 0 && !activeTabName) {
+        activeTabName = panel.tabName;
+        state.define(this.stateName.value, panel.tabName);
+      }
+      panel.active = activeTabName == panel.tabName || panels.length === 1;
+      if (panel.active) this.currentPanel = panel;
+    });
+    let buttons = [];
+    if (this.tabEdge.value != "none") {
+      buttons = panels
+        .filter((panel) => panel.label.value != "UNLABELED")
+        .map((panel) => {
+          const color = panel.background.value;
+          const buttonStyle = {
+            backgroundColor: color,
+          };
+          return html`<li>
+            <button
+              ?active=${panel.active}
+              style=${styleString(buttonStyle)}
+              data=${{
+                name: this.name.value,
+                label: panel.tabLabel,
+                component: this.constructor.name,
+                id: panel.id,
+              }}
+              click
+              @Activate=${() => {
+                this.switchTab(panel.tabName);
+              }}
+              tabindex="-1"
+            >
+              ${panel.tabLabel}
+            </button>
+          </li>`;
+        });
+    }
+    const panel = this.currentPanel
+      ? this.currentPanel.safeTemplate()
+      : html`<div />`;
+    return this.component(
+      { classes: [this.tabEdge.value] },
+      html`
+        <ul class="buttons">
+          ${buttons}
+        </ul>
+        <div class="panels flex">${panel}</div>
+      `,
+    );
+  }
+
+  /**
+   * @param {string} tabName
+   */
+  switchTab(tabName) {
+    Globals.state.update({ [this.stateName.value]: tabName });
+  }
+}
+TreeBase.register(TabControl, "TabControl");
+
+class TabPanel extends Stack {
+  name = new String$1("");
+  label = new String$1("");
+
+  /** @type {TabControl | undefined } */
+  parent = undefined;
+
+  active = false;
+  tabName = "";
+  tabLabel = "";
+
+  /**
+   * Render the details of a components settings
+   */
+  settingsDetails() {
+    const caption = this.active ? "Active" : "Activate";
+    let details = super.settingsDetails();
+    if (!Array.isArray(details)) details = [details];
+    return [
+      ...details,
+      html`<button
+        id=${this.id + "-activate"}
+        ?active=${this.active}
+        @click=${() => {
+          if (this.parent) {
+            const parent = this.parent;
+            callAfterRender(() => {
+              Globals.layout.highlight();
+            });
+            parent.switchTab(this.name.value);
+          }
+        }}
+      >
+        ${caption}
+      </button>`,
+    ];
+  }
+
+  /** @param {string[]} classes
+   * @returns {string}
+   */
+  CSSClasses(...classes) {
+    if (this.active) {
+      classes.push("ActivePanel");
+    }
+    return super.CSSClasses(...classes);
+  }
+
+  highlight() {}
+}
+TreeBase.register(TabPanel, "TabPanel");
+
+class ModalDialog extends StackContainer {
+  stateName = new String$1("$modalOpen");
+  open = new Boolean$1(false);
+
+  /** @param {string[]} classes */
+  CSSClasses(...classes) {
+    return super.CSSClasses("open", ...classes);
+  }
+
+  template() {
+    const state = Globals.state;
+    const open =
+      !!state.get(this.stateName.value) || this.open.value ? "open" : "";
+    if (open) {
+      return super.template();
+    } else {
+      return html`<div />`;
+    }
+  }
+}
+TreeBase.register(ModalDialog, "ModalDialog");
+
+/** Allow await'ing for a short time
+ * @param {number} ms */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Wait for a condition to be satisfied
+ * @param {() => boolean} test
+ * @param {number} delay */
+async function waitFor(test, delay = 100) {
+  while (!test()) await sleep(delay);
+}
+
+/**
+ * Calculate the actual image size undoing the effects of object-fit
+ * This is async so it can wait for the image to be loaded initially.
+ *
+ * @param {HTMLImageElement} img
+ * */
+async function getActualImageSize(img) {
+  let left = 0,
+    top = 0,
+    width = 1,
+    height = 1;
+  if (img) {
+    // wait for the image to load
+    await waitFor(() => img.complete && img.naturalWidth != 0);
+    const vsd = /** @type {HTMLDivElement} */ (img.closest("div.vsd"));
+    const cw = img.width,
+      ch = img.height,
+      iw = img.naturalWidth,
+      ih = img.naturalHeight,
+      pw = vsd.clientWidth,
+      ph = vsd.clientHeight,
+      iratio = iw / ih,
+      cratio = cw / ch;
+    if (iratio > cratio) {
+      width = cw;
+      height = cw / iratio;
+    } else {
+      width = ch * iratio;
+      height = ch;
+    }
+    left = (pw - width) / 2;
+    top = (ph - height) / 2;
+  }
+  return { left, top, width, height };
+}
+
+/** @param {number} v */
+function px(v) {
+  return `${v}px`;
+}
+/** @param {number} v */
+function pct(v) {
+  return `${v}%`;
+}
+
+/** @typedef {Object} vsdData
+ * @property {number} x
+ * @property {number} y
+ * @property {number} w
+ * @property {number} h
+ * @property {string} image
+ * @property {boolean} invisible
+ */
+/** @typedef {Row & vsdData} VRow */
+class VSD extends TreeBase {
+  name = new String$1("vsd");
+  scale = new Float(1);
+
+  /** @type {GridFilter[]} */
+  children = [];
+
+  allowedChildren = ["GridFilter"];
+
+  /** @type {HTMLDivElement} */
+  markers;
+
+  template() {
+    const { data, state, actions } = Globals;
+    const editing = state.get("editing");
+    const items = /** @type {VRow[]} */ (data.getMatchingRows(this.children));
+    const src = items.find((item) => item.image)?.image || "";
+    let dragging = 0;
+    const coords = [
+      [0, 0], // start x and y
+      [0, 0], // end x and y
+    ];
+    let clip = "";
+
+    return this.component(
+      { classes: ["show"] },
+      html`<div>
+        ${imageOrVideo(src, "", () => {
+          this.sizeMarkers(this.markers);
+        })}
+        <div
+          class="markers"
+          ref=${(/** @type {HTMLDivElement & { observer: any }} */ node) => {
+            this.sizeMarkers(node);
+          }}
+          @pointermove=${editing &&
+          ((/** @type {PointerEvent} */ event) => {
+            const rect = this.markers.getBoundingClientRect();
+            const div = document.querySelector("#UI span.coords");
+            if (!div) return;
+            coords[dragging][0] = Math.round(
+              (100 * (event.pageX - rect.left)) / rect.width,
+            );
+            coords[dragging][1] = Math.round(
+              (100 * (event.pageY - rect.top)) / rect.height,
+            );
+            clip = `${coords[0][0]}\t${coords[0][1]}`;
+            if (dragging) {
+              clip =
+                clip +
+                `\t${coords[1][0] - coords[0][0]}\t${
+                  coords[1][1] - coords[0][1]
+                }`;
+            }
+            div.innerHTML = clip;
+          })}
+          @pointerdown=${editing &&
+          (() => {
+            dragging = 1;
+          })}
+          @pointerup=${editing &&
+          (() => {
+            dragging = 0;
+            navigator.clipboard.writeText(clip);
+          })}
+        >
+          ${items
+            .filter((item) => item.w)
+            .map(
+              (item) =>
+                html`<button
+                  style=${styleString({
+                    left: pct(item.x),
+                    top: pct(item.y),
+                    width: pct(item.w),
+                    height: pct(item.h),
+                    position: "absolute",
+                  })}
+                  ?invisible=${!!item.invisible}
+                  data=${{
+                    ComponentName: this.name.value,
+                    ComponentType: this.constructor.name,
+                    ...item,
+                  }}
+                  click
+                  @Activate=${actions.handler(this.name.value, item, "press")}
+                >
+                  <span>${item.label || ""}</span>
+                </button>`,
+            )}
+          <span class="coords" style="background-color: white"></span>
+        </div>
+      </div>`,
+    );
+  }
+
+  /** @param {HTMLDivElement} node */
+  async sizeMarkers(node) {
+    this.markers = node;
+    const img = /** @type {HTMLImageElement} */ (node.previousElementSibling);
+    const rect = await getActualImageSize(img);
+    node.style.position = "absolute";
+    node.style.left = px(rect.left);
+    node.style.top = px(rect.top);
+    node.style.width = px(rect.width);
+    node.style.height = px(rect.height);
+  }
+
+  settingsDetails() {
+    const props = this.props;
+    const inputs = Object.values(props).map((prop) => prop.input());
+    const filters = GridFilter.FilterSettings(this.children);
+    return [html`<div>${filters}${inputs}</div>`];
+  }
+
+  settingsChildren() {
+    return html`<div />`;
+  }
+}
+TreeBase.register(VSD, "VSD");
+
+class Button extends TreeBase {
+  label = new String$1("click me");
+  name = new String$1("button");
+  background = new Color("");
+  scale = new Float(1);
+
+  template() {
+    const style = styleString({ backgroundColor: this.background.value });
+    const name = this.name.value;
+    const label = this.label.value;
+    return this.component(
+      {},
+      html`<button
+        class="button"
+        name=${name}
+        style=${style}
+        data=${{
+          name: name,
+          label: label,
+          ComponentName: name,
+          ComponentType: this.constructor.name,
+        }}
+      >
+        ${label}
+      </button>`,
+    );
+  }
+
+  getChildren() {
+    return [];
+  }
+}
+TreeBase.register(Button, "Button");
+
+class Monitor extends TreeBase {
+  template() {
+    const { state, actions: rules } = Globals;
+    const stateKeys = [
+      ...new Set([...Object.keys(state.values), ...accessed.keys()]),
+    ].sort();
+    const s = html`<table class="state">
+      <thead>
+        <tr>
+          <th>State</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${stateKeys
+          .filter((key) => key.startsWith("$"))
+          .map((key) => {
+            let value = state.get(key);
+            value = toString(value);
+            let clamped = value.slice(0, 30);
+            if (value.length > clamped.length) {
+              clamped += "...";
+            }
+            return html`<tr
+              ?updated=${state.hasBeenUpdated(key)}
+              ?undefined=${accessed.get(key) === false}
+            >
+              <td>${key}</td>
+              <td>${clamped}</td>
+            </tr>`;
+          })}
+      </tbody>
+    </table>`;
+
+    const row = rules.last.data || {};
+    const rowAccessedKeys = [...accessed.keys()]
+      .filter((key) => key.startsWith("_"))
+      .map((key) => key.slice(1));
+    const rowKeys = [
+      ...new Set([...Object.keys(row), ...rowAccessedKeys]),
+    ].sort();
+    const f = html`<table class="fields">
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowKeys.map((key) => {
+          const value = row[key];
+          return html`<tr
+            ?undefined=${accessed.get(`_${key}`) === false}
+            ?accessed=${accessed.has(`_${key}`)}
+          >
+            <td>#${key}</td>
+            <td>${value || ""}</td>
+          </tr>`;
+        })}
+      </tbody>
+    </table>`;
+
+    return html`<button
+        @click=${() => {
+          state.clear();
+          rules.configure();
+        }}
+      >
+        Clear state
+      </button>
+      <div>${s}${f}</div>`;
+  }
+}
+TreeBase.register(Monitor, "Monitor");
+
+class Speech extends TreeBase {
+  stateName = new String$1("$Speak");
+  voiceURI = new Voice("", { label: "Voice" });
+  pitch = new Float(1);
+  rate = new Float(1);
+  volume = new Float(1);
+
+  async speak() {
+    const { state } = Globals;
+    const voiceURI = this.voiceURI.value;
+    const message = toString(state.get(this.stateName.value));
+    const voices = await getVoices();
+    const voice =
+      voiceURI && voices.find((voice) => voice.voiceURI == voiceURI);
+    const utterance = new SpeechSynthesisUtterance(message);
+    if (voice) {
+      utterance.voice = voice;
+      utterance.lang = voice.lang;
+    }
+    utterance.pitch = this.pitch.value;
+    utterance.rate = this.rate.value;
+    utterance.volume = this.volume.value;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+  }
+
+  template() {
+    const { state } = Globals;
+    if (state.hasBeenUpdated(this.stateName.value)) {
+      this.speak();
+    }
+    return html`<div />`;
+  }
+}
+TreeBase.register(Speech, "Speech");
+
+/** @type{SpeechSynthesisVoice[]} */
+let voices = [];
+
+/**
+ * Promise to return voices
+ *
+ * @return {Promise<SpeechSynthesisVoice[]>} Available voices
+ */
+function getVoices() {
+  return new Promise(function (resolve) {
+    // iOS won't fire the voiceschanged event so we have to poll for them
+    function f() {
+      voices = (voices.length && voices) || speechSynthesis.getVoices();
+      if (voices.length) resolve(voices);
+      else setTimeout(f, 100);
+    }
+    f();
+  });
+}
+
+class VoiceSelect extends HTMLSelectElement {
+  constructor() {
+    super();
+  }
+  connectedCallback() {
+    this.addVoices();
+  }
+
+  async addVoices() {
+    const voices = await getVoices();
+    /** @param {SpeechSynthesisVoice} a
+     * @param {SpeechSynthesisVoice} b
+     */
+    function compareVoices(a, b) {
+      return a.lang.localeCompare(b.lang) || a.name.localeCompare(b.name);
+    }
+    voices.sort(compareVoices);
+    const current = this.getAttribute("value");
+    for (const voice of voices) {
+      const item = document.createElement("option");
+      item.value = voice.voiceURI;
+      if (voice.voiceURI == current) item.setAttribute("selected", "");
+      item.innerText = `${voice.name} ${voice.lang}`;
+      this.add(item);
+    }
+  }
+}
+customElements.define("select-voice", VoiceSelect, { extends: "select" });
+
 let Audio$1 = class Audio extends TreeBase {
   stateName = new String$1("$Audio");
 
@@ -13238,51 +13788,52 @@ let Audio$1 = class Audio extends TreeBase {
 TreeBase.register(Audio$1, "Audio");
 
 const scriptRel = 'modulepreload';const assetsURL = function(dep) { return "/OS-DPI/"+dep };const seen = {};const __vitePreload = function preload(baseModule, deps, importerUrl) {
+    let promise = Promise.resolve();
     // @ts-expect-error true will be replaced with boolean later
-    if (!true || !deps || deps.length === 0) {
-        return baseModule();
-    }
-    const links = document.getElementsByTagName('link');
-    return Promise.all(deps.map((dep) => {
-        // @ts-expect-error assetsURL is declared before preload.toString()
-        dep = assetsURL(dep);
-        if (dep in seen)
-            return;
-        seen[dep] = true;
-        const isCss = dep.endsWith('.css');
-        const cssSelector = isCss ? '[rel="stylesheet"]' : '';
-        const isBaseRelative = !!importerUrl;
-        // check if the file is already preloaded by SSR markup
-        if (isBaseRelative) {
-            // When isBaseRelative is true then we have `importerUrl` and `dep` is
-            // already converted to an absolute URL by the `assetsURL` function
-            for (let i = links.length - 1; i >= 0; i--) {
-                const link = links[i];
-                // The `links[i].href` is an absolute URL thanks to browser doing the work
-                // for us. See https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#reflecting-content-attributes-in-idl-attributes:idl-domstring-5
-                if (link.href === dep && (!isCss || link.rel === 'stylesheet')) {
-                    return;
+    if (true && deps && deps.length > 0) {
+        const links = document.getElementsByTagName('link');
+        promise = Promise.all(deps.map((dep) => {
+            // @ts-expect-error assetsURL is declared before preload.toString()
+            dep = assetsURL(dep);
+            if (dep in seen)
+                return;
+            seen[dep] = true;
+            const isCss = dep.endsWith('.css');
+            const cssSelector = isCss ? '[rel="stylesheet"]' : '';
+            const isBaseRelative = !!importerUrl;
+            // check if the file is already preloaded by SSR markup
+            if (isBaseRelative) {
+                // When isBaseRelative is true then we have `importerUrl` and `dep` is
+                // already converted to an absolute URL by the `assetsURL` function
+                for (let i = links.length - 1; i >= 0; i--) {
+                    const link = links[i];
+                    // The `links[i].href` is an absolute URL thanks to browser doing the work
+                    // for us. See https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#reflecting-content-attributes-in-idl-attributes:idl-domstring-5
+                    if (link.href === dep && (!isCss || link.rel === 'stylesheet')) {
+                        return;
+                    }
                 }
             }
-        }
-        else if (document.querySelector(`link[href="${dep}"]${cssSelector}`)) {
-            return;
-        }
-        const link = document.createElement('link');
-        link.rel = isCss ? 'stylesheet' : scriptRel;
-        if (!isCss) {
-            link.as = 'script';
-            link.crossOrigin = '';
-        }
-        link.href = dep;
-        document.head.appendChild(link);
-        if (isCss) {
-            return new Promise((res, rej) => {
-                link.addEventListener('load', res);
-                link.addEventListener('error', () => rej(new Error(`Unable to preload CSS for ${dep}`)));
-            });
-        }
-    }))
+            else if (document.querySelector(`link[href="${dep}"]${cssSelector}`)) {
+                return;
+            }
+            const link = document.createElement('link');
+            link.rel = isCss ? 'stylesheet' : scriptRel;
+            if (!isCss) {
+                link.as = 'script';
+                link.crossOrigin = '';
+            }
+            link.href = dep;
+            document.head.appendChild(link);
+            if (isCss) {
+                return new Promise((res, rej) => {
+                    link.addEventListener('load', res);
+                    link.addEventListener('error', () => rej(new Error(`Unable to preload CSS for ${dep}`)));
+                });
+            }
+        }));
+    }
+    return promise
         .then(() => baseModule())
         .catch((err) => {
         const e = new Event('vite:preloadError', { cancelable: true });
@@ -13295,7 +13846,185 @@ const scriptRel = 'modulepreload';const assetsURL = function(dep) { return "/OS-
     });
 };
 
-const designer = '';
+/** Implement undo/redo for the designer by comparing the current and previous trees
+ *
+ * I'm assuming only 1 change has been made since we save after every change.
+ */
+
+class ChangeStack {
+  /** @type {ExternalRep[]} */
+  stack = [];
+
+  /* boundary between undo and redo. Points to the first cell beyond the undos */
+  top = 0;
+
+  get canUndo() {
+    return this.top > 1;
+  }
+
+  get canRedo() {
+    return this.top < this.stack.length;
+  }
+
+  /** Save a state for possible undo
+   * @param {ExternalRep} state
+   */
+  save(state) {
+    this.stack.splice(this.top);
+    this.stack.push(state);
+    this.top = this.stack.length;
+  }
+
+  /** Undo
+   * @param {TreeBase} current
+   */
+  undo(current) {
+    if (this.canUndo) {
+      this.restore(current, this.stack[this.top - 2]);
+      this.top--;
+    }
+  }
+
+  /** Redo
+   * @param {TreeBase} current
+   */
+  redo(current) {
+    if (this.canRedo) {
+      this.restore(current, this.stack[this.top]);
+      this.top++;
+    }
+  }
+
+  useDiff = false;
+
+  /**
+   * restore the state of current to previous
+   * @param {TreeBase} current
+   * @param {ExternalRep} previous
+   * @returns {boolean}
+   */
+  restore(current, previous) {
+    if (!this.useDiff) {
+      const next = TreeBase.fromObject(previous);
+      current.children = next.children;
+      current.children.forEach((child) => (child.parent = current));
+      next.update();
+      // console.log("restored", current.toObject(), previous.className, previous);
+      return true;
+    }
+    if (this.equal(current, previous)) {
+      return false;
+    }
+
+    // we get here because the are different
+    if (current.className != previous.className) {
+      // I think this happens only for the components that dynamically change their class
+      if (current instanceof TreeBaseSwitchable) {
+        // switch the class and force the props to their old values
+        console.log("change class");
+        current.replace(previous.className, previous.props);
+      } else {
+        throw new Error(
+          `Undo: non switchable class changed ${current.className} ${previous.className}`,
+        );
+      }
+      return true;
+    }
+
+    // check the props
+    const pprops = previous.props;
+    for (let propName in pprops) {
+      if (
+        pprops[propName] &&
+        propName in current &&
+        current[propName].text != pprops[propName]
+      ) {
+        current[propName].set(pprops[propName]);
+        console.log("change prop");
+        return true;
+      }
+    }
+
+    // check the children
+    const cc = current.children;
+    const pc = previous.children;
+
+    if (cc.length == pc.length - 1) {
+      // determine which one was deleted
+      // it is a merge, first difference is the one that matters
+      for (let i = 0; i < pc.length; i++) {
+        if (!this.equal(cc[i], pc[i])) {
+          // pc[i] is the one that got deleted. Create it
+          console.log(
+            "undo delete",
+            current.toObject({ omittedProps: [], includeIds: true }),
+            pc[i],
+          );
+          const deleted = TreeBase.fromObject(pc[i], current, { useId: true });
+          if (i < pc.length) {
+            // move it
+            console.log("move it", i);
+            deleted.moveTo(i);
+          }
+          return true;
+        }
+      }
+      throw new Error("Undo: delete failed");
+    } else if (cc.length == pc.length + 1) {
+      // the added one must be last
+      console.log("undo add", cc[cc.length - 1]);
+      cc[cc.length - 1].remove();
+      return true;
+    } else if (cc.length == pc.length) {
+      // check for reordering
+      let diffs = [];
+      for (let i = 0; i < cc.length; i++) {
+        if (!this.equal(cc[i], pc[i])) diffs.push(i);
+      }
+      if (diffs.length == 2) {
+        // reordered
+        console.log("swap", diffs[0], diffs[1]);
+        current.swap(diffs[0], diffs[1]);
+        return true;
+      } else if (diffs.length == 1) {
+        // changed
+        return this.restore(cc[diffs[0]], pc[diffs[0]]);
+      } else if (diffs.length == 0) {
+        return false;
+      } else {
+        throw new Error(`Undo: too many diffs ${diffs.length}`);
+      }
+    } else {
+      throw new Error(
+        `Undo: incompatible number of children ${cc.length} ${pc.length}`,
+      );
+    }
+  }
+
+  /** Compare TreeBase and ExternalRep for equality
+   * @param {TreeBase} tb - current value
+   * @param {ExternalRep} er -- previous value
+   * @returns {boolean}
+   */
+  equal(tb, er) {
+    if (!tb || !er) return false;
+
+    if (tb.id != er.id) return false;
+
+    if (tb.className != er.className) return false;
+
+    for (const prop in tb.props) {
+      if (prop in er.props) {
+        if (er.props[prop] && tb[prop].text != er.props[prop].toString())
+          return false;
+      }
+    }
+
+    if (tb.children.length != er.children.length) return false;
+
+    return tb.children.every((child, i) => this.equal(child, er.children[i]));
+  }
+}
 
 class Designer extends TreeBase {
   stateName = new String$1("$tabControl");
@@ -13403,7 +14132,7 @@ class Designer extends TreeBase {
     }
   };
 
-  /** @returns {TreeBase | null} */
+  /** @returns {TreeBase | undefined } */
   get selectedComponent() {
     // Figure out which tab is active
     const { designer } = Globals;
@@ -13411,15 +14140,28 @@ class Designer extends TreeBase {
 
     // Ask that tab which component is focused
     if (!panel?.lastFocused) {
-      console.log("no lastFocused");
-      return null;
+      return undefined;
     }
     const component = TreeBase.componentFromId(panel.lastFocused);
     if (!component) {
       console.log("no component");
-      return null;
+      return undefined;
     }
     return component;
+  }
+
+  /** @param {string} targetId */
+  focusOn(targetId) {
+    let elem = document.getElementById(targetId);
+    if (!elem) {
+      // perhaps this one is embeded, look for something that starts with it
+      const m = targetId.match(/^TreeBase-\d+/);
+      if (m) {
+        const prefix = m[0];
+        elem = document.querySelector(`[id^=${prefix}]`);
+      }
+    }
+    if (elem) elem.focus();
   }
 
   restoreFocus() {
@@ -13483,45 +14225,53 @@ class Designer extends TreeBase {
    */
   panelKeyHandler(event) {
     if (event.target instanceof HTMLTextAreaElement) return;
-    if (event.key != "ArrowDown" && event.key != "ArrowUp") return;
-    if (event.shiftKey) {
-      // move the component
-      const component = Globals.designer.selectedComponent;
-      if (!component) return;
-      component.moveUpDown(event.key == "ArrowUp");
-      callAfterRender(() => Globals.designer.restoreFocus());
-      Globals.state.update();
-    } else {
-      event.preventDefault();
-      // get the components on this panel
-      // todo expand this to all components
-      const components = [
-        ...document.querySelectorAll(".DesignerPanel.ActivePanel .settings"),
-      ];
-      // determine which one contains the focus
-      const focusedComponent = document.querySelector(
-        '.DesignerPanel.ActivePanel .settings:has([aria-selected="true"]):not(:has(.settings [aria-selected="true"]))',
-      );
-      if (!focusedComponent) return;
-      // get its index
-      const index = components.indexOf(focusedComponent);
-      // get the next index
-      const nextIndex = Math.min(
-        components.length - 1,
-        Math.max(0, index + (event.key == "ArrowUp" ? -1 : 1)),
-      );
-      if (nextIndex != index) {
-        // focus on the first focusable in the next component
-        const focusable = /** @type {HTMLElement} */ (
-          components[nextIndex].querySelector(
-            "button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), " +
-              'textarea:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled]), ' +
-              "summary:not(:disabled)",
-          )
+    if (event.key == "ArrowDown" || event.key == "ArrowUp") {
+      if (event.shiftKey) {
+        // move the component
+        const component = Globals.designer.selectedComponent;
+        if (!component) return;
+        component.moveUpDown(event.key == "ArrowUp");
+        callAfterRender(() => Globals.designer.restoreFocus());
+        this.currentPanel?.update();
+        Globals.state.update();
+      } else {
+        event.preventDefault();
+        // get the components on this panel
+        // todo expand this to all components
+        const components = [
+          ...document.querySelectorAll(".DesignerPanel.ActivePanel .settings"),
+        ];
+        // determine which one contains the focus
+        const focusedComponent = document.querySelector(
+          '.DesignerPanel.ActivePanel .settings:has([aria-selected="true"]):not(:has(.settings [aria-selected="true"]))',
         );
-        if (focusable) {
-          focusable.focus();
+        if (!focusedComponent) return;
+        // get its index
+        const index = components.indexOf(focusedComponent);
+        // get the next index
+        const nextIndex = Math.min(
+          components.length - 1,
+          Math.max(0, index + (event.key == "ArrowUp" ? -1 : 1)),
+        );
+        if (nextIndex != index) {
+          // focus on the first focusable in the next component
+          const focusable = /** @type {HTMLElement} */ (
+            components[nextIndex].querySelector(
+              "button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), " +
+                'textarea:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled]), ' +
+                "summary:not(:disabled)",
+            )
+          );
+          if (focusable) {
+            focusable.focus();
+          }
         }
+      }
+    } else if (event.key == "z") {
+      if (event.ctrlKey && event.shiftKey) {
+        this.currentPanel?.redo();
+      } else if (event.ctrlKey) {
+        this.currentPanel?.undo();
       }
     }
   }
@@ -13565,7 +14315,7 @@ class Designer extends TreeBase {
   /** Tweak the focus behavior in the designer
    * I want clicking on blank space to focus the nearest focusable element
 
-   * @param {KeyboardEvent} event
+   * @param {PointerEvent} event
    */
   designerClick = (event) => {
     // return if target is not an HTMLElement
@@ -13610,12 +14360,14 @@ class DesignerPanel extends TreeBase {
   name = new String$1("");
   label = new String$1("");
 
-  /** @type {Designer | null} */
-  parent = null;
+  /** @type {Designer | undefined } */
+  parent = undefined;
 
   active = false;
   tabName = "";
   tabLabel = "";
+
+  settingsDetailsOpen = false;
   lastFocused = "";
 
   // where to store in the db
@@ -13628,6 +14380,8 @@ class DesignerPanel extends TreeBase {
     // @ts-expect-error
     return this.constructor.tableName;
   }
+
+  changeStack = new ChangeStack();
 
   /**
    * Load a panel from the database.
@@ -13646,6 +14400,9 @@ class DesignerPanel extends TreeBase {
     const result = this.fromObject(obj);
     if (result instanceof expected) {
       result.configure();
+      result.changeStack.save(
+        result.toObject({ omittedProps: [], includeIds: true }),
+      );
       return result;
     }
     // I don't think this happens
@@ -13692,10 +14449,18 @@ class DesignerPanel extends TreeBase {
 
   configure() {}
 
-  onUpdate() {
+  async onUpdate() {
+    await this.doUpdate(true);
+    this.configure();
+    Globals.designer.restoreFocus();
+  }
+
+  async doUpdate(save = true) {
     const tableName = this.staticTableName;
     if (tableName) {
-      db.write(tableName, this.toObject());
+      const externalRep = this.toObject({ omittedProps: [], includeIds: true });
+      await db.write(tableName, externalRep);
+      if (save) this.changeStack.save(externalRep);
       Globals.state.update();
     }
   }
@@ -13703,8 +14468,18 @@ class DesignerPanel extends TreeBase {
   async undo() {
     const tableName = this.staticTableName;
     if (tableName) {
-      await db.undo(tableName);
-      Globals.restart();
+      this.changeStack.undo(this);
+      await this.doUpdate(false);
+      Globals.designer.restoreFocus();
+    }
+  }
+
+  async redo() {
+    const tableName = this.staticTableName;
+    if (tableName) {
+      this.changeStack.redo(this);
+      await this.doUpdate(false);
+      Globals.designer.restoreFocus();
     }
   }
 
@@ -13719,10 +14494,6 @@ class DesignerPanel extends TreeBase {
     return super.CSSClasses(...classes);
   }
 }
-
-const content = '';
-
-const wait$1 = '';
 
 /**
  * Handle displaying a "please wait" message and error reporting for
@@ -13768,7 +14539,7 @@ async function wait(promise, message = "Please wait") {
 
 /** @param {Blob} blob */
 async function readSheetFromBlob(blob) {
-  const XLSX = await __vitePreload(() => import('./xlsx.js'),true?[]:void 0);
+  const XLSX = await __vitePreload(() => import('./xlsx.js'),true?__vite__mapDeps([]):void 0);
   const data = await blob.arrayBuffer();
   const workbook = XLSX.read(data, { codepage: 65001 });
   /** @type {Rows} */
@@ -13847,7 +14618,7 @@ async function readSheetFromBlob(blob) {
  * @param {string} type
  */
 async function saveContent(name, rows, type) {
-  const XLSX = await wait(__vitePreload(() => import('./xlsx.js'),true?[]:void 0));
+  const XLSX = await wait(__vitePreload(() => import('./xlsx.js'),true?__vite__mapDeps([]):void 0));
   const sheetNames = new Set(rows.map((row) => row.sheetName || "sheet1"));
   const workbook = XLSX.utils.book_new();
   for (const sheetName of sheetNames) {
@@ -13923,9 +14694,7 @@ class Content extends DesignerPanel {
             @input=${this.selectAll}
           />Select All</label
         >
-        <ol
-          id="ContentMedia"
-          style="column-count: 3"
+        <div
           ref=${(/** @type {HTMLOListElement} */ ol) => {
             db.listMedia().then((names) => {
               const list = names.map(
@@ -13934,17 +14703,18 @@ class Content extends DesignerPanel {
                     <label><input type="checkbox" name=${name} />${name}</label>
                   </li>`,
               );
-              render(ol, html`${list}`);
+              const body = html`<ol id="ContentMedia" style="column-count: 3">
+                ${list}
+              </ol> `;
+              render(ol, body);
             });
           }}
-        ></ol>
+        ></div>
       </div>
     </div>`;
   }
 }
 TreeBase.register(Content, "Content");
-
-const logger = '';
 
 class Logger extends TreeBase {
   // name = new Props.String("Log");
@@ -14093,8 +14863,6 @@ async function ClearLogs() {
   await db.clear("log");
 }
 
-const layout = '';
-
 const emptyPage = {
   className: "Page",
   props: {},
@@ -14183,23 +14951,15 @@ class Layout extends DesignerPanel {
       return obj;
     }
     obj = oldToNew(obj);
-    // upgrade from the old format
-    return {
-      className: "Layout",
-      props: { name: "Layout" },
-      children: [obj],
-    };
-  }
-
-  toObject() {
-    return this.children[0].toObject();
-  }
-
-  /** Update the state
-   */
-  onUpdate() {
-    db.write("layout", this.children[0].toObject());
-    Globals.state.update();
+    // make sure it begins with Layout
+    if (obj.className != "Layout" && obj.className == "Page") {
+      obj = {
+        className: "Layout",
+        props: { name: "Layout" },
+        children: [obj],
+      };
+    }
+    return obj;
   }
 
   /** Allow highlighting the current component in the UI
@@ -14210,7 +14970,7 @@ class Layout extends DesignerPanel {
       element.removeAttribute("highlight");
     }
     // find the selection in the panel
-    let selected = document.querySelector("#UI [aria-selected]");
+    let selected = document.querySelector("#designer .layout [aria-selected]");
     if (!selected) return;
     selected = selected.closest("[id]");
     if (!selected) return;
@@ -14264,8 +15024,6 @@ class Layout extends DesignerPanel {
   }
 }
 TreeBase.register(Layout, "Layout");
-
-const actions = '';
 
 class Actions extends DesignerPanel {
   name = new String$1("Actions");
@@ -14545,8 +15303,6 @@ class ActionUpdate extends TreeBase {
   }
 }
 TreeBase.register(ActionUpdate, "ActionUpdate");
-
-const hotkeys = '';
 
 /** Global Hot Keys for keyboard access */
 
@@ -15123,10 +15879,6 @@ var timeoutProvider = {
         var args = [];
         for (var _i = 2; _i < arguments.length; _i++) {
             args[_i - 2] = arguments[_i];
-        }
-        var delegate = timeoutProvider.delegate;
-        if (delegate === null || delegate === void 0 ? void 0 : delegate.setTimeout) {
-            return delegate.setTimeout.apply(delegate, __spreadArray([handler, timeout], __read(args)));
         }
         return setTimeout.apply(void 0, __spreadArray([handler, timeout], __read(args)));
     },
@@ -15741,10 +16493,6 @@ var intervalProvider = {
         var args = [];
         for (var _i = 2; _i < arguments.length; _i++) {
             args[_i - 2] = arguments[_i];
-        }
-        var delegate = intervalProvider.delegate;
-        if (delegate === null || delegate === void 0 ? void 0 : delegate.setInterval) {
-            return delegate.setInterval.apply(delegate, __spreadArray([handler, timeout], __read(args)));
         }
         return setInterval.apply(void 0, __spreadArray([handler, timeout], __read(args)));
     },
@@ -16746,86 +17494,6 @@ function scan(accumulator, seed) {
     return operate(scanInternals(accumulator, seed, arguments.length >= 2, true));
 }
 
-function share(options) {
-    if (options === void 0) { options = {}; }
-    var _a = options.connector, connector = _a === void 0 ? function () { return new Subject(); } : _a, _b = options.resetOnError, resetOnError = _b === void 0 ? true : _b, _c = options.resetOnComplete, resetOnComplete = _c === void 0 ? true : _c, _d = options.resetOnRefCountZero, resetOnRefCountZero = _d === void 0 ? true : _d;
-    return function (wrapperSource) {
-        var connection;
-        var resetConnection;
-        var subject;
-        var refCount = 0;
-        var hasCompleted = false;
-        var hasErrored = false;
-        var cancelReset = function () {
-            resetConnection === null || resetConnection === void 0 ? void 0 : resetConnection.unsubscribe();
-            resetConnection = undefined;
-        };
-        var reset = function () {
-            cancelReset();
-            connection = subject = undefined;
-            hasCompleted = hasErrored = false;
-        };
-        var resetAndUnsubscribe = function () {
-            var conn = connection;
-            reset();
-            conn === null || conn === void 0 ? void 0 : conn.unsubscribe();
-        };
-        return operate(function (source, subscriber) {
-            refCount++;
-            if (!hasErrored && !hasCompleted) {
-                cancelReset();
-            }
-            var dest = (subject = subject !== null && subject !== void 0 ? subject : connector());
-            subscriber.add(function () {
-                refCount--;
-                if (refCount === 0 && !hasErrored && !hasCompleted) {
-                    resetConnection = handleReset(resetAndUnsubscribe, resetOnRefCountZero);
-                }
-            });
-            dest.subscribe(subscriber);
-            if (!connection &&
-                refCount > 0) {
-                connection = new SafeSubscriber({
-                    next: function (value) { return dest.next(value); },
-                    error: function (err) {
-                        hasErrored = true;
-                        cancelReset();
-                        resetConnection = handleReset(reset, resetOnError, err);
-                        dest.error(err);
-                    },
-                    complete: function () {
-                        hasCompleted = true;
-                        cancelReset();
-                        resetConnection = handleReset(reset, resetOnComplete);
-                        dest.complete();
-                    },
-                });
-                innerFrom(source).subscribe(connection);
-            }
-        })(wrapperSource);
-    };
-}
-function handleReset(reset, on) {
-    var args = [];
-    for (var _i = 2; _i < arguments.length; _i++) {
-        args[_i - 2] = arguments[_i];
-    }
-    if (on === true) {
-        reset();
-        return;
-    }
-    if (on === false) {
-        return;
-    }
-    var onSubscriber = new SafeSubscriber({
-        next: function () {
-            onSubscriber.unsubscribe();
-            reset();
-        },
-    });
-    return innerFrom(on.apply(void 0, __spreadArray([], __read(args)))).subscribe(onSubscriber);
-}
-
 function skipWhile(predicate) {
     return operate(function (source, subscriber) {
         var taking = false;
@@ -17131,8 +17799,6 @@ const defaultMethods = {
   ],
 };
 
-const method = '';
-
 /**
  * Conditionally show an indicator with a title
  *
@@ -17162,11 +17828,6 @@ class MethodChooser extends DesignerPanel {
 
   static tableName = "method";
   static defaultValue = defaultMethods;
-
-  onUpdate() {
-    super.onUpdate();
-    this.configure();
-  }
 
   configure() {
     // tear down the old configuration if any
@@ -17257,7 +17918,7 @@ class Method extends TreeBase {
   PointerEnterDebounce = new Float(0, { label: "Pointer enter/leave" });
   PointerDownDebounce = new Float(0, { label: "Pointer down/up" });
   Key = new UID();
-  Active = new OneOfGroup(false, { group: "ActiveMethod" });
+  Active = new Boolean$1(false);
 
   allowedChildren = [
     "Timer",
@@ -17388,7 +18049,7 @@ class Method extends TreeBase {
     if (this.Active.value) {
       this.streams = {};
       for (const child of this.handlers) {
-        child.configure(stop$);
+        child.configure();
       }
       const streams = Object.values(this.streams);
       if (streams.length > 0) {
@@ -17411,7 +18072,7 @@ class Method extends TreeBase {
 
   /** Refresh the pattern and other state on redraw */
   refresh() {
-    this.pattern.refresh();
+    if (this.pattern) this.pattern.refresh();
   }
 }
 TreeBase.register(Method, "Method");
@@ -17489,10 +18150,7 @@ class Handler extends TreeBase {
     );
   }
 
-  /**
-   * @param {RxJs.Subject} _stop$
-   * */
-  configure(_stop$) {
+  configure() {
     throw new TypeError("Must override configure");
   }
 
@@ -17542,7 +18200,11 @@ class HandlerKeyCondition extends HandlerCondition {
 
   /** @param {EvalContext} context */
   eval(context) {
-    return this.Key.value == context.data.key;
+    return !!(
+      context.data &&
+      context.data.key &&
+      this.Key.value == context.data.key
+    );
   }
 }
 TreeBase.register(HandlerKeyCondition, "HandlerKeyCondition");
@@ -17583,8 +18245,6 @@ class HandlerResponse extends TreeBaseSwitchable {
   }
 }
 TreeBase.register(HandlerResponse, "HandlerResponse");
-
-const pattern = '';
 
 const defaultPatterns = {
   className: "PatternList",
@@ -18497,8 +19157,7 @@ class KeyHandler extends Handler {
     `;
   }
 
-  /** @param {RxJs.Subject} _stop$ */
-  configure(_stop$) {
+  configure() {
     const method = this.method;
     const streamName = "key";
 
@@ -18632,14 +19291,15 @@ class PointerHandler extends Handler {
     `;
   }
 
-  /** @param {RxJs.Subject} _ */
-  configure(_) {
+  configure() {
     const method = this.method;
     const streamName = "pointer";
     // only create it once
     if (method.streams[streamName]) return;
 
     const pattern = method.pattern;
+
+    if (!pattern) return;
 
     const inOutThreshold = method.PointerEnterDebounce.value * 1000;
     const upDownThreshold = method.PointerDownDebounce.value * 1000;
@@ -18701,7 +19361,7 @@ class PointerHandler extends Handler {
       if (emittedEvents.length > 0 && over !== None) {
         const newOver = pattern.remapEventTarget({
           ...over,
-          target: over.originalTarget,
+          target: over.originalTarget || null,
         });
         if (newOver.target !== over.target) {
           // copy the accumulator to the new target
@@ -18809,15 +19469,12 @@ class PointerHandler extends Handler {
             let w = {
               ...event,
               timeStamp: state.timeStamp,
-              access: event.access,
+              access: { ...event.access, eventType: event.type },
             };
-            w.access.eventType = event.type;
             return w;
           }),
         ),
       ),
-      // multicast the stream
-      share(),
     );
 
     method.streams[streamName] = pointerStream$;
@@ -19099,8 +19756,7 @@ class SocketHandler extends Handler {
    * @type {RxJs.Observable<EventLike> | undefined} */
   socket$ = undefined;
 
-  /** @param {RxJs.Subject} _stop$ */
-  configure(_stop$) {
+  configure() {
     const method = this.method;
     const streamName = "socket";
     // only create it once
@@ -19137,7 +19793,7 @@ class SocketHandler extends Handler {
      */
     let dynamicRows = [];
     const fields = [];
-    for (const [key, value] of Object.entries(event.access)) {
+    for (const [key, value] of Object.entries(event.access || {})) {
       console.log(key, value);
       if (
         Array.isArray(value) &&
@@ -19213,8 +19869,7 @@ class TimerHandler extends Handler {
     `;
   }
 
-  /** @param {RxJs.Subject} _stop$ */
-  configure(_stop$) {
+  configure() {
     const method = this.method;
     const timerName = this.TimerName.value;
     // there could be multiple timers active at once
@@ -19237,8 +19892,6 @@ class TimerHandler extends Handler {
 }
 TreeBase.register(TimerHandler, "TimerHandler");
 
-const cues = '';
-
 const defaultCues = {
   className: "CueList",
   props: {
@@ -19255,7 +19908,7 @@ const defaultCues = {
         Name: "red overlay",
         Key: "idl7w16hghqop9hcgn95",
         CueType: "CueOverlay",
-        Default: true,
+        Default: "true",
         Color: "red",
         Opacity: "0.2",
       },
@@ -19267,11 +19920,11 @@ const defaultCues = {
         Name: "fill",
         Key: "idl7ysqw4agxg63qvx4j5",
         CueType: "CueFill",
-        Default: false,
+        Default: "false",
         Color: "#7BAFD4",
         Opacity: "0.3",
         Direction: "top",
-        Repeat: false,
+        Repeat: "false",
       },
       children: [],
     },
@@ -19281,9 +19934,9 @@ const defaultCues = {
         Name: "circle",
         Key: "idl7ythslqew02w4pom29",
         CueType: "CueCircle",
-        Default: false,
+        Default: "false",
         Color: "#7BAFD4",
-        Opacity: 0.7,
+        Opacity: "0.7",
       },
       children: [],
     },
@@ -19293,7 +19946,7 @@ const defaultCues = {
         Name: "yellow overlay using CSS",
         Key: "idl7qm4cs28fh2ogf4ni",
         CueType: "CueCss",
-        Default: false,
+        Default: "false",
         Code: `button[cue="$Key"] {
   position: relative;
   border-color: yellow;
@@ -19375,7 +20028,10 @@ class CueList extends DesignerPanel {
     // update any CueCss entries to the new style interpolation
     if (obj.className == "CueList") {
       for (const child of obj.children) {
-        if (child.className == "CueCss") {
+        if (
+          child.className == "CueCss" &&
+          typeof child.props.Code === "string"
+        ) {
           child.props.Code = child.props.Code.replaceAll("{{Key}}", "$Key");
         }
       }
@@ -19617,6 +20273,7 @@ button[cue="${this.Key.value}"]:after {
 }
 TreeBase.register(CueCircle, "CueCircle");
 
+// @ts-nocheck
 const TrackyMouse = {
   dependenciesRoot: "./tracky-mouse",
 };
@@ -20586,8 +21243,6 @@ TrackyMouse.init = function (div) {
   }
 };
 
-const trackyMouse = '';
-
 class HeadMouse extends TreeBase {
   stateName = new String$1("$HeadMouse");
 
@@ -20681,10 +21336,6 @@ class HeadMouse extends TreeBase {
 }
 TreeBase.register(HeadMouse, "HeadMouse");
 
-const toolbar = '';
-
-const menu = '';
-
 /** A menu object with these features:
  *  * Accessible
  *  * Dynamically update available items
@@ -20696,20 +21347,29 @@ class MenuItem {
    * @param {Object} obj - argument object
    * @param {string} obj.label
    * @param {Function | null} [ obj.callback ]
+   * @param {boolean} [obj.disable]
    * @param {any[]} [ obj.args ]
    * @param {string} [ obj.title ]
    * @param {string} [ obj.divider ]
    */
-  constructor({ label, callback = null, args = [], title = "", divider = "" }) {
+  constructor({
+    label,
+    callback = null,
+    args = [],
+    title = "",
+    divider = "",
+    disable = false,
+  }) {
     this.label = label;
     this.callback = callback;
+    this.disable = !!disable;
     this.args = args;
     this.title = title;
     this.divider = divider;
   }
 
   apply() {
-    if (this.callback) this.callback(...this.args);
+    if (this.callback && !this.disable) this.callback(...this.args);
   }
 }
 
@@ -20777,7 +21437,7 @@ class Menu {
           return html`<li role="menuitem" divider=${item.divider}>
             <button
               index=${index}
-              aria-disabled=${!item.callback}
+              aria-disabled=${!item.callback || item.disable}
               title=${item.title}
               @click=${() => {
                 if (item.callback) {
@@ -20900,64 +21560,37 @@ class Menu {
   };
 }
 
-const serviceWorker = '';
-
-// Interface to the service worker for offline
-
-
-/** A pointer to the service worker
- * @type {ServiceWorkerRegistration} */
 let registration;
-
-/**
- * Ask the service worker to check for an update
- */
 function workerCheckForUpdate() {
   if (registration) {
     registration.update();
   }
 }
-
-/**
- * Show the update button when an update is available
- */
 function signalUpdateAvailable() {
   document.body.classList.add("update-available");
 }
-
-// only start the service worker in production mode
 if (navigator.serviceWorker) {
   window.addEventListener("load", async () => {
     registration = await navigator.serviceWorker.register("service-worker.js", {
-      scope: "/OS-DPI/",
+      scope: "/OS-DPI/"
     });
-    // ensure the case when the updatefound event was missed is also handled
-    // by re-invoking the prompt when there's a waiting Service Worker
     if (registration.waiting) {
       signalUpdateAvailable();
     }
-
-    // detect Service Worker update available and wait for it to become installed
     registration.addEventListener("updatefound", () => {
       if (registration.installing) {
-        // wait until the new Service worker is actually installed (ready to take over)
         registration.installing.addEventListener("statechange", () => {
           if (registration.waiting) {
-            // if there's an existing controller (previous Service Worker), show the prompt
             if (navigator.serviceWorker.controller) {
               signalUpdateAvailable();
             } else {
-              // otherwise it's the first install, nothing to do
               console.log("Service Worker initialized for the first time");
             }
           }
         });
       }
     });
-
     let refreshing = false;
-
-    // detect controller change and refresh the page
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (!refreshing) {
         window.location.reload();
@@ -20966,24 +21599,314 @@ if (navigator.serviceWorker) {
     });
   });
 }
-
-/**
- * Return a button for updating the service worker
- * CSS assures this is only visible when an update is available
- * @returns {Hole}
- */
 function workerUpdateButton() {
   return html`<button
     id="update-available-button"
     @click=${() => {
-      if (registration && registration.waiting) {
-        registration.waiting.postMessage("SKIP_WAITING");
-      }
-    }}
+    if (registration && registration.waiting) {
+      registration.waiting.postMessage("SKIP_WAITING");
+    }
+  }}
     title="Click to update the app"
   >
     Update
   </button>`;
+}
+
+/** Monkey test to find bugs */
+
+
+const panelNames = ["Layout", "Actions", "Cues", "Patterns", "Methods"];
+
+/* Don't trigger these menu entries */
+const MenuItemBlacklist = [
+  "Audio",
+  "Head Mouse",
+  "Logger",
+  "Speech",
+  "Socket Handler",
+  "Copy",
+  "Cut",
+  "Paste",
+  "Paste Into",
+];
+
+/** A simple seeded random number generator */
+class SeededRandom {
+  /** @param {number} seed */
+  constructor(seed) {
+    /** @type {number} */
+    this.seed = seed;
+  }
+
+  // splittwist32
+  random() {
+    this.seed |= 0;
+    this.seed = (this.seed + 0x9e3779b9) | 0;
+    var t = this.seed ^ (this.seed >>> 16);
+    t = Math.imul(t, 0x21f0aaad);
+    t = t ^ (t >>> 15);
+    t = Math.imul(t, 0x735a2d97);
+    return ((t = t ^ (t >>> 15)) >>> 0) / 4294967296;
+  }
+
+  string() {
+    const n = 4 + Math.floor(this.random() * 4);
+    return this.random().toString(36).slice(2, n);
+  }
+
+  integer() {
+    return Math.floor(this.random() * 10).toString();
+  }
+
+  float() {
+    return (this.random() * 10).toString();
+  }
+
+  /** Choose one from an array
+   * @template T
+   * @param {T[]} items
+   * @returns {T}
+   */
+  choose(items) {
+    return items[Math.floor(this.random() * items.length)];
+  }
+}
+const actualSeed = Date.now() | 0;
+const random = new SeededRandom(actualSeed);
+
+let updates = 0; // count the number of changes to the interface
+
+/** Implement the test
+ */
+function* monkeyTest() {
+  console.log("Random seed:", random.seed.toString(16));
+  let steps = 100;
+
+  for (let step = 0; step < steps; step++) {
+    // choose a panel
+    const panelName = random.choose(panelNames);
+    Globals.designer.switchTab(panelName);
+    yield true;
+
+    // get the panel object
+    const panel = Globals.designer.currentPanel;
+
+    if (panel) {
+      const components = listChildren(panel);
+      const component = random.choose(components);
+      if (component) {
+        // focus on it
+        panel.lastFocused = component.id;
+        Globals.designer.restoreFocus();
+      } else {
+        panel.lastFocused = "";
+      }
+
+      const { child } = getPanelMenuItems("add");
+
+      // get menu items
+      let menuItems = [
+        ...child,
+        ...getEditMenuItems(),
+        ...getPropertyEdits(component),
+      ];
+
+      menuItems = menuItems.filter((item) => {
+        return MenuItemBlacklist.indexOf(item.label) < 0;
+      });
+      menuItems = menuItems.filter((item) => item.callback && !item.disable);
+
+      console.assert(
+        !menuItems.find((item) => item.label == "Page"),
+        "Should not add Page",
+      );
+
+      // choose one
+      const menuItem = random.choose(menuItems);
+      if (menuItem && menuItem.callback) {
+        // console.log(menuItem.label, components.indexOf(component), component);
+        menuItem.callback();
+        updates++;
+        yield true;
+      }
+    }
+    // check for overflow
+    const UI = document.getElementById("UI");
+    let overflow = false; // report only once per occurance
+    if (
+      UI &&
+      (UI.scrollWidth > UI.clientWidth || UI.scrollHeight > UI.clientHeight)
+    ) {
+      if (!overflow) {
+        console.error(
+          `UI overflow on step ${step} scroll w=${UI.scrollWidth} h=${UI.scrollHeight} client w=${UI.clientWidth} h=${UI.clientHeight}`,
+        );
+        overflow = true;
+      }
+    } else {
+      overflow = false;
+    }
+  }
+
+  // now undo all those changes
+  let undos = 0;
+  for (const panel of Globals.designer.children) {
+    const panelName = panel.name.value;
+    if (panelNames.indexOf(panelName) >= 0) {
+      Globals.designer.switchTab(panelName);
+      yield true;
+
+      while (panel.changeStack.canUndo) {
+        undos++;
+        panel.undo();
+        yield true;
+      }
+    }
+  }
+  console.log(
+    `Test complete: ${steps} steps ${updates} updates ${undos} undos`,
+  );
+
+  yield false;
+}
+
+/** Run the monkey test
+ */
+function monkey() {
+  // quit in case of error
+  document.addEventListener("internalerror", () => test.return());
+  // start the generator
+  const test = monkeyTest();
+  // allow stopping the test with a key
+  const stopHandler = ({ key, ctrlKey }) =>
+    key == "q" && ctrlKey && test.return();
+  document.addEventListener("keyup", stopHandler);
+  // delay if the render isnt complete but don't require it
+  let wait = 0;
+  document.addEventListener("rendercomplete", () => (wait = 0));
+  const timer = setInterval(() => {
+    if (wait <= 0) {
+      wait = 5;
+      if (!test.next().value) {
+        clearTimeout(timer);
+        document.removeEventListener("keyup", stopHandler);
+      }
+    } else {
+      wait--;
+    }
+  }, 20);
+}
+
+if (location.host.match(/^localhost.*$|^bs-local.*$/)) {
+  document.addEventListener(
+    "keyup",
+    ({ key, ctrlKey }) => key == "m" && ctrlKey && monkey(),
+  );
+}
+
+/**
+ * Fakeup menu items that diddle the property values
+ *
+ * @param {TreeBase} component
+ * @returns {MenuItem[]}
+ */
+function getPropertyEdits(component) {
+  if (!component) return [];
+  const props = component.props;
+  /** @type {MenuItem[]} */
+  const items = [];
+
+  /** @type {function|undefined} */
+  let callback = undefined;
+  for (const name in props) {
+    const prop = props[name];
+    if (prop instanceof String$1) {
+      callback = () => typeInto(prop, random.string());
+    } else if (prop instanceof Integer) {
+      callback = () => typeInto(prop, random.integer());
+    } else if (prop instanceof Float) {
+      callback = () => typeInto(prop, random.float());
+    } else if (prop instanceof Select) {
+      callback = () => {
+        const element = document.getElementById(prop.id);
+        if (element instanceof HTMLSelectElement) {
+          const options = element.options;
+          const option = random.choose([...options]);
+          if (option instanceof HTMLOptionElement) {
+            element.value = option.value;
+            element.dispatchEvent(new Event("change"));
+          }
+        }
+      };
+    } else if (prop instanceof Color) {
+      callback = () => {
+        const element = document.getElementById(prop.id);
+        if (element instanceof HTMLInputElement) {
+          const list = document.getElementById("ColorNames");
+          if (list instanceof HTMLDataListElement) {
+            const color = random.choose([...list.options]);
+            if (color instanceof HTMLOptionElement) {
+              element.value = color.value;
+              element.dispatchEvent(new Event("change"));
+            }
+          }
+        }
+      };
+    } else if (
+      prop instanceof Boolean$1 ||
+      prop instanceof OneOfGroup
+    ) {
+      callback = () => {
+        const element = document.getElementById(prop.id);
+        if (element instanceof HTMLInputElement && element.type == "checkbox") {
+          element.checked = !element.checked;
+          element.dispatchEvent(new Event("change"));
+        }
+      };
+    } else if (prop instanceof Conditional) {
+      callback = () => typeInto(prop, random.choose(["true", "false"]));
+    } else if (prop instanceof Expression) {
+      callback = () => typeInto(prop, random.choose(["1+1", "2*0"]));
+    } else {
+      continue;
+    }
+    const item = new MenuItem({
+      label: `Change ${component.className}.${prop.label}`,
+      callback,
+      disable: !component.allowDelete,
+    });
+    items.push(item);
+  }
+  return items;
+}
+
+/**
+ * @param {Props.Prop} prop
+ * @param {string} value
+ */
+function typeInto(prop, value) {
+  const input = document.getElementById(prop.id);
+  if (input instanceof HTMLInputElement) {
+    input.focus();
+    input.value = value;
+    input.dispatchEvent(new Event("change"));
+  }
+}
+
+/** @param {TreeBase} component */
+function listChildren(component) {
+  /** @type {TreeBase[]} */
+  const result = [];
+  /** @param {TreeBase} node */
+  function walk(node) {
+    for (const child of node.children) {
+      result.push(child);
+      walk(child);
+    }
+  }
+  walk(component);
+  return result;
 }
 
 /** Return a list of available Menu items on this component
@@ -21014,19 +21937,18 @@ function getComponentMenuItems(component, which = "all", wrapper) {
   }
   // delete
   if (which == "delete" || which == "all") {
-    if (component.allowDelete) {
-      result.push(
-        new MenuItem({
-          label: `Delete`,
-          title: `Delete ${friendlyName(component.className)}`,
-          callback: wrapper(() => {
-            // remove returns the id of the nearest neighbor or the parent
-            const nextId = component.remove();
-            return nextId;
-          }),
+    result.push(
+      new MenuItem({
+        label: `Delete`,
+        title: `Delete ${friendlyName(component.className)}`,
+        callback: wrapper(() => {
+          // remove returns the id of the nearest neighbor or the parent
+          const nextId = component.remove();
+          return nextId;
         }),
-      );
-    }
+        disable: !component.allowDelete,
+      }),
+    );
   }
 
   // move
@@ -21045,6 +21967,7 @@ function getComponentMenuItems(component, which = "all", wrapper) {
               component.moveUpDown(true);
               return component.id;
             }),
+            disable: !component.allowDelete,
           }),
         );
       }
@@ -21058,6 +21981,7 @@ function getComponentMenuItems(component, which = "all", wrapper) {
               component.moveUpDown(false);
               return component.id;
             }),
+            disable: !component.allowDelete,
           }),
         );
       }
@@ -21087,6 +22011,7 @@ function getPanelMenuItems(type) {
     console.log("no component");
     return { child: [], parent: [] };
   }
+  if (component === panel) type = "add";
 
   /** @param {function():string} arg */
   function itemCallback(arg) {
@@ -21117,9 +22042,10 @@ function getPanelMenuItems(type) {
     if (
       type !== "add" ||
       !parent ||
+      parent instanceof Designer ||
+      parent instanceof Layout ||
       (component instanceof Stack && parent instanceof Stack) ||
-      (component instanceof PatternGroup && parent instanceof PatternGroup) ||
-      parent instanceof Designer
+      (component instanceof PatternGroup && parent instanceof PatternGroup)
     ) {
       break;
     }
@@ -21144,7 +22070,7 @@ function getPanelMenuItems(type) {
 function getFileMenuItems(bar) {
   return [
     new MenuItem({
-      label: "Import",
+      label: "Import File",
       callback: async () => {
         const local_db = new DB();
         n({
@@ -21159,6 +22085,10 @@ function getFileMenuItems(bar) {
           })
           .catch((e) => console.log(e));
       },
+    }),
+    new MenuItem({
+      label: "Import URL",
+      callback: () => bar.importURLDialog.open(),
     }),
     new MenuItem({
       label: "Export",
@@ -21202,6 +22132,13 @@ function getFileMenuItems(bar) {
       label: "Unload...",
       callback: () => {
         bar.designListDialog.unload();
+      },
+    }),
+    new MenuItem({
+      label: "Refetch design",
+      callback: async () => {
+        await db.reloadDesignFromOriginalURL();
+        console.log("refetched");
       },
     }),
     new MenuItem({
@@ -21301,6 +22238,14 @@ function getFileMenuItems(bar) {
         ClearLogs();
       },
     }),
+    new MenuItem({
+      label: "Close editor",
+      title: "Return to User mode",
+      divider: "Editor",
+      callback: () => {
+        Globals.state.update({ editing: false });
+      },
+    }),
   ];
 }
 
@@ -21326,22 +22271,35 @@ async function copyComponent(cut = false) {
 }
 
 function getEditMenuItems() {
+  // Figure out which tab is active
+  const { designer } = Globals;
+  const panel = designer.currentPanel;
+  const component = Globals.designer.selectedComponent;
+
+  const canEdit = component && component.allowDelete;
+
   let items = [
     new MenuItem({
       label: "Undo",
-      callback: () => {
-        Globals.designer.currentPanel?.undo();
-      },
+      callback: panel?.changeStack.canUndo ? () => panel?.undo() : undefined,
+      disable: !canEdit,
+    }),
+    new MenuItem({
+      label: "Redo",
+      callback: panel?.changeStack.canRedo ? () => panel?.redo() : undefined,
+      disable: !canEdit,
     }),
     new MenuItem({
       label: "Copy",
       callback: copyComponent,
+      disable: !canEdit,
     }),
     new MenuItem({
       label: "Cut",
       callback: async () => {
         copyComponent(true);
       },
+      disable: !canEdit,
     }),
     new MenuItem({
       label: "Paste",
@@ -21360,9 +22318,12 @@ function getEditMenuItems() {
         const className = obj.className;
         if (!className) return;
         // find a place that can accept it
-        const anchor = Globals.designer.selectedComponent;
+        const designer = Globals.designer;
+        const panel = designer.currentPanel;
+        if (!panel) return;
+        const anchor = designer.selectedComponent;
         if (!anchor) return;
-        /** @type {TreeBase | null } */
+        /** @type {TreeBase | undefined } */
         let current = anchor;
         while (current) {
           if (current.allowedChildren.indexOf(className) >= 0) {
@@ -21371,14 +22332,16 @@ function getEditMenuItems() {
               anchor.parent === result.parent &&
               result.index != anchor.index + 1
             ) {
-              anchor.moveTo(anchor.index + 1);
+              result.moveTo(anchor.index + 1);
             }
-            Globals.designer.currentPanel?.onUpdate();
+            callAfterRender(() => designer.focusOn(result.id));
+            panel.onUpdate();
             return;
           }
           current = current.parent;
         }
       },
+      disable: !canEdit,
     }),
     new MenuItem({
       label: "Paste Into",
@@ -21401,6 +22364,7 @@ function getEditMenuItems() {
           Globals.designer.currentPanel?.onUpdate();
         }
       },
+      disable: !canEdit,
     }),
   ];
   const deleteItems = getPanelMenuItems("delete");
@@ -21453,6 +22417,15 @@ function getHelpMenuItems() {
       args: ["About-Project-Open"],
     }),
   );
+
+  if (location.host.match(/^localhost.*$|^bs-local.*$/)) {
+    items.push(
+      new MenuItem({
+        label: "Test",
+        callback: monkey,
+      }),
+    );
+  }
   return items;
 }
 
@@ -21521,7 +22494,7 @@ class DesignListDialog {
         ${names.map((name) => {
           let label;
           if (saved.includes(name)) {
-            label = html`${name}`;
+            label = html`<span>${name}</span>`;
           } else {
             label = html`<b>${name}</b> <b class="warning">Not saved</b>`;
           }
@@ -21538,8 +22511,46 @@ class DesignListDialog {
     }
     dialog.showModal();
   }
-  render() {
+  template() {
     return html`<dialog id="OpenDialog"></dialog>`;
+  }
+}
+
+class ImportURLDialog {
+  /** @type { HTMLDialogElement} */
+  current;
+
+  template() {
+    return html` <dialog id="ImportURL" ref=${this}>
+      <h1>Import from a URL</h1>
+      <input
+        type="url"
+        placeholder="Enter the URL to import"
+        name="DesignURL"
+      />
+      <button
+        @click=${() => {
+          const input = this.current.querySelector("input");
+          if (
+            input instanceof HTMLInputElement &&
+            !input.validationMessage &&
+            input.value
+          )
+            wait(db.readDesignFromURL(input.value));
+          this.current.close();
+        }}
+      >
+        Import
+      </button>
+      <button @click=${() => this.current.close()}>Cancel</button>
+    </dialog>`;
+  }
+
+  async open() {
+    const url = await db.getDesignURL();
+    const input = this.current.querySelector("input");
+    if (input instanceof HTMLInputElement) input.value = url;
+    this.current.showModal();
   }
 }
 
@@ -21561,6 +22572,7 @@ class ToolBar extends TreeBase {
     );
     this.helpMenu = new Menu("Help", getHelpMenuItems, this);
     this.designListDialog = new DesignListDialog();
+    this.importURLDialog = new ImportURLDialog();
   }
 
   template() {
@@ -21609,14 +22621,12 @@ class ToolBar extends TreeBase {
           </li>
           <li>${workerUpdateButton()}</li>
         </ul>
-        ${this.designListDialog.render()}
+        ${this.designListDialog.template()} ${this.importURLDialog.template()}
       </div>
     `;
   }
 }
 TreeBase.register(ToolBar, "ToolBar");
-
-const colors = '';
 
 /** let me wait for the page to load */
 const pageLoaded = new Promise((resolve) => {
@@ -21630,11 +22640,14 @@ const pageLoaded = new Promise((resolve) => {
  */
 async function start() {
   let editing = true;
-  if (window.location.search && !window.location.hash.slice(1)) {
+  if (window.location.search) {
     const params = new URLSearchParams(window.location.search);
     const fetch = params.get("fetch");
+    console.log({ fetch });
     if (fetch) {
-      await wait(db.readDesignFromURL(fetch));
+      await wait(
+        db.readDesignFromURL(fetch, window.location.hash.slice(1)),
+      );
       editing = params.get("edit") !== null;
       window.history.replaceState(
         {},
@@ -21655,7 +22668,6 @@ async function start() {
   Globals.data = new Data(dataArray);
   const layout = await Layout.load(Layout);
   Globals.layout = layout;
-  Globals.tree = layout.children[0];
   Globals.state = new State$1(`UIState`);
   Globals.actions = await Actions.load(Actions);
   Globals.cues = await CueList.load(CueList);
@@ -21664,7 +22676,6 @@ async function start() {
   Globals.restart = async () => {
     // tear down any existing event handlers before restarting
     Globals.method.stop();
-    TreeBase.treeBaseCounter = 0;
     start();
   };
   Globals.error = new Messages();
@@ -21708,15 +22719,30 @@ async function start() {
   monitor.init();
 
   function renderUI() {
-    const startTime = performance.now();
-    document.body.classList.toggle("designing", Globals.state.get("editing"));
-    // clear the changed flag, TODO there must be a better way!
+    // report the time to draw the frame
+    if (location.host.startsWith("localhost")) {
+      const startTime = performance.now();
+      const timer = document.getElementById("timer");
+      if (timer) {
+        // I think this makes it wait until all drawing is done.
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            timer.innerText = `${(performance.now() - startTime).toFixed(0)}ms`;
+          });
+        });
+      }
+    }
+    // the real update begins here
+    const editing = Globals.state.get("editing");
+    document.body.classList.toggle("designing", editing);
     safeRender("cues", Globals.cues);
-    safeRender("UI", Globals.tree);
-    safeRender("toolbar", toolbar);
-    safeRender("tabs", Globals.designer);
-    safeRender("monitor", monitor);
-    safeRender("errors", Globals.error);
+    safeRender("UI", Globals.layout.children[0]);
+    if (editing) {
+      safeRender("toolbar", toolbar);
+      safeRender("tabs", Globals.designer);
+      safeRender("monitor", monitor);
+      safeRender("errors", Globals.error);
+    }
     postRender();
     Globals.method.refresh();
     // clear the accessed bits for the next cycle
@@ -21724,13 +22750,8 @@ async function start() {
     // clear the updated bits for the next cycle
     Globals.state.clearUpdated();
 
-    if (location.host.startsWith("localhost")) {
-      const timer = document.getElementById("timer");
-      if (timer) {
-        timer.innerText = (performance.now() - startTime).toFixed(0);
-      }
-    }
     workerCheckForUpdate();
+    document.dispatchEvent(new Event("rendercomplete"));
   }
   Globals.state.observe(debounce(renderUI));
   callAfterRender(() => Globals.designer.restoreFocus());
