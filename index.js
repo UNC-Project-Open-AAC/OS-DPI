@@ -1,51 +1,39 @@
-function __vite__mapDeps(indexes) {
-  if (!__vite__mapDeps.viteFileDeps) {
-    __vite__mapDeps.viteFileDeps = []
-  }
-  return indexes.map((i) => __vite__mapDeps.viteFileDeps[i])
-}
 true&&(function polyfill() {
-    const relList = document.createElement('link').relList;
-    if (relList && relList.supports && relList.supports('modulepreload')) {
-        return;
+  const relList = document.createElement("link").relList;
+  if (relList && relList.supports && relList.supports("modulepreload")) {
+    return;
+  }
+  for (const link of document.querySelectorAll('link[rel="modulepreload"]')) {
+    processPreload(link);
+  }
+  new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type !== "childList") {
+        continue;
+      }
+      for (const node of mutation.addedNodes) {
+        if (node.tagName === "LINK" && node.rel === "modulepreload")
+          processPreload(node);
+      }
     }
-    for (const link of document.querySelectorAll('link[rel="modulepreload"]')) {
-        processPreload(link);
-    }
-    new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-            if (mutation.type !== 'childList') {
-                continue;
-            }
-            for (const node of mutation.addedNodes) {
-                if (node.tagName === 'LINK' && node.rel === 'modulepreload')
-                    processPreload(node);
-            }
-        }
-    }).observe(document, { childList: true, subtree: true });
-    function getFetchOpts(link) {
-        const fetchOpts = {};
-        if (link.integrity)
-            fetchOpts.integrity = link.integrity;
-        if (link.referrerPolicy)
-            fetchOpts.referrerPolicy = link.referrerPolicy;
-        if (link.crossOrigin === 'use-credentials')
-            fetchOpts.credentials = 'include';
-        else if (link.crossOrigin === 'anonymous')
-            fetchOpts.credentials = 'omit';
-        else
-            fetchOpts.credentials = 'same-origin';
-        return fetchOpts;
-    }
-    function processPreload(link) {
-        if (link.ep)
-            // ep marker = processed
-            return;
-        link.ep = true;
-        // prepopulate the load record
-        const fetchOpts = getFetchOpts(link);
-        fetch(link.href, fetchOpts);
-    }
+  }).observe(document, { childList: true, subtree: true });
+  function getFetchOpts(link) {
+    const fetchOpts = {};
+    if (link.integrity) fetchOpts.integrity = link.integrity;
+    if (link.referrerPolicy) fetchOpts.referrerPolicy = link.referrerPolicy;
+    if (link.crossOrigin === "use-credentials")
+      fetchOpts.credentials = "include";
+    else if (link.crossOrigin === "anonymous") fetchOpts.credentials = "omit";
+    else fetchOpts.credentials = "same-origin";
+    return fetchOpts;
+  }
+  function processPreload(link) {
+    if (link.ep)
+      return;
+    link.ep = true;
+    const fetchOpts = getFetchOpts(link);
+    fetch(link.href, fetchOpts);
+  }
 }());
 
 /*! (c) Andrea Giammarchi @webreflection ISC */
@@ -99,7 +87,7 @@ true&&(function polyfill() {
   function _createForOfIteratorHelper(o, allowArrayLike) {
     var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"];
     if (!it) {
-      if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") {
+      if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike  ) {
         if (it) o = it;
         var i = 0;
         var F = function () {};
@@ -3899,6 +3887,16 @@ const gPD = (ref, prop) => {
   return desc;
 };
 
+/* c8 ignore start */
+/**
+ * @param {DocumentFragment} content
+ * @param {number[]} path
+ * @returns {Element}
+ */
+const find = (content, path) => path.reduceRight(childNodesIndex, content);
+const childNodesIndex = (node, i) => node.childNodes[i];
+/* c8 ignore stop */
+
 const ELEMENT_NODE = 1;
 const COMMENT_NODE = 8;
 const DOCUMENT_FRAGMENT_NODE = 11;
@@ -3991,7 +3989,7 @@ class PersistentFragment extends custom(DocumentFragment) {
     remove(this, true).replaceWith(node);
   }
   valueOf() {
-    let { firstChild, lastChild, parentNode } = this;
+    const { parentNode } = this;
     if (parentNode === this) {
       if (this.#nodes === empty)
         this.#nodes = [...this.childNodes];
@@ -4006,6 +4004,7 @@ class PersistentFragment extends custom(DocumentFragment) {
       // This is a render-only specific issue but it's tested and
       // it's worth fixing to me to have more consistent fragments.
       if (parentNode) {
+        let { firstChild, lastChild } = this;
         this.#nodes = [firstChild];
         while (firstChild !== lastChild)
           this.#nodes.push((firstChild = firstChild.nextSibling));
@@ -4321,14 +4320,6 @@ const detail = (u, t, n, c) => ({ v: empty, u, t, n, c });
  */
 const cache$1 = () => abc(null, null, empty);
 
-/**
- * @param {DocumentFragment} content
- * @param {number[]} path
- * @returns {Element}
- */
-const find = (content, path) => path.reduceRight(childNodesIndex, content);
-const childNodesIndex = (node, i) => node.childNodes[i];
-
 /** @param {(template: TemplateStringsArray, values: any[]) => import("./parser.js").Resolved} parse */
 const create = parse => (
   /**
@@ -4539,8 +4530,8 @@ const prefix = 'isµ';
  */
 const parser = xml => (template, values) => cache.get(template) || resolve(template, values, xml);
 
-const parseHTML = create(parser(false));
-const parseSVG = create(parser(true));
+const createHTML = create(parser(false));
+const createSVG = create(parser(true));
 
 /**
  * @param {import("./literals.js").Cache} info
@@ -4549,7 +4540,7 @@ const parseSVG = create(parser(true));
  */
 const unroll = (info, { s, t, v }) => {
   if (info.a !== t) {
-    const { b, c } = (s ? parseSVG : parseHTML)(t, v);
+    const { b, c } = (s ? createSVG : createHTML)(t, v);
     info.a = t;
     info.b = b;
     info.c = c;
@@ -4679,7 +4670,7 @@ var manualLowercase = function (s) {
 	return isString(s)
 		? s.replace(/[A-Z]/g, function (ch) {
 				return String.fromCharCode(ch.charCodeAt(0) | 32);
-		  })
+			})
 		: s;
 	/* eslint-enable */
 };
@@ -4977,20 +4968,6 @@ function isScope(obj) {
 	return obj && obj.$evalAsync && obj.$watch;
 }
 
-var TYPED_ARRAY_REGEXP =
-	/^\[object (?:Uint8|Uint8Clamped|Uint16|Uint32|Int8|Int16|Int32|Float32|Float64)Array\]$/;
-function isTypedArray(value) {
-	return (
-		value &&
-		isNumber(value.length) &&
-		TYPED_ARRAY_REGEXP.test(toString$1.call(value))
-	);
-}
-
-function isArrayBuffer(obj) {
-	return toString$1.call(obj) === "[object ArrayBuffer]";
-}
-
 /**
  * @ngdoc function
  * @name angular.copy
@@ -5059,36 +5036,6 @@ function isArrayBuffer(obj) {
 function copy(source, destination) {
 	var stackSource = [];
 	var stackDest = [];
-
-	if (destination) {
-		if (isTypedArray(destination) || isArrayBuffer(destination)) {
-			throw ngMinErr(
-				"cpta",
-				"Can't copy! TypedArray destination cannot be mutated."
-			);
-		}
-		if (source === destination) {
-			throw ngMinErr(
-				"cpi",
-				"Can't copy! Source and destination are identical."
-			);
-		}
-
-		// Empty the destination object
-		if (isArray$2(destination)) {
-			destination.length = 0;
-		} else {
-			forEach(destination, function (value, key) {
-				if (key !== "$$hashKey") {
-					delete destination[key];
-				}
-			});
-		}
-
-		stackSource.push(source);
-		stackDest.push(destination);
-		return copyRecurse(source, destination);
-	}
 
 	return copyElement(source);
 
@@ -5570,12 +5517,12 @@ Lexer$1.prototype = {
 		end = end || this.index;
 		var colStr = isDefined(start)
 			? "s " +
-			  start +
-			  "-" +
-			  this.index +
-			  " [" +
-			  this.text.substring(start, end) +
-			  "]"
+				start +
+				"-" +
+				this.index +
+				" [" +
+				this.text.substring(start, end) +
+				"]"
 			: " " + end;
 		throw $parseMinErr(
 			"lexerr",
@@ -6504,7 +6451,7 @@ ASTCompiler.prototype = {
 								: this.assign(
 										this.nextId(),
 										this.getHasOwnProperty("l", ast.name) + "?l:s"
-								  );
+									);
 					}
 					nameId.computed = false;
 					nameId.name = ast.name;
@@ -7007,14 +6954,14 @@ ASTInterpreter.prototype = {
 			ast.body.length === 0
 				? noop$1
 				: ast.body.length === 1
-				? expressions[0]
-				: function (scope, locals) {
-						var lastValue;
-						forEach(expressions, function (exp) {
-							lastValue = exp(scope, locals);
-						});
-						return lastValue;
-				  };
+					? expressions[0]
+					: function (scope, locals) {
+							var lastValue;
+							forEach(expressions, function (exp) {
+								lastValue = exp(scope, locals);
+							});
+							return lastValue;
+						};
 
 		if (assign) {
 			fn.assign = function (scope, value, locals) {
@@ -7088,7 +7035,7 @@ ASTInterpreter.prototype = {
 							return context
 								? { context: undefined, name: undefined, value: value }
 								: value;
-					  }
+						}
 					: function (scope, locals, assign, inputs) {
 							var rhs = right(scope, locals, assign, inputs);
 							var value;
@@ -7100,7 +7047,7 @@ ASTInterpreter.prototype = {
 								value = rhs.value.apply(rhs.context, values);
 							}
 							return context ? { value: value } : value;
-					  };
+						};
 			case AST.AssignmentExpression:
 				left = this.recurse(ast.left, true, 1);
 				right = this.recurse(ast.right);
@@ -7433,15 +7380,20 @@ var parse = parse$1;
 var filters = {};
 var Lexer = parse.Lexer;
 var Parser = parse.Parser;
+
 /**
  * Compiles src and returns a function that executes src on a target object.
- * The compiled function is cached under compile.cache[src] to speed up further calls.
+ * To speed up further calls the compiled function is cached under compile.cache[src] if options.filters is not present.
  *
  * @param {string} src
+ * @param {object | undefined} options
  * @returns {function}
  */
-function compile(src, lexerOptions) {
-	lexerOptions = lexerOptions || {};
+function compile(src, options) {
+	options = options || {};
+	var localFilters = options.filters || filters;
+	var cache = options.filters ? options.cache || {} : compile.cache;
+	var lexerOptions = options;
 
 	var cached;
 
@@ -7451,34 +7403,37 @@ function compile(src, lexerOptions) {
 		);
 	}
 	var parserOptions = {
-		csp: false, // noUnsafeEval,
-		literals: {
-			// defined at: function $ParseProvider() {
-			true: true,
-			false: false,
-			null: null,
-			/*eslint no-undefined: 0*/
-			undefined: undefined,
-			/* eslint: no-undefined: 1  */
-		},
+		csp: options.csp != null ? options.csp : false, // noUnsafeEval,
+		literals:
+			options.literals != null
+				? options.literals
+				: {
+						// defined at: function $ParseProvider() {
+						true: true,
+						false: false,
+						null: null,
+						/*eslint no-undefined: 0*/
+						undefined: undefined,
+						/* eslint: no-undefined: 1  */
+					},
 	};
 
 	var lexer = new Lexer(lexerOptions);
 	var parser = new Parser(
 		lexer,
 		function getFilter(name) {
-			return filters[name];
+			return localFilters[name];
 		},
 		parserOptions
 	);
 
-	if (!compile.cache) {
+	if (!cache) {
 		return parser.parse(src);
 	}
 
-	cached = compile.cache[src];
+	cached = cache[src];
 	if (!cached) {
-		cached = compile.cache[src] = parser.parse(src);
+		cached = cache[src] = parser.parse(src);
 	}
 
 	return cached;
@@ -8555,7 +8510,7 @@ var dopt = function (dat, opt, pre, post, st) {
             st.w = dict.length;
         }
     }
-    return dflt(dat, opt.level == null ? 6 : opt.level, opt.mem == null ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : (12 + opt.mem), pre, post, st);
+    return dflt(dat, opt.level == null ? 6 : opt.level, opt.mem == null ? (st.l ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : 20) : (12 + opt.mem), pre, post, st);
 };
 // Walmart object spread
 var mrg = function (a, b) {
@@ -8646,12 +8601,7 @@ var dutf8 = function (d) {
  * @returns The string encoded in UTF-8/Latin-1 binary
  */
 function strToU8(str, latin1) {
-    if (latin1) {
-        var ar_1 = new u8(str.length);
-        for (var i = 0; i < str.length; ++i)
-            ar_1[i] = str.charCodeAt(i);
-        return ar_1;
-    }
+    var i; 
     if (te)
         return te.encode(str);
     var l = str.length;
@@ -8853,16 +8803,10 @@ function unzipSync(data, opts) {
             o = b4(data, ze + 48);
         }
     }
-    var fltr = opts && opts.filter;
     for (var i = 0; i < c; ++i) {
         var _a = zh(data, o, z), c_2 = _a[0], sc = _a[1], su = _a[2], fn = _a[3], no = _a[4], off = _a[5], b = slzh(data, off);
         o = no;
-        if (!fltr || fltr({
-            name: fn,
-            size: sc,
-            originalSize: su,
-            compression: c_2
-        })) {
+        {
             if (!c_2)
                 files[fn] = slc(data, b, b + sc);
             else if (c_2 == 8)
@@ -8878,34 +8822,43 @@ const e$1=(()=>{if("undefined"==typeof self)return !1;if("top"in self&&self!==to
 
 class DB {
   constructor() {
-    this.dbPromise = openDB("os-dpi", 5, {
+    this.dbPromise = openDB("os-dpi", 6, {
       async upgrade(db, oldVersion, _newVersion, transaction) {
-        let store5 = db.createObjectStore("store5", {
-          keyPath: ["name", "type"],
-        });
-        store5.createIndex("by-name", "name");
-        if (oldVersion == 4) {
-          // copy data from old store to new
-          const store4 = transaction.objectStore("store");
-          for await (const cursor of store4) {
-            const record4 = cursor.value;
-            store5.put(record4);
+        if (oldVersion < 6) {
+          let logStore = db.createObjectStore("logstore", {
+            keyPath: "id",
+            autoIncrement: true,
+          });
+          logStore.createIndex("by-name", "name");
+        }
+        if (oldVersion < 5) {
+          let store5 = db.createObjectStore("store5", {
+            keyPath: ["name", "type"],
+          });
+          store5.createIndex("by-name", "name");
+          if (oldVersion == 4) {
+            // copy data from old store to new
+            const store4 = transaction.objectStore("store");
+            for await (const cursor of store4) {
+              const record4 = cursor.value;
+              store5.put(record4);
+            }
+            db.deleteObjectStore("store");
+            // add an etag index to url store
+            transaction.objectStore("url").createIndex("by-etag", "etag");
+          } else if (oldVersion < 4) {
+            db.createObjectStore("media");
+            let savedStore = db.createObjectStore("saved", {
+              keyPath: "name",
+            });
+            savedStore.createIndex("by-etag", "etag");
+            // track etags for urls
+            const urlStore = db.createObjectStore("url", {
+              keyPath: "url",
+            });
+            // add an etag index to the url store
+            urlStore.createIndex("by-etag", "etag");
           }
-          db.deleteObjectStore("store");
-          // add an etag index to url store
-          transaction.objectStore("url").createIndex("by-etag", "etag");
-        } else if (oldVersion < 4) {
-          db.createObjectStore("media");
-          let savedStore = db.createObjectStore("saved", {
-            keyPath: "name",
-          });
-          savedStore.createIndex("by-etag", "etag");
-          // track etags for urls
-          const urlStore = db.createObjectStore("url", {
-            keyPath: "url",
-          });
-          // add an etag index to the url store
-          urlStore.createIndex("by-etag", "etag");
         }
       },
       blocked(currentVersion, blockedVersion, event) {
@@ -9022,7 +8975,7 @@ class DB {
     }
   }
 
-  /** Return the most recent record for the type
+  /** Return the record for type or the defaultValue
    * @param {string} type
    * @param {any} defaultValue
    * @returns {Promise<Object>}
@@ -9035,16 +8988,23 @@ class DB {
   }
 
   /**
-   * Read all records of the given type
+   * Read log records
    *
-   * @param {string} type
    * @returns {Promise<Object[]>}
    */
-  async readAll(type) {
-    return [this.read(type)];
+  async readLog() {
+    const db = await this.dbPromise;
+    const index = db.transaction("logstore", "readonly").store.index("by-name");
+    const key = this.designName;
+    const result = [];
+    for await (const cursor of index.iterate(key)) {
+      const data = cursor.value.data;
+      result.push(data);
+    }
+    return result;
   }
 
-  /** Add a new record
+  /** Write a design record
    * @param {string} type
    * @param {Object} data
    */
@@ -9062,6 +9022,16 @@ class DB {
     this.notify({ action: "update", name: this.designName });
   }
 
+  /** Write a log record
+   * @param {Object} data
+   */
+  async writeLog(data) {
+    const db = await this.dbPromise;
+    const tx = db.transaction(["logstore"], "readwrite");
+    tx.objectStore("logstore").put({ name: this.designName, data });
+    await tx.done;
+  }
+
   /**
    * delete records of this type
    *
@@ -9073,19 +9043,19 @@ class DB {
     return db.delete("store5", [this.designName, type]);
   }
 
-  /** Undo by deleting the most recent record
-   * @param {string} type
+  /**
+   * delete log records
+   *
+   * @returns {Promise<void>}
    */
-  async undo(type) {
-    if (type == "content") return;
+  async clearLog() {
     const db = await this.dbPromise;
-    const index = db
-      .transaction("store5", "readwrite")
-      .store.index("by-name-type");
-    const cursor = await index.openCursor([this.designName, type], "prev");
-    if (cursor) await cursor.delete();
-    await db.delete("saved", this.designName);
-    this.notify({ action: "update", name: this.designName });
+    const tx = db.transaction("logstore", "readwrite");
+    const index = tx.store.index("by-name");
+    for await (const cursor of index.iterate(this.designName)) {
+      cursor.delete();
+    }
+    await tx.done;
   }
 
   /** Read a design from a local file
@@ -9553,10 +9523,10 @@ const Functions = {
     if (old.length == 0 || old.endsWith(" ")) {
       return old + value;
     } else {
-      return old.replace(/\w+$/, value);
+      return old.replace(/\S+$/, value);
     }
   }),
-  replace_last: updateString((old, value) => old.replace(/\w*\s*$/, value)),
+  replace_last: updateString((old, value) => old.replace(/\S*\s*$/, value)),
   replace_last_letter: updateString((old, value) => old.slice(0, -1) + value),
   random: (/** @type {string} */ arg) => {
     let args = arg.split(",");
@@ -10558,7 +10528,6 @@ class Prop {
           @keydown=${this.onkeydown}
           @input=${this.oninput}
           @change=${this.onchange}
-          @focus=${this.onfocus}
         />${this.showValue()}`,
     );
   }
@@ -12183,6 +12152,7 @@ const comparators = {
   equals: (f, v) => collator.compare(f, v) === 0 || f === "*" || v === "*",
   "starts with": (f, v) => f.toUpperCase().startsWith(v.toUpperCase()),
   empty: (f) => !f,
+  contains: (f, v) => f.toLowerCase().includes(v.toLowerCase()),
   "not empty": (f) => !!f,
   "less than": (f, v) => collatorNumber.compare(f, v) < 0,
   "greater than": (f, v) => collatorNumber.compare(f, v) > 0,
@@ -12207,23 +12177,60 @@ function match(filter, row) {
 class Data {
   /** @param {Rows} rows - rows coming from the spreadsheet */
   constructor(rows) {
-    this.contentRows = (Array.isArray(rows) && rows) || [];
-    this.allrows = this.contentRows;
+    this.contentRows = [];
+    this.dynamicRows = [];
+    this.noteRows = [];
+    this.groups = ["dynamicRows", "contentRows", "noteRows"];
     /** @type {Set<string>} */
     this.allFields = new Set();
+    this.setContent(rows);
+  }
+
+  /** @param {Rows} rows - rows coming from the spreadsheet */
+  setContent(rows) {
+    this.contentRows = (Array.isArray(rows) && rows) || [];
     this.updateAllFields();
-    this.loadTime = new Date();
+  }
+
+  /**
+   * Add rows from the socket interface
+   * @param {Rows} rows
+   */
+  setDynamicRows(rows) {
+    if (!Array.isArray(rows)) return;
+    this.dynamicRows = rows;
+    this.updateAllFields();
+  }
+
+  /**
+   * Add rows of notes
+   * @param {Rows} rows
+   */
+  setNoteRows(rows) {
+    if (!Array.isArray(rows)) return;
+    this.noteRows = rows;
+    this.updateAllFields();
+  }
+
+  get length() {
+    let result = 0;
+    for (const group of this.groups) {
+      result += this[group].length;
+    }
+    return result;
   }
 
   updateAllFields() {
-    this.allFields = /** @type {Set<string>} */ (
-      this.contentRows.reduce((previous, current) => {
-        for (const field of Object.keys(current)) {
-          previous.add("#" + field);
+    /** @type {Set<string>} */
+    const allFields = new Set();
+    for (const group of this.groups) {
+      for (const row of this[group]) {
+        for (const field of Object.keys(row)) {
+          allFields.add("#" + field);
         }
-        return previous;
-      }, new Set())
-    );
+      }
+    }
+    this.allFields = allFields;
     this.clearFields = {};
     for (const field of this.allFields) {
       this.clearFields[field.slice(1)] = null;
@@ -12244,9 +12251,14 @@ class Data {
       operator: filter.operator.value,
       value: filter.value.value,
     }));
-    let result = this.allrows.filter((row) =>
-      boundFilters.every((filter) => match(filter, row)),
-    );
+    let result = [];
+    for (const group of this.groups) {
+      for (const row of this[group]) {
+        if (boundFilters.every((filter) => match(filter, row))) {
+          result.push(row);
+        }
+      }
+    }
     if (clearFields)
       result = result.map((row) => ({ ...this.clearFields, ...row }));
     return result;
@@ -12265,21 +12277,76 @@ class Data {
       operator: filter.operator.value,
       value: filter.value.valueInContext(context),
     }));
-    const result = this.allrows.some((row) =>
-      boundFilters.every((filter) => match(filter, row)),
-    );
-    return result;
+    for (const group of this.groups) {
+      for (const row of this[group]) {
+        if (boundFilters.every((filter) => match(filter, row))) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**
-   * Add rows from the socket interface
-   * @param {Rows} rows
+   * Manipulate the Notes rows
+   * @param {string[]} args
+   * @returns {string} - the id
    */
-  setDynamicRows(rows) {
-    if (!Array.isArray(rows)) return;
-    this.allrows = rows.concat(this.contentRows);
-    this.updateAllFields();
-    this.loadTime = new Date();
+  Notes(args) {
+    /** @param {string} text
+     * @param {number} length
+     */
+    function ClipText(text, length = 100) {
+      const nl_index = text.indexOf("\n");
+      if (nl_index > 0 && nl_index < length) length = nl_index;
+      return text.slice(0, length);
+    }
+    if (args.length % 2 != 0) {
+      console.error("number of args must be multiple of 2");
+      return "";
+    }
+    /** @type {Object<string,string>} */
+    const note = {};
+    for (let i = 0; i < args.length; i += 2) {
+      const field = args[i + 0];
+      if (!field.match(/^#\w+$/)) {
+        console.error("bad field", field);
+        return "";
+      }
+      const value = args[i + 1];
+      note[field.slice(1)] = value;
+    }
+    note["sheetName"] = "Notes";
+    let ID = note["ID"];
+    if (ID) {
+      if (!note["label"] && note["text"]) {
+        note["label"] = ClipText(note["text"]);
+      }
+      const index = this.noteRows.findIndex((row) => row.ID == ID);
+      if (index >= 0) {
+        Object.assign(this.noteRows[index], note);
+      } else {
+        console.error("note not found");
+        return "";
+      }
+    } else if (note.DELETE) {
+      const index = this.noteRows.findIndex((row) => row.ID == note.DELETE);
+      if (index >= 0) {
+        this.noteRows.splice(index, 1);
+        return "";
+      } else {
+        console.error("delete id not found");
+        return "";
+      }
+    } else {
+      ID = new Date().toISOString();
+      note["ID"] = ID;
+      if (!note["label"] && note["text"]) {
+        note["label"] = ClipText(note["text"]);
+      }
+      this.noteRows.push(note);
+    }
+    return ID;
   }
 }
 
@@ -12978,12 +13045,312 @@ class Grid extends TreeBase {
 }
 TreeBase.register(Grid, "Grid");
 
+const scriptRel = 'modulepreload';const assetsURL = function(dep) { return "/OS-DPI/"+dep };const seen = {};const __vitePreload = function preload(baseModule, deps, importerUrl) {
+  let promise = Promise.resolve();
+  if (true && deps && deps.length > 0) {
+    document.getElementsByTagName("link");
+    const cspNonceMeta = document.querySelector(
+      "meta[property=csp-nonce]"
+    );
+    const cspNonce = cspNonceMeta?.nonce || cspNonceMeta?.getAttribute("nonce");
+    promise = Promise.all(
+      deps.map((dep) => {
+        dep = assetsURL(dep);
+        if (dep in seen) return;
+        seen[dep] = true;
+        const isCss = dep.endsWith(".css");
+        const cssSelector = isCss ? '[rel="stylesheet"]' : "";
+        if (document.querySelector(`link[href="${dep}"]${cssSelector}`)) {
+          return;
+        }
+        const link = document.createElement("link");
+        link.rel = isCss ? "stylesheet" : scriptRel;
+        if (!isCss) {
+          link.as = "script";
+          link.crossOrigin = "";
+        }
+        link.href = dep;
+        if (cspNonce) {
+          link.setAttribute("nonce", cspNonce);
+        }
+        document.head.appendChild(link);
+        if (isCss) {
+          return new Promise((res, rej) => {
+            link.addEventListener("load", res);
+            link.addEventListener(
+              "error",
+              () => rej(new Error(`Unable to preload CSS for ${dep}`))
+            );
+          });
+        }
+      })
+    );
+  }
+  return promise.then(() => baseModule()).catch((err) => {
+    const e = new Event("vite:preloadError", { cancelable: true });
+    e.payload = err;
+    window.dispatchEvent(e);
+    if (!e.defaultPrevented) {
+      throw err;
+    }
+  });
+};
+
+async function readSheetFromBlob(blob) {
+  const XLSX = await __vitePreload(() => import('./xlsx.js'),true?[]:void 0);
+  const data = await blob.arrayBuffer();
+  const workbook = XLSX.read(data, { codepage: 65001 });
+  /** @type {Rows} */
+  const dataArray = [];
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    const ref = sheet["!ref"];
+    if (!ref) continue;
+    const range = XLSX.utils.decode_range(ref);
+    const names = [];
+    const handlers = [];
+    const validColumns = [];
+    // process the header and choose a handler for each column
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      let columnName = sheet[XLSX.utils.encode_cell({ r: 0, c })]?.v;
+      if (typeof columnName !== "string" || !columnName) {
+        continue;
+      }
+      columnName = columnName.toLowerCase();
+      names.push(columnName.trim(" "));
+      validColumns.push(c);
+      switch (columnName) {
+        case "row":
+        case "column":
+        case "page":
+          handlers.push("number");
+          break;
+        default:
+          handlers.push("string");
+          break;
+      }
+    }
+    // Process the rows
+    for (let r = range.s.r + 1; r <= range.e.r; r++) {
+      /** @type {Row} */
+      const row = { sheetName };
+      for (let i = 0; i < validColumns.length; i++) {
+        /** @type {string} */
+        const name = names[i];
+        const c = validColumns[i];
+        let value = sheet[XLSX.utils.encode_cell({ r, c })]?.v;
+        switch (handlers[i]) {
+          case "string":
+            if (typeof value === "undefined") {
+              value = "";
+            }
+            if (typeof value !== "string") {
+              value = value.toString(10);
+            }
+            if (value && typeof value === "string") {
+              row[name] = value;
+            }
+            break;
+          case "number":
+            if (typeof value === "number") {
+              row[name] = Math.floor(value);
+            } else if (value && typeof value === "string") {
+              value = parseInt(value, 10);
+              if (isNaN(value)) {
+                value = 0;
+              }
+              row[name] = value;
+            }
+            break;
+        }
+      }
+      if (Object.keys(row).length > 1) dataArray.push(row);
+    }
+  }
+  return dataArray;
+}
+
+/** Save Rows as a spreadsheet
+ * @param {string} name
+ * @param {Row[]} rows
+ * @param {string} type
+ */
+async function saveContent(name, rows, type) {
+  const XLSX = await __vitePreload(() => import('./xlsx.js'),true?[]:void 0);
+  const sheetNames = new Set(rows.map((row) => row.sheetName || "sheet1"));
+  const workbook = XLSX.utils.book_new();
+  for (const sheetName of sheetNames) {
+    let sheetRows = rows.filter(
+      (row) => sheetName == (row.sheetName || "sheet1"),
+    );
+    {
+      sheetRows = sheetRows.map((row) => {
+        const { sheetName, ...rest } = row;
+        return rest;
+      });
+    }
+    const worksheet = XLSX.utils.json_to_sheet(sheetRows);
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  }
+  XLSX.writeFileXLSX(workbook, `${name}.${type}`);
+}
+
+/** Add Notes related functions to Eval for use in Actions
+ */
+
+Object.assign(Functions, {
+  Notes: (/** @type {string[]} */ ...args) => {
+    const result = Globals.data.Notes(args);
+    db.write("notes", Globals.data.noteRows);
+    return result;
+  },
+  SaveNotes: () => {
+    saveContent("notes", Globals.data.noteRows, "xlsx");
+    return "saved";
+  },
+  /** @param {string} name
+   * @param {string} text
+   */
+  SaveText: (name, text) => {
+    const blob = new Blob([text], { type: "text/plain" });
+    o$1(blob, { fileName: name, extensions: [".txt"], id: "osdpi" });
+  },
+
+  add_letter: updateString(add_character),
+
+  ClipText: (text = "", length = 100) => {
+    const nl_index = text.indexOf("\n");
+    if (nl_index > 0 && nl_index < length) length = nl_index;
+    return text.slice(0, length);
+  },
+
+  Caret: updateString(setCaret),
+});
+
+/**
+ * insert a character at the index
+ * @param {string} old
+ * @param {number} index
+ * @param {string} char
+ * @returns {string}
+ */
+function insert(old, index, char) {
+  if (index < 0) {
+    // add it at the end
+    return old + char;
+  } else {
+    // insert it at the index
+    return old.slice(0, index) + char + old.slice(index);
+  }
+}
+
+const cursor = "\ufeff";
+
+/**
+ * Add a keyboard character with backspace and arrow motions simulated
+ * by simulating the normal caret with a special character
+ * @param {string} old
+ * @param {string} char
+ * @returns {string}
+ */
+function add_character(old, char) {
+  let index = old.indexOf(cursor);
+  let result = old;
+  if (char.length == 1) {
+    result = insert(old, index, char);
+  } else {
+    // some special character, handle a few
+    switch (char.toLowerCase()) {
+      case "enter":
+      case "return":
+        result = insert(old, index, "\n");
+        break;
+      case "tab":
+        result = insert(old, index, " ");
+        break;
+      case "backspace":
+      case "delete":
+        if (index < 0) {
+          result = old.slice(0, old.length - 1);
+        } else {
+          result = old.slice(0, index - 1) + cursor + old.slice(index + 1);
+        }
+        break;
+      case "arrowleft":
+        if (index < 0) {
+          if (old.length > 0) {
+            result =
+              old.slice(0, old.length - 1) + cursor + old.slice(old.length - 1);
+          } else {
+            result = old;
+          }
+        } else if (index > 0) {
+          result =
+            old.slice(0, index - 1) +
+            cursor +
+            old[index - 1] +
+            old.slice(index + 1);
+        }
+        break;
+      case "arrowright":
+        if (index == old.length - 1) {
+          result = old.slice(0, old.length - 1);
+        } else if (index >= 0) {
+          result =
+            old.slice(0, index) +
+            old[index + 1] +
+            cursor +
+            old.slice(index + 2);
+        }
+        break;
+      default:
+        result = old;
+    }
+  }
+  if (result[result.length - 1] == cursor) {
+    result = result.slice(0, result.length - 1);
+  }
+  return result;
+}
+
+/** @param {string} old
+ * @param {string} offset
+ */
+function setCaret(old, offset) {
+  const index = parseInt(offset);
+  const clean = old.replace(cursor, "");
+  if (index < 0 || index > clean.length) return clean;
+  return clean.slice(0, index) + cursor + clean.slice(index);
+}
+
+/**
+ * @param {string} text
+ * @returns {Hole[]}
+ */
+
+function formatNote(text) {
+  const index = text.indexOf(cursor);
+  if (index < 0) {
+    return [html`<span>${text}</span>`];
+  } else {
+    return [
+      html`<span
+        >${text.slice(0, index)}<span class="caret"></span>${text.slice(
+          index + 1,
+        )}</span
+      >`,
+    ];
+  }
+}
+
 class Display extends TreeBase {
   stateName = new String$1("$Display");
   Name = new String$1("");
   background = new Color("white");
   fontSize = new Float(2);
   scale = new Float(1);
+  highlightWords = new Boolean$1(false);
+  clearAfterSpeaking = new Boolean$1(false);
 
   /** @type {HTMLDivElement | null} */
   current = null;
@@ -12993,7 +13360,8 @@ class Display extends TreeBase {
   template() {
     const { state } = Globals;
     let value = state.get(this.stateName.value) || "";
-    const content = formatSlottedString(value);
+    const content =
+      (hasSlots(value) && formatSlottedString(value)) || formatNote(value);
     return this.component(
       {
         style: {
@@ -13001,6 +13369,7 @@ class Display extends TreeBase {
           fontSize: this.fontSize.value + "rem",
         },
       },
+      // prettier-ignore
       html`<button
         ref=${this}
         @pointerup=${this.click}
@@ -13011,17 +13380,44 @@ class Display extends TreeBase {
           ComponentName: this.Name.value,
           ComponentType: this.className,
         }}
-      >
-        ${content}
-      </button>`,
+      >${content}</button>`,
     );
   }
 
   /** Attempt to locate the word the user is touching
    */
   click = () => {
+    /**
+     * @param {HTMLElement} root
+     * @param {Selection} s
+     * @returns {number}
+     */
+    function getOffsetToSelection(root, s) {
+      const treeWalker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+
+      let offset = 0;
+      while (treeWalker.nextNode()) {
+        const node = /** @type {Text} */ (treeWalker.currentNode);
+        if (node == s.focusNode) {
+          return offset + s.focusOffset;
+        }
+        offset += node.data.length;
+      }
+      return -1;
+    }
     const s = window.getSelection();
     if (!s) return;
+    let element = document.getElementById(this.id);
+    if (!element) {
+      return;
+    }
+    element = element.querySelector("button");
+    if (!element) {
+      return;
+    }
+    if (!element.contains(s.anchorNode)) {
+      return;
+    }
     let word = "";
     if (s.isCollapsed) {
       s.modify("move", "forward", "character");
@@ -13033,7 +13429,77 @@ class Display extends TreeBase {
       word = s.toString();
     }
     this.current?.setAttribute("data--clicked-word", word);
+    this.current?.setAttribute(
+      "data--clicked-caret",
+      getOffsetToSelection(element, s).toString(),
+    );
+    s.empty();
   };
+
+  /**
+   * @param {SpeechSynthesisEvent} event
+   */
+  handleEvent(event) {
+    /**
+     * @param {HTMLElement} root
+     * @param {number} offset
+     * @returns {[Text|null, number]}
+     */
+    function getNodeAtOffset(root, offset) {
+      const treeWalker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+
+      while (treeWalker.nextNode()) {
+        const node = /** @type {Text} */ (treeWalker.currentNode);
+        if (node.parentElement instanceof HTMLSpanElement) {
+          const it = node.data;
+          if (offset > it.length) {
+            offset -= it.length;
+          } else {
+            return [node, offset];
+          }
+        }
+      }
+      return [null, -1];
+    }
+    if (!this.highlightWords.value) {
+      return;
+    }
+    const element = document.getElementById(this.id);
+    if (!element) {
+      return;
+    }
+    const span = element.querySelector("button span");
+    if (!span) {
+      return;
+    }
+    const [text, offset] = getNodeAtOffset(element, event.charIndex);
+    if (!text) {
+      return;
+    }
+    const selection = window.getSelection();
+    if (!selection) {
+      return;
+    }
+
+    if (event.type == "boundary") {
+      try {
+        selection.setBaseAndExtent(text, offset, text, offset);
+        selection.modify("extend", "forward", "word");
+      } catch (e) {
+        console.error(e);
+      }
+    } else if (event.type == "end") {
+      selection.empty();
+      if (this.clearAfterSpeaking.value) {
+        Globals.state.update({ [this.stateName.value]: "" });
+      }
+    }
+  }
+
+  init() {
+    document.addEventListener("boundary", this);
+    document.addEventListener("end", this);
+  }
 }
 TreeBase.register(Display, "Display");
 
@@ -13693,7 +14159,10 @@ class Speech extends TreeBase {
   async speak() {
     const { state } = Globals;
     const voiceURI = this.voiceURI.value;
-    const message = toString(state.get(this.stateName.value));
+    const message = toString(state.get(this.stateName.value)).replace(
+      cursor,
+      "",
+    );
     const voices = await getVoices();
     const voice =
       voiceURI && voices.find((voice) => voice.voiceURI == voiceURI);
@@ -13705,6 +14174,22 @@ class Speech extends TreeBase {
     utterance.pitch = this.pitch.value;
     utterance.rate = this.rate.value;
     utterance.volume = this.volume.value;
+    utterance.addEventListener("boundary", (event) => {
+      document.dispatchEvent(
+        new SpeechSynthesisEvent("boundary", {
+          utterance: event.utterance,
+          charIndex: event.charIndex,
+        }),
+      );
+    });
+    utterance.addEventListener("end", (event) => {
+      document.dispatchEvent(
+        new SpeechSynthesisEvent("end", {
+          utterance: event.utterance,
+          charIndex: event.charIndex,
+        }),
+      );
+    });
     speechSynthesis.cancel();
     speechSynthesis.speak(utterance);
   }
@@ -13787,64 +14272,194 @@ let Audio$1 = class Audio extends TreeBase {
 };
 TreeBase.register(Audio$1, "Audio");
 
-const scriptRel = 'modulepreload';const assetsURL = function(dep) { return "/OS-DPI/"+dep };const seen = {};const __vitePreload = function preload(baseModule, deps, importerUrl) {
-    let promise = Promise.resolve();
-    // @ts-expect-error true will be replaced with boolean later
-    if (true && deps && deps.length > 0) {
-        const links = document.getElementsByTagName('link');
-        promise = Promise.all(deps.map((dep) => {
-            // @ts-expect-error assetsURL is declared before preload.toString()
-            dep = assetsURL(dep);
-            if (dep in seen)
-                return;
-            seen[dep] = true;
-            const isCss = dep.endsWith('.css');
-            const cssSelector = isCss ? '[rel="stylesheet"]' : '';
-            const isBaseRelative = !!importerUrl;
-            // check if the file is already preloaded by SSR markup
-            if (isBaseRelative) {
-                // When isBaseRelative is true then we have `importerUrl` and `dep` is
-                // already converted to an absolute URL by the `assetsURL` function
-                for (let i = links.length - 1; i >= 0; i--) {
-                    const link = links[i];
-                    // The `links[i].href` is an absolute URL thanks to browser doing the work
-                    // for us. See https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#reflecting-content-attributes-in-idl-attributes:idl-domstring-5
-                    if (link.href === dep && (!isCss || link.rel === 'stylesheet')) {
-                        return;
-                    }
-                }
-            }
-            else if (document.querySelector(`link[href="${dep}"]${cssSelector}`)) {
-                return;
-            }
-            const link = document.createElement('link');
-            link.rel = isCss ? 'stylesheet' : scriptRel;
-            if (!isCss) {
-                link.as = 'script';
-                link.crossOrigin = '';
-            }
-            link.href = dep;
-            document.head.appendChild(link);
-            if (isCss) {
-                return new Promise((res, rej) => {
-                    link.addEventListener('load', res);
-                    link.addEventListener('error', () => rej(new Error(`Unable to preload CSS for ${dep}`)));
-                });
-            }
-        }));
-    }
-    return promise
-        .then(() => baseModule())
-        .catch((err) => {
-        const e = new Event('vite:preloadError', { cancelable: true });
-        // @ts-expect-error custom payload
-        e.payload = err;
-        window.dispatchEvent(e);
-        if (!e.defaultPrevented) {
-            throw err;
-        }
+/**
+ * Handle displaying a "please wait" message and error reporting for
+ * async functions that may take a while or throw errors
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {string} message
+ * @returns {Promise<T>}
+ */
+async function wait(promise, message = "Please wait") {
+  const div = document.createElement("div");
+  div.id = "PleaseWait";
+  document.body.appendChild(div);
+  const timer = window.setTimeout(() => {
+    render(div, html`<div><p class="message">${message}</p></div>`);
+  }, 500);
+  try {
+    const result = await promise;
+    clearTimeout(timer);
+    div.remove();
+    return result;
+  } catch (e) {
+    console.trace("wait error");
+    clearTimeout(timer);
+    return new Promise((resolve, reject) => {
+      render(
+        div,
+        html`<div>
+          <p class="error">${e.message}</p>
+          <button
+            @click=${() => {
+              div.remove();
+              reject(e.message);
+            }}
+          >
+            OK
+          </button>
+        </div>`,
+      );
     });
-};
+  }
+}
+
+class Logger extends TreeBase {
+  // name = new Props.String("Log");
+  stateName = new String$1("$Log");
+  logUntil = new ADate();
+
+  // I expect a string like #field1 $state1 $state2 #field3
+  logThese = new TextArea("", {
+    validate: this.validate,
+    placeholder: "Enter state and field names to log",
+  });
+
+  // I expect a string listing event names to log
+  logTheseEvents = new TextArea("", {
+    validate: this.validateEventNames,
+    placeholder: "Enter names of events to log",
+  });
+
+  /**
+   * @param {string} s
+   * @returns {string}
+   */
+  validate(s) {
+    return /^(?:[#$]\w+\s*)*$/.test(s) ? "" : "Invalid input";
+  }
+
+  /**
+   * Check for strings that look like event names
+   *
+   * @param {string} s
+   * @returns {string}
+   */
+  validateEventNames(s) {
+    return /^(?:\w+\s*)*$/.test(s) ? "" : "Invalid input";
+  }
+
+  template() {
+    const { state, actions } = Globals;
+    const stateName = this.stateName.value;
+    const logUntil = this.logUntil.value;
+    const logThese = this.logThese.value;
+    const logging =
+      !!state.get(stateName) && logUntil && new Date() < new Date(logUntil);
+    const getValue = access(state, actions.last.data);
+
+    if (logging) {
+      const names = logThese.split(/\s+/);
+      const record = {};
+      for (const name of names) {
+        const value = getValue(name);
+        if (value) {
+          record[name] = value;
+        }
+      }
+      this.log(record);
+    }
+
+    return html`<div
+      class="logging-indicator"
+      ?logging=${logging}
+      title="Logging"
+    ></div>`;
+  }
+
+  /** Log a record to the database
+   * @param {Object} record
+   * @returns {void}
+   */
+  log(record) {
+    const DateTime = new Date().toLocaleDateString("en-US", {
+      fractionalSecondDigits: 2,
+      hour12: false,
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+    });
+    record = { DateTime, ...record };
+    db.writeLog(record);
+  }
+
+  init() {
+    super.init();
+    this.onUpdate();
+  }
+
+  /** @type {Set<string>} */
+  listeners = new Set();
+  onUpdate() {
+    const UI = document.getElementById("UI");
+    if (!UI) return;
+    // cancel any listeners that are currently active
+    for (const eventName of this.listeners) {
+      UI.removeEventListener(eventName, this);
+    }
+    this.listeners.clear();
+
+    // listen for each of the listed events
+    for (const match of this.logTheseEvents.value.matchAll(/\w+/g)) {
+      UI.addEventListener(match[0], this);
+      this.listeners.add(match[0]);
+    }
+  }
+
+  typesToInclude = new Set(["boolean", "number", "string"]);
+  propsToExclude = new Set([
+    "isTrusted",
+    "bubbles",
+    "cancelBubble",
+    "cancelable",
+    "defaultPrevented",
+    "eventPhase",
+    "returnValue",
+    "timeStamp",
+  ]);
+  /**
+   * Make this object a listener
+   * @param {Event} e
+   */
+  handleEvent(e) {
+    // grab all the fields of the event that are simple types
+    const record = {};
+    for (const prop in e) {
+      // skip all upper case and _
+      if (/^[A-Z_]+$/.test(prop)) continue;
+      const value = e[prop];
+      if (this.propsToExclude.has(prop)) continue;
+      if (!this.typesToInclude.has(typeof value)) continue;
+      record[prop] = value;
+    }
+    this.log(record);
+  }
+}
+TreeBase.register(Logger, "Logger");
+
+async function SaveLog() {
+  let toSave = await db.readLog();
+  if (toSave.length > 0) {
+    await wait(saveContent("log", toSave, "xlsx"));
+  } else {
+    Globals.error.report("No log records to be saved.");
+    Globals.state.update();
+  }
+}
+
+async function ClearLog() {
+  await db.clearLog();
+}
 
 /** Implement undo/redo for the designer by comparing the current and previous trees
  *
@@ -14495,148 +15110,6 @@ class DesignerPanel extends TreeBase {
   }
 }
 
-/**
- * Handle displaying a "please wait" message and error reporting for
- * async functions that may take a while or throw errors
- * @template T
- * @param {Promise<T>} promise
- * @param {string} message
- * @returns {Promise<T>}
- */
-async function wait(promise, message = "Please wait") {
-  const div = document.createElement("div");
-  div.id = "PleaseWait";
-  document.body.appendChild(div);
-  const timer = window.setTimeout(() => {
-    render(div, html`<div><p class="message">${message}</p></div>`);
-  }, 500);
-  try {
-    const result = await promise;
-    clearTimeout(timer);
-    div.remove();
-    return result;
-  } catch (e) {
-    console.trace("wait error");
-    clearTimeout(timer);
-    return new Promise((resolve) => {
-      render(
-        div,
-        html`<div>
-          <p class="error">${e.message}</p>
-          <button
-            @click=${() => {
-              div.remove();
-              resolve(e.message);
-            }}
-          >
-            OK
-          </button>
-        </div>`,
-      );
-    });
-  }
-}
-
-/** @param {Blob} blob */
-async function readSheetFromBlob(blob) {
-  const XLSX = await __vitePreload(() => import('./xlsx.js'),true?__vite__mapDeps([]):void 0);
-  const data = await blob.arrayBuffer();
-  const workbook = XLSX.read(data, { codepage: 65001 });
-  /** @type {Rows} */
-  const dataArray = [];
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    const ref = sheet["!ref"];
-    if (!ref) continue;
-    const range = XLSX.utils.decode_range(ref);
-    const names = [];
-    const handlers = [];
-    const validColumns = [];
-    // process the header and choose a handler for each column
-    for (let c = range.s.c; c <= range.e.c; c++) {
-      let columnName = sheet[XLSX.utils.encode_cell({ r: 0, c })]?.v;
-      if (typeof columnName !== "string" || !columnName) {
-        continue;
-      }
-      columnName = columnName.toLowerCase();
-      names.push(columnName.trim(" "));
-      validColumns.push(c);
-      switch (columnName) {
-        case "row":
-        case "column":
-        case "page":
-          handlers.push("number");
-          break;
-        default:
-          handlers.push("string");
-          break;
-      }
-    }
-    // Process the rows
-    for (let r = range.s.r + 1; r <= range.e.r; r++) {
-      /** @type {Row} */
-      const row = { sheetName };
-      for (let i = 0; i < validColumns.length; i++) {
-        /** @type {string} */
-        const name = names[i];
-        const c = validColumns[i];
-        let value = sheet[XLSX.utils.encode_cell({ r, c })]?.v;
-        switch (handlers[i]) {
-          case "string":
-            if (typeof value === "undefined") {
-              value = "";
-            }
-            if (typeof value !== "string") {
-              value = value.toString(10);
-            }
-            if (value && typeof value === "string") {
-              row[name] = value;
-            }
-            break;
-          case "number":
-            if (typeof value === "number") {
-              row[name] = Math.floor(value);
-            } else if (value && typeof value === "string") {
-              value = parseInt(value, 10);
-              if (isNaN(value)) {
-                value = 0;
-              }
-              row[name] = value;
-            }
-            break;
-        }
-      }
-      if (Object.keys(row).length > 1) dataArray.push(row);
-    }
-  }
-  return dataArray;
-}
-
-/** Save the content as a spreadsheet
- * @param {string} name
- * @param {Row[]} rows
- * @param {string} type
- */
-async function saveContent(name, rows, type) {
-  const XLSX = await wait(__vitePreload(() => import('./xlsx.js'),true?__vite__mapDeps([]):void 0));
-  const sheetNames = new Set(rows.map((row) => row.sheetName || "sheet1"));
-  const workbook = XLSX.utils.book_new();
-  for (const sheetName of sheetNames) {
-    let sheetRows = rows.filter(
-      (row) => sheetName == (row.sheetName || "sheet1"),
-    );
-    if (type != "csv") {
-      sheetRows = sheetRows.map((row) => {
-        const { sheetName, ...rest } = row;
-        return rest;
-      });
-    }
-    const worksheet = XLSX.utils.json_to_sheet(sheetRows);
-    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-  }
-  XLSX.writeFileXLSX(workbook, `${name}.${type}`);
-}
-
 class Content extends DesignerPanel {
   name = new String$1("Content");
 
@@ -14681,7 +15154,7 @@ class Content extends DesignerPanel {
       <div>
         <h1>Content</h1>
         <p>
-          ${data.allrows.length} rows with these fields:
+          ${data.length} rows with these fields:
           ${String([...data.allFields].sort()).replaceAll(",", ", ")}
         </p>
         <h2>Media files</h2>
@@ -14715,153 +15188,6 @@ class Content extends DesignerPanel {
   }
 }
 TreeBase.register(Content, "Content");
-
-class Logger extends TreeBase {
-  // name = new Props.String("Log");
-  stateName = new String$1("$Log");
-  logUntil = new ADate();
-
-  // I expect a string like #field1 $state1 $state2 #field3
-  logThese = new TextArea("", {
-    validate: this.validate,
-    placeholder: "Enter state and field names to log",
-  });
-
-  // I expect a string listing event names to log
-  logTheseEvents = new TextArea("", {
-    validate: this.validateEventNames,
-    placeholder: "Enter names of events to log",
-  });
-
-  /**
-   * @param {string} s
-   * @returns {string}
-   */
-  validate(s) {
-    return /^(?:[#$]\w+\s*)*$/.test(s) ? "" : "Invalid input";
-  }
-
-  /**
-   * Check for strings that look like event names
-   *
-   * @param {string} s
-   * @returns {string}
-   */
-  validateEventNames(s) {
-    return /^(?:\w+\s*)*$/.test(s) ? "" : "Invalid input";
-  }
-
-  template() {
-    const { state, actions } = Globals;
-    const stateName = this.stateName.value;
-    const logUntil = this.logUntil.value;
-    const logThese = this.logThese.value;
-    const logging =
-      !!state.get(stateName) && logUntil && new Date() < new Date(logUntil);
-    const getValue = access(state, actions.last.data);
-
-    if (logging) {
-      const names = logThese.split(/\s+/);
-      const record = {};
-      for (const name of names) {
-        const value = getValue(name);
-        if (value) {
-          record[name] = value;
-        }
-      }
-      this.log(record);
-    }
-
-    return html`<div
-      class="logging-indicator"
-      ?logging=${logging}
-      title="Logging"
-    ></div>`;
-  }
-
-  /** Log a record to the database
-   * @param {Object} record
-   * @returns {void}
-   */
-  log(record) {
-    const DateTime = new Date().toLocaleDateString("en-US", {
-      fractionalSecondDigits: 2,
-      hour12: false,
-      hour: "numeric",
-      minute: "numeric",
-      second: "numeric",
-    });
-    record = { DateTime, ...record };
-    db.write("log", record);
-  }
-
-  init() {
-    super.init();
-    this.onUpdate();
-  }
-
-  /** @type {Set<string>} */
-  listeners = new Set();
-  onUpdate() {
-    const UI = document.getElementById("UI");
-    if (!UI) return;
-    // cancel any listeners that are currently active
-    for (const eventName of this.listeners) {
-      UI.removeEventListener(eventName, this);
-    }
-    this.listeners.clear();
-
-    // listen for each of the listed events
-    for (const match of this.logTheseEvents.value.matchAll(/\w+/g)) {
-      UI.addEventListener(match[0], this);
-      this.listeners.add(match[0]);
-    }
-  }
-
-  typesToInclude = new Set(["boolean", "number", "string"]);
-  propsToExclude = new Set([
-    "isTrusted",
-    "bubbles",
-    "cancelBubble",
-    "cancelable",
-    "defaultPrevented",
-    "eventPhase",
-    "returnValue",
-    "timeStamp",
-  ]);
-  /**
-   * Make this object a listener
-   * @param {Event} e
-   */
-  handleEvent(e) {
-    // grab all the fields of the event that are simple types
-    const record = {};
-    for (const prop in e) {
-      // skip all upper case and _
-      if (/^[A-Z_]+$/.test(prop)) continue;
-      const value = e[prop];
-      if (this.propsToExclude.has(prop)) continue;
-      if (!this.typesToInclude.has(typeof value)) continue;
-      record[prop] = value;
-    }
-    this.log(record);
-  }
-}
-TreeBase.register(Logger, "Logger");
-
-async function SaveLogs() {
-  let toSave = await db.readAll("log");
-  if (toSave.length > 0) {
-    await saveContent("log", toSave, "xlsx");
-  } else {
-    Globals.error.report("No log records to be saved.");
-    Globals.state.update();
-  }
-}
-
-async function ClearLogs() {
-  await db.clear("log");
-}
 
 const emptyPage = {
   className: "Page",
@@ -17031,15 +17357,10 @@ function mergeInternals(source, subscriber, project, concurrent, onBeforeNext, e
     };
     var outerNext = function (value) { return (active < concurrent ? doInnerSub(value) : buffer.push(value)); };
     var doInnerSub = function (value) {
-        expand && subscriber.next(value);
         active++;
         var innerComplete = false;
         innerFrom(project(value, index++)).subscribe(createOperatorSubscriber(subscriber, function (innerValue) {
-            onBeforeNext === null || onBeforeNext === void 0 ? void 0 : onBeforeNext(innerValue);
-            if (expand) {
-                outerNext(innerValue);
-            }
-            else {
+            {
                 subscriber.next(innerValue);
             }
         }, function () {
@@ -17050,9 +17371,7 @@ function mergeInternals(source, subscriber, project, concurrent, onBeforeNext, e
                     active--;
                     var _loop_1 = function () {
                         var bufferedValue = buffer.shift();
-                        if (innerSubScheduler) {
-                            executeSchedule(subscriber, innerSubScheduler, function () { return doInnerSub(bufferedValue); });
-                        }
+                        if (innerSubScheduler) ;
                         else {
                             doInnerSub(bufferedValue);
                         }
@@ -17073,7 +17392,6 @@ function mergeInternals(source, subscriber, project, concurrent, onBeforeNext, e
         checkComplete();
     }));
     return function () {
-        additionalFinalizer === null || additionalFinalizer === void 0 ? void 0 : additionalFinalizer();
     };
 }
 
@@ -17091,18 +17409,6 @@ function mergeMap(project, resultSelector, concurrent) {
 function mergeAll(concurrent) {
     if (concurrent === void 0) { concurrent = Infinity; }
     return mergeMap(identity, concurrent);
-}
-
-function concatAll() {
-    return mergeAll(1);
-}
-
-function concat() {
-    var args = [];
-    for (var _i = 0; _i < arguments.length; _i++) {
-        args[_i] = arguments[_i];
-    }
-    return concatAll()(from(args, popScheduler(args)));
 }
 
 var nodeEventEmitterMethods = ['addListener', 'removeListener'];
@@ -17231,12 +17537,8 @@ function scanInternals(accumulator, seed, hasSeed, emitOnNext, emitBeforeComplet
                     accumulator(state, value, i)
                 :
                     ((hasState = true), value);
-            emitOnNext && subscriber.next(state);
-        }, emitBeforeComplete &&
-            (function () {
-                hasState && subscriber.next(state);
-                subscriber.complete();
-            })));
+            subscriber.next(state);
+        }, emitBeforeComplete ));
     };
 }
 
@@ -17298,22 +17600,11 @@ function take(count) {
         });
 }
 
-function ignoreElements() {
-    return operate(function (source, subscriber) {
-        source.subscribe(createOperatorSubscriber(subscriber, noop));
-    });
-}
-
 function mapTo(value) {
     return map(function () { return value; });
 }
 
 function delayWhen(delayDurationSelector, subscriptionDelay) {
-    if (subscriptionDelay) {
-        return function (source) {
-            return concat(subscriptionDelay.pipe(take(1), ignoreElements()), source.pipe(delayWhen(delayDurationSelector)));
-        };
-    }
     return mergeMap(function (value, index) { return innerFrom(delayDurationSelector(value, index)).pipe(take(1), mapTo(value)); });
 }
 
@@ -17344,7 +17635,7 @@ function defaultCompare(a, b) {
 }
 
 function distinctUntilKeyChanged(key, compare) {
-    return distinctUntilChanged(function (x, y) { return compare ? compare(x[key], y[key]) : x[key] === y[key]; });
+    return distinctUntilChanged(function (x, y) { return x[key] === y[key]; });
 }
 
 function groupBy(keySelector, elementOrOptions, duration, connector) {
@@ -17352,9 +17643,6 @@ function groupBy(keySelector, elementOrOptions, duration, connector) {
         var element;
         if (!elementOrOptions || typeof elementOrOptions === 'function') {
             element = elementOrOptions;
-        }
-        else {
-            (duration = elementOrOptions.duration, element = elementOrOptions.element, connector = elementOrOptions.connector);
         }
         var groups = new Map();
         var notify = function (cb) {
@@ -18395,12 +18683,14 @@ const defaultPatterns = {
 let animationNonce = 0;
 
 /** @param {Target} target
- * @param {string} defaultValue */
-function cueTarget(target, defaultValue) {
+ * @param {string} defaultValue
+ * @param {boolean} isGroup
+ * */
+function cueTarget(target, defaultValue, isGroup = false) {
   if (target instanceof HTMLButtonElement) {
     target.setAttribute("cue", defaultValue);
     const video = target.querySelector("video");
-    if (video && !video.hasAttribute("autoplay")) {
+    if (!isGroup && video && !video.hasAttribute("autoplay")) {
       if (video.hasAttribute("muted")) video.muted = true;
       const promise = video.play();
       if (promise !== undefined) {
@@ -18412,7 +18702,7 @@ function cueTarget(target, defaultValue) {
       }
     }
   } else if (target instanceof Group) {
-    target.cue();
+    target.cue(defaultValue);
   }
 }
 
@@ -18456,13 +18746,16 @@ class Group {
   }
 
   /** @param {string} value */
-  cue(value = "") {
+  cue(value = "", top = true) {
     if (!value) {
       value = this.access.Cue;
     }
     for (const member of this.members) {
-      if (member instanceof HTMLButtonElement) cueTarget(member, value);
-      else if (member instanceof Group) member.cue(value);
+      if (member instanceof HTMLButtonElement)
+        cueTarget(member, value, !top || this.members.length > 1);
+      else if (member instanceof Group) {
+        member.cue(value, false);
+      }
     }
   }
 
@@ -18559,7 +18852,7 @@ class PatternManager extends PatternBase {
   /**
    * Stack keeps track of the nesting as we walk the tree
    *
-   * @type {{ group: Group; index: number }[]}
+   * @type {{ group: Group; cue: string, index: number }[]}
    */
   stack = [];
 
@@ -18656,7 +18949,11 @@ class PatternManager extends PatternBase {
     }
     this.targets = new Group(members, { ...this.propsAsObject, Cycles: 1 });
     this.stack = [
-      { group: this.targets, index: this.StartVisible.value ? 0 : -1 },
+      {
+        group: this.targets,
+        cue: this.Cue.value,
+        index: this.StartVisible.value ? 0 : -1,
+      },
     ];
     this.cue();
 
@@ -18708,12 +19005,17 @@ class PatternManager extends PatternBase {
     }
     let current = this.current;
     if (!current) return;
+    while (current instanceof Group && current.members.length == 1) {
+      // manage currentCue while we walk through singleton groups
+      current = current.members[0];
+    }
     if (current instanceof Group) {
-      while (current.length == 1 && current.members[0] instanceof Group) {
-        current = current.members[0];
-      }
       // I need to work out the index here. Should be the group under the pointer
-      this.stack.unshift({ group: current, index: event?.groupIndex || 0 });
+      this.stack.unshift({
+        group: current,
+        cue: current.access.Cue,
+        index: event?.groupIndex || 0,
+      });
     } else if (current instanceof HTMLButtonElement) {
       if (current.hasAttribute("click")) {
         current.dispatchEvent(new Event("Activate"));
@@ -18735,7 +19037,7 @@ class PatternManager extends PatternBase {
     const current = this.current;
     if (!current) return;
     this.cued = true;
-    cueTarget(current, this.Cue.value);
+    cueTarget(current, this.stack[0].cue);
   }
 
   /** Return the access info for current
@@ -19312,7 +19614,20 @@ class PointerHandler extends Handler {
      */
     function fromPointerEvent(event) {
       return /** @type {RxJs.Observable<PointerEvent>} */ (
-        fromEvent(document, event)
+        fromEvent(document, event).pipe(
+          // fudge the target to be the button and not any contained thing
+          tap((/** @type {PointerEvent} */ e) => {
+            if (
+              !(e.target instanceof HTMLButtonElement) &&
+              e.target instanceof HTMLElement
+            ) {
+              const t = e.target.closest("button");
+              if (t) {
+                Object.defineProperty(e, "target", { value: t });
+              }
+            }
+          }),
+        )
       );
     }
 
@@ -20021,6 +20336,11 @@ class CueList extends DesignerPanel {
 
   get defaultCue() {
     return this.children.find((cue) => cue.Default.value) || this.children[0];
+  }
+
+  /** @param {string} cue */
+  cueName(cue) {
+    return this.cueMap.get(cue);
   }
 
   /** @param {Object} obj */
@@ -22156,7 +22476,7 @@ function getFileMenuItems(bar) {
             sheet.handle = blob.handle;
             const result = await wait(readSheetFromBlob(blob));
             await db.write("content", result);
-            Globals.data = new Data(result);
+            Globals.data.setContent(result);
             Globals.state.update();
           }
         } catch (e) {
@@ -22176,8 +22496,7 @@ function getFileMenuItems(bar) {
           if (blob) {
             const result = await wait(readSheetFromBlob(blob));
             await db.write("content", result);
-            Globals.data = new Data(result);
-            Globals.state.update();
+            Globals.data.setContent(result);
           } else {
             console.log("no file to reload");
           }
@@ -22187,7 +22506,9 @@ function getFileMenuItems(bar) {
       label: "Save sheet",
       title: "Save the content as a spreadsheet",
       callback: () => {
-        saveContent(db.designName, Globals.data.contentRows, "xlsx");
+        wait(
+          saveContent(db.designName, Globals.data.contentRows, "xlsx"),
+        );
       },
     }),
     new MenuItem({
@@ -22228,14 +22549,14 @@ function getFileMenuItems(bar) {
       title: "Save any logs as spreadsheets",
       divider: "Logs",
       callback: async () => {
-        SaveLogs();
+        SaveLog();
       },
     }),
     new MenuItem({
       label: "Clear logs",
       title: "Clear any stored logs",
       callback: async () => {
-        ClearLogs();
+        ClearLog();
       },
     }),
     new MenuItem({
@@ -22535,9 +22856,20 @@ class ImportURLDialog {
             input instanceof HTMLInputElement &&
             !input.validationMessage &&
             input.value
-          )
-            wait(db.readDesignFromURL(input.value));
-          this.current.close();
+          ) {
+            const local_db = new DB();
+            wait(local_db.readDesignFromURL(input.value)).then(
+              () => {
+                window.open(
+                  `#${local_db.designName}`,
+                  "_blank",
+                  `noopener=true`,
+                );
+              },
+              () => console.log("rejected"),
+            );
+            this.current.close();
+          }
         }}
       >
         Import
@@ -22663,9 +22995,11 @@ async function start() {
   }
   db.setDesignName(name);
   const dataArray = await db.read("content", []);
+  const noteArray = await db.read("notes", []);
   await pageLoaded;
 
   Globals.data = new Data(dataArray);
+  Globals.data.setNoteRows(noteArray);
   const layout = await Layout.load(Layout);
   Globals.layout = layout;
   Globals.state = new State$1(`UIState`);
