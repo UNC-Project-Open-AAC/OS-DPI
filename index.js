@@ -10434,6 +10434,8 @@ function colorNamesDataList() {
  * @property {string} [datalist]
  * @property {number} [min]
  * @property {number} [max]
+ * @property {boolean} [notRequired]
+ * @property {string[]} [addedFields]
  */
 
 /**
@@ -10714,14 +10716,14 @@ class Select extends Prop {
     return this.labeled(
       html`<select
         id=${this.id}
-        required
+        ?required=${!this.options.notRequired}
         title=${this.options.title}
         @change=${({ target }) => {
           this._value = target.value;
           this.update();
         }}
       >
-        <option value="" disabled ?selected=${!choices.has(this._value)}>
+        <option value="" ?selected=${!choices.has(this._value)}>
           ${this.options.placeholder || "Choose one..."}
         </option>
         ${[...choices.entries()].map(
@@ -10745,8 +10747,12 @@ class Field extends Select {
    * @param {PropOptions} options
    */
   constructor(options = {}) {
+    const addedFields = options.addedFields || [];
     super(
-      () => toMap([...Globals.data.allFields, "#ComponentName"].sort()),
+      () =>
+        toMap(
+          [...Globals.data.allFields, "#ComponentName", ...addedFields].sort(),
+        ),
       options,
     );
   }
@@ -14149,6 +14155,29 @@ class Monitor extends TreeBase {
 }
 TreeBase.register(Monitor, "Monitor");
 
+/**
+ * @param {string} message
+ * @param {string} voiceURI
+ * @param {number} pitch
+ * @param {number} rate
+ * @param {number} volume
+ */
+async function speak(message, voiceURI, pitch, rate, volume) {
+  if (!message) return;
+  const voices = await getVoices();
+  const voice = voiceURI && voices.find((voice) => voice.voiceURI == voiceURI);
+  const utterance = new SpeechSynthesisUtterance(message);
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
+  }
+  utterance.pitch = pitch;
+  utterance.rate = rate;
+  utterance.volume = volume;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utterance);
+}
+
 class Speech extends TreeBase {
   stateName = new String$1("$Speak");
   voiceURI = new Voice("", { label: "Voice" });
@@ -14197,7 +14226,14 @@ class Speech extends TreeBase {
   template() {
     const { state } = Globals;
     if (state.hasBeenUpdated(this.stateName.value)) {
-      this.speak();
+      const message = toString(state.get(this.stateName.value));
+      speak(
+        message,
+        this.voiceURI.value,
+        this.pitch.value,
+        this.rate.value,
+        this.volume.value,
+      );
     }
     return html`<div />`;
   }
@@ -14253,19 +14289,20 @@ class VoiceSelect extends HTMLSelectElement {
 }
 customElements.define("select-voice", VoiceSelect, { extends: "select" });
 
+/** @param {string} filename */
+async function playAudio(filename) {
+  const sound = await db.getAudio(filename);
+  sound.play();
+}
+
 let Audio$1 = class Audio extends TreeBase {
   stateName = new String$1("$Audio");
-
-  async playAudio() {
-    const { state } = Globals;
-    const fileName = state.get(this.stateName.value) || "";
-    (await db.getAudio(fileName)).play();
-  }
 
   template() {
     const { state } = Globals;
     if (state.hasBeenUpdated(this.stateName.value)) {
-      this.playAudio();
+      const filename = state.get(this.stateName.value) || "";
+      playAudio(filename);
     }
     return html`<div />`;
   }
@@ -18687,6 +18724,7 @@ let animationNonce = 0;
  * @param {boolean} isGroup
  * */
 function cueTarget(target, defaultValue, isGroup = false) {
+  let fields = {};
   if (target instanceof HTMLButtonElement) {
     target.setAttribute("cue", defaultValue);
     const video = target.querySelector("video");
@@ -18701,8 +18739,27 @@ function cueTarget(target, defaultValue, isGroup = false) {
           });
       }
     }
+    fields = target.dataset;
   } else if (target instanceof Group) {
     target.cue(defaultValue);
+    fields = target.access;
+  }
+  const cue = Globals.cues.keyToCue(defaultValue);
+  if (!isGroup && cue) {
+    if (cue.SpeechField.value) {
+      const message = fields[cue.SpeechField.value.slice(1)];
+      speak(
+        message,
+        cue.voiceURI.value,
+        cue.pitch.value,
+        cue.rate.value,
+        cue.volume.value,
+      );
+    }
+    if (cue.AudioField.value) {
+      const file = fields[cue.AudioField.value.slice(1)] || "";
+      playAudio(file);
+    }
   }
 }
 
@@ -18729,7 +18786,7 @@ class Group {
   constructor(members, props) {
     /** @type {Target[]} */
     this.members = members;
-    this.access = props;
+    this.access = { GroupName: props.Name, ...props };
   }
 
   get length() {
@@ -20343,6 +20400,13 @@ class CueList extends DesignerPanel {
     return this.cueMap.get(cue);
   }
 
+  /** @param {string} key
+   * @returns {Cue | undefined}
+   */
+  keyToCue(key) {
+    return this.children.find((child) => child.Key.value == key);
+  }
+
   /** @param {Object} obj */
   static upgrade(obj) {
     // update any CueCss entries to the new style interpolation
@@ -20374,6 +20438,19 @@ class Cue extends TreeBaseSwitchable {
   Key = new UID();
   CueType = new TypeSelect(CueTypes);
   Default = new OneOfGroup(false, { group: "DefaultCue" });
+  SpeechField = new Field({
+    placeholder: "None selected",
+    notRequired: true,
+    addedFields: ["#GroupName"],
+  });
+  voiceURI = new Voice("", { label: "Voice" });
+  pitch = new Float(1);
+  rate = new Float(1);
+  volume = new Float(1);
+  AudioField = new Field({
+    placeholder: "None selected",
+    notRequired: true,
+  });
 
   settingsSummary() {
     return html`<h3>
@@ -20385,7 +20462,7 @@ class Cue extends TreeBaseSwitchable {
     return [
       html`<div class="Cue">
         ${this.Name.input()} ${this.Default.input()} ${this.CueType.input()}
-        ${this.subTemplate()}
+        ${this.subTemplate()} ${this.audibleTemplate()}
       </div>`,
     ];
   }
@@ -20393,6 +20470,15 @@ class Cue extends TreeBaseSwitchable {
   /** @returns {Hole[]} */
   subTemplate() {
     return [];
+  }
+
+  /** @returns {Hole[]} */
+  audibleTemplate() {
+    return [
+      html`${this.SpeechField.input()} ${this.voiceURI.input()}
+      ${this.volume.input()} ${this.rate.input()} ${this.pitch.input()}
+      ${this.AudioField.input()}`,
+    ];
   }
 
   get css() {
