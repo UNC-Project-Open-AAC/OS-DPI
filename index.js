@@ -87,7 +87,7 @@ true&&(function polyfill() {
   function _createForOfIteratorHelper(o, allowArrayLike) {
     var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"];
     if (!it) {
-      if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike  ) {
+      if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike) {
         if (it) o = it;
         var i = 0;
         var F = function () {};
@@ -4709,7 +4709,7 @@ function isArrayLike$1(obj) {
 	// * jqLite is either the jQuery or jqLite constructor function
 	// * we have to check the existence of jqLite first as this method is called
 	//   via the forEach method when constructing the jqLite object in the first place
-	if (isArray$2(obj) || isString(obj) || (jqLite ))
+	if (isArray$2(obj) || isString(obj) || (jqLite))
 		return true;
 
 	// Support: iOS 8.2 (not reproducible in simulator)
@@ -9501,7 +9501,7 @@ function updateString(f) {
   return function (value) {
     /** @param {string | undefined} old */
     return function (old) {
-      return f(old || "", value);
+      return f(old || "", value || "");
     };
   };
 }
@@ -9511,7 +9511,7 @@ function updateNumber(f) {
   return function (value) {
     /** @param {number | undefined} old */
     return function (old) {
-      return f(old || 0, value);
+      return f(old || 0, value || 0);
     };
   };
 }
@@ -9627,7 +9627,10 @@ const variableHandler = {
     if (prop.startsWith("$")) {
       return Object.getOwnPropertyDescriptor(target.states, prop);
     } else if (prop.startsWith("_")) {
-      return Object.getOwnPropertyDescriptor(target.data, prop.slice(1));
+      // if the field exists return a fake descriptor to keep them happy
+      if (Globals.data.allFields.has("#" + prop.slice(1))) {
+        return { configurable: true, enumerable: true };
+      }
     } else {
       return Object.getOwnPropertyDescriptor(Functions, prop);
     }
@@ -9651,7 +9654,7 @@ function compileExpression(expression) {
           "states" in context
             ? { ...Globals.state.values, ...context.states }
             : Globals.state.values;
-        let data = context.data ?? [];
+        let data = context.data ?? {};
         const r = exp(
           new Proxy(
             {
@@ -12159,6 +12162,7 @@ const comparators = {
   "starts with": (f, v) => f.toUpperCase().startsWith(v.toUpperCase()),
   empty: (f) => !f,
   contains: (f, v) => f.toLowerCase().includes(v.toLowerCase()),
+  is_contained_in: (f, v) => v.toLowerCase().includes(f.toLowerCase()),
   "not empty": (f) => !!f,
   "less than": (f, v) => collatorNumber.compare(f, v) < 0,
   "greater than": (f, v) => collatorNumber.compare(f, v) > 0,
@@ -13059,7 +13063,7 @@ const scriptRel = 'modulepreload';const assetsURL = function(dep) { return "/OS-
       "meta[property=csp-nonce]"
     );
     const cspNonce = cspNonceMeta?.nonce || cspNonceMeta?.getAttribute("nonce");
-    promise = Promise.all(
+    promise = Promise.allSettled(
       deps.map((dep) => {
         dep = assetsURL(dep);
         if (dep in seen) return;
@@ -13073,8 +13077,8 @@ const scriptRel = 'modulepreload';const assetsURL = function(dep) { return "/OS-
         link.rel = isCss ? "stylesheet" : scriptRel;
         if (!isCss) {
           link.as = "script";
-          link.crossOrigin = "";
         }
+        link.crossOrigin = "";
         link.href = dep;
         if (cspNonce) {
           link.setAttribute("nonce", cspNonce);
@@ -13092,13 +13096,22 @@ const scriptRel = 'modulepreload';const assetsURL = function(dep) { return "/OS-
       })
     );
   }
-  return promise.then(() => baseModule()).catch((err) => {
-    const e = new Event("vite:preloadError", { cancelable: true });
+  function handlePreloadError(err) {
+    const e = new Event("vite:preloadError", {
+      cancelable: true
+    });
     e.payload = err;
     window.dispatchEvent(e);
     if (!e.defaultPrevented) {
       throw err;
     }
+  }
+  return promise.then((res) => {
+    for (const item of res || []) {
+      if (item.status !== "rejected") continue;
+      handlePreloadError(item.reason);
+    }
+    return baseModule().catch(handlePreloadError);
   });
 };
 
@@ -17575,7 +17588,7 @@ function scanInternals(accumulator, seed, hasSeed, emitOnNext, emitBeforeComplet
                 :
                     ((hasState = true), value);
             subscriber.next(state);
-        }, emitBeforeComplete ));
+        }, emitBeforeComplete));
     };
 }
 
@@ -19078,7 +19091,7 @@ class PatternManager extends PatternBase {
         current.dispatchEvent(new Event("Activate"));
       } else {
         const name = current.dataset.ComponentName;
-        Globals.actions.applyRules(name || "", "press", current.dataset);
+        Globals.actions.applyRules(name || "", "press", { ...current.dataset });
       }
     }
     this.cue();
@@ -19540,7 +19553,7 @@ class KeyHandler extends Handler {
     }
 
     // build the debounced key event stream
-    const keyEvents$ = /** @type RxJs.Observable<KeyboardEvent> */ (
+    let events$ = /** @type RxJs.Observable<KeyboardEvent> */ (
       // start with the key down stream
       keyDown$.pipe(
         // merge with the key up stream
@@ -19551,6 +19564,12 @@ class KeyHandler extends Handler {
         tap((e) => e.preventDefault()),
         // remove any repeats
         filter((e) => !e.repeat),
+      )
+    );
+
+    // Only debounce when required
+    if (debounceInterval > 0) {
+      events$ = events$.pipe(
         // group by the key
         groupBy((e) => e.key),
         // process each group and merge the results
@@ -19564,26 +19583,29 @@ class KeyHandler extends Handler {
             distinctUntilKeyChanged("type"),
           ),
         ),
-        map((e) => {
-          // add context info to event for use in the conditions and response
-          /** @type {EventLike} */
-          let kw = {
-            type: e.type,
-            target: null,
-            timeStamp: e.timeStamp,
-            access: {
-              key: e.key,
-              altKey: e.altKey,
-              ctrlKey: e.ctrlKey,
-              metaKey: e.metaKey,
-              shiftKey: e.shiftKey,
-              eventType: e.type,
-              ...method.pattern.getCurrentAccess(),
-            },
-          };
-          return kw;
-        }),
-      )
+      );
+    }
+
+    const keyEvents$ = events$.pipe(
+      map((e) => {
+        // add context info to event for use in the conditions and response
+        /** @type {EventLike} */
+        let kw = {
+          type: e.type,
+          target: null,
+          timeStamp: e.timeStamp,
+          access: {
+            key: e.key,
+            altKey: e.altKey,
+            ctrlKey: e.ctrlKey,
+            metaKey: e.metaKey,
+            shiftKey: e.shiftKey,
+            eventType: e.type,
+            ...method.pattern.getCurrentAccess(),
+          },
+        };
+        return kw;
+      }),
     );
     method.streams[streamName] = keyEvents$;
   }
@@ -19756,7 +19778,7 @@ class PointerHandler extends Handler {
       accumulators.set(over.target, sum);
       const threshold = inOutThreshold;
       // exceeding the threshold triggers production of events
-      if (sum > threshold) {
+      if (sum >= threshold) {
         // clamp it at the threshold value
         accumulators.set(over.target, threshold);
         if (over.target != current.target) {
