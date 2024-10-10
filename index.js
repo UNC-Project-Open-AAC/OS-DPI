@@ -9627,10 +9627,7 @@ const variableHandler = {
     if (prop.startsWith("$")) {
       return Object.getOwnPropertyDescriptor(target.states, prop);
     } else if (prop.startsWith("_")) {
-      // if the field exists return a fake descriptor to keep them happy
-      if (Globals.data.allFields.has("#" + prop.slice(1))) {
-        return { configurable: true, enumerable: true };
-      }
+      return { configurable: true, enumerable: true };
     } else {
       return Object.getOwnPropertyDescriptor(Functions, prop);
     }
