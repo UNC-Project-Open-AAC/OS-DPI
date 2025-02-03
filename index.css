@@ -625,7 +625,7 @@ div.modaldialog > div {
   width: 80%;
   height: 80%;
   opacity: 1;
-  background-color: white;
+  background-color: inherit;
   border: 2px solid black;
 }
 div.vsd {
