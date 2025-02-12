@@ -9474,16 +9474,9 @@ async function unPackDesign(blob) {
   const zippedArray = new Uint8Array(zippedBuf);
   const unzipped = unzipSync(zippedArray);
 
-  /** @type {DesignObject} result */
-  const result = {
-    layout: {},
-    actions: {},
-    content: {},
-    cues: {},
-    patterns: {},
-    methods: {},
-    media: [],
-  };
+  /** @type {DesignObject} */
+  const result = {};
+  const media = [];
   for (const fname in unzipped) {
     const mimetype = mime(fname) || "application/octet-stream";
     if (mimetype == "application/json") {
@@ -9506,8 +9499,11 @@ async function unPackDesign(blob) {
       const blob = new Blob([unzipped[fname]], {
         type: mimetype,
       });
-      result.media.push({ name: fname, content: blob });
+      media.push({ name: fname, content: blob });
     }
+  }
+  if (media.length > 0) {
+    result.media = media;
   }
   return result;
 }
@@ -22794,6 +22790,7 @@ function getFileMenuItems(bar) {
             const result = await wait(readSheetFromBlob(blob));
             await db.write("content", result);
             Globals.data.setContent(result);
+            Globals.state.update();
           } else {
             console.log("no file to reload");
           }
