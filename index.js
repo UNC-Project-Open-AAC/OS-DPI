@@ -9239,7 +9239,7 @@ class DB {
     const design = await unPackDesign(blob);
     // copy the design into the db
     for (const [key, value] of Object.entries(design)) {
-      if (key == "media") {
+      if (key == "media" && design.media) {
         for (const media of design.media) {
           await this.addMedia(media.content, media.name);
         }
@@ -9485,8 +9485,6 @@ async function unPackDesign(blob) {
       try {
         obj = JSON.parse(text);
         let type = fname.split(".")[0];
-        if (type == "method") type = "methods";
-        if (type == "pattern") type = "patterns";
         result[type] = obj;
       } catch (e) {
         console.trace(e);
