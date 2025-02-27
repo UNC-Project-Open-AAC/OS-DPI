@@ -15079,19 +15079,23 @@ class Designer extends TreeBase {
    * @returns {Promise<void>}
    */
   async merge(design) {
-    for (let panel in design) {
-      if (panel == "media") {
+    for (let key in design) {
+      if (key == "media" && design.media) {
         for (const media of design.media) {
           await db.addMedia(media.content, media.name);
         }
-      } else if (panel == "content") {
+      } else if (key == "content") {
         await Globals.content.merge({
           className: "Content",
           props: {},
-          children: design[panel],
+          children: design[key],
         });
+      } else if (key == "method") {
+        await Globals["methods"].merge(design["method"]);
+      } else if (key == "pattern") {
+        await Globals["patterns"].merge(design["pattern"]);
       } else {
-        await Globals[panel].merge(design[panel]);
+        await Globals[key].merge(design[key]);
       }
     }
   }
