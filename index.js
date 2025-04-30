@@ -9254,6 +9254,15 @@ class DB {
   }
 
   // do this part async to avoid file picker timeout
+  /**
+   * Converts the current design data into a Blob object containing a zipped archive.
+   * The archive includes layout, actions, content, method, pattern, cues, and associated media files.
+   *
+   * @async
+   * @function convertDesignToBlob
+   * @returns {Promise<Blob>} A Promise that resolves with a Blob object representing the zipped design data.
+   * @throws {Error} Will throw an error if database operations fail or if zipping encounters an issue.
+   */
   async convertDesignToBlob() {
     const db = await this.dbPromise;
     // collect the parts of the design
@@ -9294,7 +9303,15 @@ class DB {
     return blob;
   }
 
-  /** Save a design into a zip file
+  /**
+   * Saves the current design as a .osdpi or .zip file using the fileSave library.
+   * The design is first converted into a Blob object containing a zipped archive,
+   * then saved to the user's file system.  Also saves the design name in the "saved" table of the db.
+   *
+   * @async
+   * @function saveDesign
+   * @returns {Promise<void>} A Promise that resolves when the design is successfully saved.
+   * @throws {Error} Logs an error to the console if the export fails.
    */
   async saveDesign() {
     const db = await this.dbPromise;
@@ -9352,6 +9369,16 @@ class DB {
     }
     img.title = record.name;
     return img;
+  }
+
+  /** Return an image blob from the database
+   * @param {string} name
+   * @returns {Promise<Blob>}
+   */
+  async getImageBlob(name) {
+    const db = await this.dbPromise;
+    const record = await db.get("media", [this.designName, name]);
+    return record.content;
   }
 
   /** Return an audio file from the database
@@ -11813,10 +11840,19 @@ class TreeBase {
       classes = classes.concat(attrs.classes);
     }
     if (!Array.isArray(body)) body = [body];
+    const props = this.props;
+    const data = {
+      ComponentType: this.className,
+    };
+    const name = ("name" in props && props["name"].value) || "";
+    if (name) {
+      data["ComponentName"] = name;
+    }
     return html`<div
       class=${classes.join(" ")}
       id=${this.id}
       style=${styleString(attrs.style)}
+      data=${data}
     >
       ${body}
     </div>`;
@@ -12441,7 +12477,7 @@ let State$1 = class State {
     if (name && name.length) {
       return name
         .split(".")
-        .reduce((o, p) => (o ? o[p] : defaultValue), this.values);
+        .reduce((o, p) => (o ? o[p.trim()] : defaultValue), this.values);
     } else {
       return undefined;
     }
@@ -20317,7 +20353,17 @@ class SocketHandler extends Handler {
     if (method.streams[streamName]) return;
 
     // this is the socket object
-    this.socket = webSocket(this.URL.value);
+    this.socket = webSocket({
+      url: this.URL.value,
+      serializer: (msg) => {
+        if (msg instanceof Blob) {
+          return msg;
+        } else {
+          return JSON.stringify(msg);
+        }
+      },
+      binaryType: "blob",
+    });
 
     // this is the stream of events from it
     this.socket$ = this.socket.pipe(
@@ -20333,22 +20379,19 @@ class SocketHandler extends Handler {
         };
         return wrapped;
       }),
-      tap((e) => console.log("socket", e)),
+      // RxJs.tap((e) => console.log("socket", e)),
     );
     method.streams[streamName] = this.socket$;
   }
 
   /** @param {EventLike} event */
   respond(event) {
-    console.log("socket respond", event.type);
-
     /* Incoming data arrives here in the .access property. This code will filter any arrays of objects and
      * include them in the dynamic data
      */
     let dynamicRows = [];
     const fields = [];
     for (const [key, value] of Object.entries(event.access || {})) {
-      console.log(key, value);
       if (
         Array.isArray(value) &&
         value.length > 0 &&
@@ -20356,6 +20399,8 @@ class SocketHandler extends Handler {
         value[0] !== null
       ) {
         dynamicRows = dynamicRows.concat(value);
+      } else if (key == "FetchImageFromDB") {
+        this.sendImage(value);
       } else {
         fields.push([key, value]);
       }
@@ -20388,6 +20433,15 @@ class SocketHandler extends Handler {
       message["content"] = content;
     }
     this.socket.next(message);
+  }
+
+  /** @param {string} name */
+  async sendImage(name) {
+    if (!this.socket) return;
+
+    // send the image over the websocket
+    const imgBlob = await db.getImageBlob(name);
+    this.socket.next(imgBlob);
   }
 }
 TreeBase.register(SocketHandler, "SocketHandler");

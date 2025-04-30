@@ -1,6 +1,6 @@
 var GHPATH = "/OS-DPI";
 var APP_PREFIX = "osdpi_";
-var VERSION = "2025-1-27-10-36-43";
+var VERSION = "2025-3-30-15-11-17";
 var URLS = [
   `${GHPATH}/`,
   `${GHPATH}/index.html`,
