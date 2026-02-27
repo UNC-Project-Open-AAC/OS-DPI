@@ -1,14 +1,17 @@
 name: Note Link Janitor
-
 on:
   gollum:
-  workflow_dispatch:
+  workflow_dispatch: # Allows you to run it manually to test
 
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout Wiki
+        uses: actions/checkout@v4
         with:
-          repository: ${{github.repository}}.wiki
-      - uses: sander/note-link-janitor@v5
+          repository: ${{ github.repository }}.wiki
+          ref: master # Forces it to find the Wiki's branch
+          
+      - name: Maintain backlinks
+        uses: sander/note-link-janitor@v5
