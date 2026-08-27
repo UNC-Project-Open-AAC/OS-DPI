@@ -1,0 +1,9 @@
+{
+  "title": "Visual scene display",
+  "description": "Photos with tappable hotspots for contextual language.",
+  "board": "examples/updated/VSD_ex_1.osdpi",
+  "tags": ["VSD", "photo"],
+  "author": "UNC Project Open AAC",
+  "createdAt": "2026-06-16",
+  "official": true
+}

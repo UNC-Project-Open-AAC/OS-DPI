@@ -4,3 +4,5 @@
 src/dist/
 src/thinking/wiki
 .DS_Store
+# Generated from the gallery folders by scripts/build-gallery-index.mjs
+src/public/gallery/index.json

@@ -83,8 +83,13 @@ details summary > * {
   box-shadow: none;
 }
 
-#designer .settings:has([aria-selected="true"]),
+/* own rule so an unsupported :has() can't invalidate it */
 #designer .settings[aria-selected="true"] {
+  background-color: var(--surface1);
+  color: var(--text1);
+  outline: 4px dashed var(--brand);
+}
+#designer .settings:has([aria-selected="true"]) {
   background-color: var(--surface1);
   color: var(--text1);
   outline: 4px dashed var(--brand);

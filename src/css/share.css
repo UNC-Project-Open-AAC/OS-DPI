@@ -1,0 +1,138 @@
+/* Share to Gallery dialog, and the gallery dialogs that reuse these styles. */
+
+.share-dialog {
+  border: 1px solid var(--surface4);
+  border-radius: 12px;
+  padding: 0;
+  max-width: 32rem;
+  width: calc(100vw - 2rem);
+  background-color: var(--surface1);
+  color: var(--text1);
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+.share-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.share-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.25rem 1.4rem 1.4rem;
+}
+
+.share-form h1 {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.share-hint {
+  font-size: 0.85rem;
+  color: var(--text2);
+  line-height: 1.45;
+}
+
+.share-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text1);
+}
+
+.share-form input,
+.share-form textarea {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--surface4);
+  border-radius: 7px;
+  background-color: var(--surface2);
+  color: var(--text1);
+  width: 100%;
+}
+
+.share-form input:focus,
+.share-form textarea:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 0;
+  border-color: var(--brand);
+}
+
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+/* Used on buttons and anchors. Resets link chrome and the `dialog button`
+   margin from toolbar.css, which hits only one of the two. */
+.share-btn {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--surface4);
+  background-color: var(--surface2);
+  color: var(--text1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  margin: 0;
+}
+
+.share-btn:hover {
+  background-color: var(--surface3);
+}
+
+.share-btn--primary {
+  background-color: var(--brand);
+  border-color: var(--brand);
+  color: var(--text1);
+}
+
+.share-btn--primary:hover {
+  filter: brightness(1.06);
+  background-color: var(--brand);
+}
+
+.share-btn:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.share-instructions ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.share-instructions code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.82em;
+  background-color: var(--surface3);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+}
+
+.share-meta {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.78rem;
+  resize: vertical;
+}

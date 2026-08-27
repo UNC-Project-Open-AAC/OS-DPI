@@ -678,6 +678,21 @@ export class Conditional extends Prop {
   }
 }
 
+/* Scratch sheet for validating CSS rules. Safari has no CSSStyleSheet
+ * constructor before 16.4, so borrow one from a style element that can never
+ * match. Reused across calls and emptied before each rule. */
+let scratchSheet = null;
+function validationSheet() {
+  if (!scratchSheet) {
+    const style = document.createElement("style");
+    style.media = "not all";
+    document.head.appendChild(style);
+    scratchSheet = style.sheet;
+  }
+  while (scratchSheet.cssRules.length) scratchSheet.deleteRule(0);
+  return scratchSheet;
+}
+
 /** @extends {Prop<string>} */
 export class Code extends Prop {
   editedValue = "";
@@ -761,7 +776,7 @@ export class Code extends Prop {
       // add it to the result
       editedRules.push(rule);
       // validate the rule
-      const styleSheet = new CSSStyleSheet();
+      const styleSheet = validationSheet();
       try {
         // add the rule to the sheet. If the selector is bad we'll get an
         // exception. If any properties are bad they will omitted in the

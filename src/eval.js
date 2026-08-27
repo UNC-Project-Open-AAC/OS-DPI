@@ -65,9 +65,16 @@ function translate(expression) {
   // remove any initial = sign
   let exp = expression.replace(/^=/, "");
   // translate single = to ==
-  exp = exp.replaceAll(/(?<![=<>!])=/g, "==");
+  // lookbehind would be clearer but it needs Safari 16.4
+  exp = exp.replaceAll(/=/g, (_match, offset, str) =>
+    offset > 0 && "=<>!".includes(str[offset - 1]) ? "=" : "==",
+  );
   // translate words
-  exp = exp.replaceAll(/(?<!['"])[#](\w+)/g, "_$1");
+  exp = exp.replaceAll(/#(\w+)/g, (match, word, offset, str) =>
+    offset > 0 && (str[offset - 1] === "'" || str[offset - 1] === '"')
+      ? match
+      : "_" + word,
+  );
   return exp;
 }
 

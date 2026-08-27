@@ -1,0 +1,9 @@
+{
+  "title": "Text with tabs",
+  "description": "A text board with tabs, a keyboard, and stored phrases.",
+  "board": "examples/updated/text_tabs_ex_1.osdpi",
+  "tags": ["text", "tabs"],
+  "author": "UNC Project Open AAC",
+  "createdAt": "2026-06-16",
+  "official": true
+}

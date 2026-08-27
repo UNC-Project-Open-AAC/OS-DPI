@@ -29,5 +29,6 @@ module.exports = {
   },
   globals: {
     APP_VERSION: true,
+    ORIGIN_REPO: true,
   },
 };

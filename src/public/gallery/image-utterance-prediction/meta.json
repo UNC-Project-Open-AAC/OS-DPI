@@ -1,0 +1,8 @@
+{
+  "title": "Image upload with utterance prediction",
+  "description": "Upload an image to get AI comment and question suggestions.",
+  "tags": ["image", "AI"],
+  "author": "UNC Project Open AAC",
+  "createdAt": "2026-06-16",
+  "official": true
+}

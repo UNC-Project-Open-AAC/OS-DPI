@@ -1,0 +1,8 @@
+{
+  "title": "Core board with utterance prediction",
+  "description": "A core board with an AI plug-in suggesting comments and questions.",
+  "tags": ["AI", "prediction"],
+  "author": "UNC Project Open AAC",
+  "createdAt": "2026-06-16",
+  "official": true
+}

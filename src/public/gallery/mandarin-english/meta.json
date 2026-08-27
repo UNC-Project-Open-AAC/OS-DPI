@@ -1,0 +1,8 @@
+{
+  "title": "Mandarin / English board",
+  "description": "A bilingual core board that toggles between Mandarin and English.",
+  "tags": ["bilingual", "grid"],
+  "author": "UNC Project Open AAC",
+  "createdAt": "2026-06-16",
+  "official": true
+}

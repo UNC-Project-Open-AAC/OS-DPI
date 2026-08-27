@@ -1,0 +1,8 @@
+{
+  "title": "ASL core board with keyword prediction",
+  "description": "An ASL core board with AI keyword prediction, scanning, and zoom.",
+  "tags": ["ASL", "prediction"],
+  "author": "UNC Project Open AAC",
+  "createdAt": "2026-06-16",
+  "official": true
+}

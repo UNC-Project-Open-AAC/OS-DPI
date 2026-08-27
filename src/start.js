@@ -20,6 +20,9 @@ import { Designer } from "components/designer";
 import { Content } from "components/content";
 import { workerCheckForUpdate } from "components/serviceWorker";
 import { accessed } from "./eval";
+import { installIOSMediaUnlock } from "./iosMediaUnlock";
+import { installFullscreenExit } from "./fullscreenExit";
+import { showGallery } from "./components/gallery";
 
 /** let me wait for the page to load */
 const pageLoaded = new Promise((resolve) => {
@@ -49,11 +52,16 @@ export async function start() {
       );
     }
   }
-  let name = window.location.hash.slice(1);
-  if (!name) {
-    name = await db.uniqueName("new");
-    window.location.hash = `#${name}`;
+  // Bare URL or #gallery shows the example gallery.
+  const hash = window.location.hash.slice(1);
+  if (!hash || hash === "gallery") {
+    if (Globals.methods) Globals.methods.stop();
+    await pageLoaded;
+    await showGallery();
+    return;
   }
+  document.body.classList.remove("gallery-mode");
+  const name = hash;
   db.setDesignName(name);
   const dataArray = await db.read("content", []);
   const noteArray = await db.read("notes", []);
@@ -156,8 +164,15 @@ export async function start() {
   renderUI();
 }
 
-/* Watch for updates happening in other tabs */
-const channel = new BroadcastChannel("os-dpi");
+/* Watch for updates happening in other tabs.
+ * BroadcastChannel needs Safari 15.4, so stub it out on older browsers. */
+const channel = /** @type {BroadcastChannel} */ (
+  /** @type {any} */ (
+    typeof BroadcastChannel !== "undefined"
+      ? new BroadcastChannel("os-dpi")
+      : { onmessage: null, postMessage() {}, close() {} }
+  )
+);
 /** @param {MessageEvent} event */
 channel.onmessage = (event) => {
   const message = /** @type {UpdateNotification} */ (event.data);
@@ -189,5 +204,12 @@ window.addEventListener("resize", () => {
   if (!Globals.state) return;
   Globals.state.update();
 });
+
+// iOS Safari blocks speech/audio that isn't triggered from a user gesture;
+// prime both on the first interaction so deferred-render playback works.
+installIOSMediaUnlock();
+
+// Floating control: tap for full screen, hold three seconds to reopen the editor.
+installFullscreenExit();
 
 start();

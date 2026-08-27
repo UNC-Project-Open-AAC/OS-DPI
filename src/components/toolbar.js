@@ -17,9 +17,11 @@ import { Designer } from "./designer";
 import { readSheetFromBlob, saveContent } from "app/spreadsheet";
 import { SaveLog, ClearLog } from "./logger";
 import { friendlyName, wikiName } from "./names";
+import { claimTab, showInTab, openTab } from "app/openTab";
 
 import { workerUpdateButton } from "components/serviceWorker";
 import { monkey } from "components/monkeyTest";
+import { ShareDialog } from "./shareDialog";
 
 /** Return a list of available Menu items on this component
  *
@@ -193,7 +195,7 @@ function getFileMenuItems(bar) {
         })
           .then((file) => pleaseWait(local_db.readDesignFromFile(file)))
           .then(() => {
-            window.open(`#${local_db.designName}`, "_blank", `noopener=true`);
+            openTab(`#${local_db.designName}`);
           })
           .catch((e) => console.log(e));
       },
@@ -209,16 +211,29 @@ function getFileMenuItems(bar) {
       },
     }),
     new MenuItem({
+      label: "Share to Gallery",
+      title: "Contribute this board to the example gallery",
+      callback: () => bar.shareDialog.open(),
+    }),
+    new MenuItem({
       label: "New",
       callback: async () => {
-        const name = await db.uniqueName("new");
-        window.open(`#${name}`, "_blank", `noopener=true`);
+        // Claim the tab on the click, before awaiting the name.
+        const tab = claimTab();
+        showInTab(tab, `#${await db.uniqueName("new")}`);
       },
     }),
     new MenuItem({
       label: "Open",
       callback: () => {
         bar.designListDialog.open();
+      },
+    }),
+    new MenuItem({
+      label: "Gallery",
+      title: "Browse the example gallery",
+      callback: () => {
+        openTab("#gallery");
       },
     }),
     new MenuItem({
@@ -666,11 +681,7 @@ class ImportURLDialog {
             const local_db = new DB();
             pleaseWait(local_db.readDesignFromURL(input.value)).then(
               () => {
-                window.open(
-                  `#${local_db.designName}`,
-                  "_blank",
-                  `noopener=true`,
-                );
+                openTab(`#${local_db.designName}`);
               },
               () => console.log("rejected"),
             );
@@ -711,6 +722,7 @@ export class ToolBar extends TreeBase {
     this.helpMenu = new Menu("Help", getHelpMenuItems, this);
     this.designListDialog = new DesignListDialog();
     this.importURLDialog = new ImportURLDialog();
+    this.shareDialog = new ShareDialog();
   }
 
   template() {
@@ -760,6 +772,7 @@ export class ToolBar extends TreeBase {
           <li>${workerUpdateButton()}</li>
         </ul>
         ${this.designListDialog.template()} ${this.importURLDialog.template()}
+        ${this.shareDialog.template()}
       </div>
     `;
   }

@@ -5,6 +5,9 @@ body {
   opacity: 0;
   width: 100vw;
   height: 100vh;
+  /* dvh = iOS Safari's visible viewport (vh there is the taller toolbar-hidden
+   * size, which pushed the bottom row under the chrome). vh is the fallback. */
+  height: 100dvh;
   touch-action: none;
 }
 
@@ -12,10 +15,14 @@ button {
   font-size: inherit;
 }
 
-body.loaded,
-body:has(#ErrorReport) {
+body.loaded {
   opacity: 1;
   /* transition: opacity 0.5s ease-in; */
+}
+
+/* own rule so an unsupported :has() can't invalidate body.loaded above */
+body:has(#ErrorReport) {
+  opacity: 1;
 }
 
 div#UI {

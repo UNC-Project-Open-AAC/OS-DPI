@@ -1,0 +1,142 @@
+/* The full-screen / exit-to-editor button. See fullscreenExit.js.
+ * Uses the app's colour tokens; dimmed over the board, brightens on
+ * hover/focus/hold. */
+
+.fsx-btn {
+  position: fixed;
+  /* corner, clear of the iOS safe areas */
+  top: max(0.5rem, env(safe-area-inset-top));
+  right: max(0.5rem, env(safe-area-inset-right));
+  z-index: 100;
+
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+
+  /* at rest just a faint icon; the frosted disc appears on hover/focus/hold */
+  color: var(--text1);
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  box-shadow: none;
+
+  cursor: pointer;
+  opacity: 0.28;
+  transition:
+    opacity 150ms ease,
+    transform 120ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none; /* we own the press-and-hold gesture */
+}
+
+.fsx-btn:hover,
+.fsx-btn:focus-visible,
+.fsx-btn.fsx-holding {
+  opacity: 1;
+  background-color: hsl(var(--surface1-hsl) / 0.8);
+  border-color: hsl(var(--hue) 20% 50% / 0.35);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px hsl(var(--surface-shadow) / 0.22);
+}
+
+.fsx-btn:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.fsx-btn:active {
+  transform: scale(0.96);
+}
+
+/* in the designer, park it at the top-right of the board preview (left half) */
+body.designing .fsx-btn {
+  top: 0.5rem;
+  right: calc(50% + 0.5rem);
+  opacity: 0.35;
+}
+
+/* icons: "grow" normally, "shrink" once full screen */
+.fsx-icon {
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+}
+.fsx-icon svg {
+  width: 100%;
+  height: 100%;
+}
+.fsx-icon-compress {
+  display: none;
+}
+.fsx-btn.fsx-active .fsx-icon-expand {
+  display: none;
+}
+.fsx-btn.fsx-active .fsx-icon-compress {
+  display: inline-flex;
+}
+
+/* iOS has no real full screen (see fullscreenExit.js): the board-only view is
+ * the editor hidden, i.e. body without .designing, so swap the icon on that. */
+body.fsx-ios:not(.designing) .fsx-icon-expand {
+  display: none;
+}
+body.fsx-ios:not(.designing) .fsx-icon-compress {
+  display: inline-flex;
+}
+
+/* progress ring that fills while held (pathLength=100 keeps the dash maths 0..100) */
+.fsx-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.fsx-ring-track {
+  fill: none;
+  stroke: hsl(var(--hue) 20% 50% / 0.22);
+  stroke-width: 2.5;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.fsx-btn.fsx-holding .fsx-ring-track {
+  opacity: 1;
+}
+.fsx-ring-progress {
+  fill: none;
+  stroke: var(--brand);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  opacity: 0;
+  /* pivot on the circle centre (Safari) and fill from the top */
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: rotate(-90deg);
+}
+.fsx-btn.fsx-holding .fsx-ring-progress {
+  opacity: 1;
+  animation: fsx-fill 3s linear forwards;
+}
+
+@keyframes fsx-fill {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fsx-btn {
+    transition: opacity 150ms ease;
+  }
+}

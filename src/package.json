@@ -3,7 +3,10 @@
   "version": "0.8.0",
   "description": "",
   "scripts": {
+    "prestart": "node scripts/build-gallery-index.mjs",
     "start": "vite --port 8080 --host 0.0.0.0",
+    "gallery:index": "node scripts/build-gallery-index.mjs",
+    "prebuild": "node scripts/build-gallery-index.mjs",
     "build": "vite build",
     "deploy": "./deploy.sh",
     "publish": "./publish.sh",
